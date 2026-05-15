@@ -2,13 +2,13 @@
 
 Bayanour — تطبيق تعليمي للأطفال (Flutter).
 
-## ملفات الصوت (محلياً فقط)
+## الوسائط (محلياً فقط — غير مرفوعة على GitHub)
 
-ملفات MP3 **غير مرفوعة على GitHub**. ضعيها يدوياً في:
+**صوت القرآن:** `assets/audio/quran/ahmed_khader/half_hizb/session_001.mp3` … `session_120.mp3`
 
-`assets/audio/quran/ahmed_khader/half_hizb/session_001.mp3` … `session_120.mp3`
+**فيديوهات الافتتاح:** `assets/videos/onboarding_1.mp4` … `onboarding_7.mp4`
 
-يُستخدم أيضاً `half_hizb_manifest.json` الموجود في المستودع.
+ملف `half_hizb_manifest.json` موجود في المستودع.
 
 ## Git
 
