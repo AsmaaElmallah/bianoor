@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -19,6 +21,19 @@ class PrefsService {
   static const _kQuranCompletedKhatmahs = 'quran_completed_khatmahs_count';
   static const _kQuranSessionsToday = 'quran_sessions_completed_today';
   static const _kQuranLastListenDate = 'quran_last_listen_date';
+  static const _kMathCurriculumDay = 'math_curriculum_day';
+  static const _kMathRoundsToday = 'math_rounds_completed_today';
+  static const _kMathLastSessionDate = 'math_last_session_date';
+  static const _kMathProgramStartDate = 'math_program_start_date';
+  static const _kVisualCurriculumDay = 'visual_curriculum_day';
+  static const _kVisualRoundsToday = 'visual_rounds_completed_today';
+  static const _kVisualLastSessionDate = 'visual_last_session_date';
+  static const _kVisualProgramStartDate = 'visual_program_start_date';
+  static const _kEmotionalCurriculumDay = 'emotional_curriculum_day';
+  static const _kEmotionalRoundsToday = 'emotional_rounds_completed_today';
+  static const _kEmotionalLastSessionDate = 'emotional_last_session_date';
+  static const _kEmotionalProgramStartDate = 'emotional_program_start_date';
+  static const _kAptitudeTestAnswers = 'aptitude_test_0_2_answers';
 
   int getVideoIndex() => _prefs.getInt(_kVideoIndex) ?? 0;
   Future<void> setVideoIndex(int value) => _prefs.setInt(_kVideoIndex, value);
@@ -66,6 +81,77 @@ class PrefsService {
   String? getQuranLastListenDate() => _prefs.getString(_kQuranLastListenDate);
   Future<void> setQuranLastListenDate(String value) =>
       _prefs.setString(_kQuranLastListenDate, value);
+
+  int getMathCurriculumDay() => _prefs.getInt(_kMathCurriculumDay) ?? 1;
+  Future<void> setMathCurriculumDay(int value) =>
+      _prefs.setInt(_kMathCurriculumDay, value);
+
+  int getMathRoundsCompletedToday() => _prefs.getInt(_kMathRoundsToday) ?? 0;
+  Future<void> setMathRoundsCompletedToday(int value) =>
+      _prefs.setInt(_kMathRoundsToday, value);
+
+  String? getMathLastSessionDate() => _prefs.getString(_kMathLastSessionDate);
+  Future<void> setMathLastSessionDate(String value) =>
+      _prefs.setString(_kMathLastSessionDate, value);
+
+  String? getMathProgramStartDate() => _prefs.getString(_kMathProgramStartDate);
+  Future<void> setMathProgramStartDate(String value) =>
+      _prefs.setString(_kMathProgramStartDate, value);
+
+  int getVisualCurriculumDay() => _prefs.getInt(_kVisualCurriculumDay) ?? 1;
+  Future<void> setVisualCurriculumDay(int value) =>
+      _prefs.setInt(_kVisualCurriculumDay, value);
+
+  int getVisualRoundsCompletedToday() => _prefs.getInt(_kVisualRoundsToday) ?? 0;
+  Future<void> setVisualRoundsCompletedToday(int value) =>
+      _prefs.setInt(_kVisualRoundsToday, value);
+
+  String? getVisualLastSessionDate() => _prefs.getString(_kVisualLastSessionDate);
+  Future<void> setVisualLastSessionDate(String value) =>
+      _prefs.setString(_kVisualLastSessionDate, value);
+
+  String? getVisualProgramStartDate() => _prefs.getString(_kVisualProgramStartDate);
+  Future<void> setVisualProgramStartDate(String value) =>
+      _prefs.setString(_kVisualProgramStartDate, value);
+
+  int getEmotionalCurriculumDay() => _prefs.getInt(_kEmotionalCurriculumDay) ?? 1;
+  Future<void> setEmotionalCurriculumDay(int value) =>
+      _prefs.setInt(_kEmotionalCurriculumDay, value);
+
+  int getEmotionalRoundsCompletedToday() => _prefs.getInt(_kEmotionalRoundsToday) ?? 0;
+  Future<void> setEmotionalRoundsCompletedToday(int value) =>
+      _prefs.setInt(_kEmotionalRoundsToday, value);
+
+  String? getEmotionalLastSessionDate() => _prefs.getString(_kEmotionalLastSessionDate);
+  Future<void> setEmotionalLastSessionDate(String value) =>
+      _prefs.setString(_kEmotionalLastSessionDate, value);
+
+  String? getEmotionalProgramStartDate() => _prefs.getString(_kEmotionalProgramStartDate);
+  Future<void> setEmotionalProgramStartDate(String value) =>
+      _prefs.setString(_kEmotionalProgramStartDate, value);
+
+  /// إجابات اختبار القدرات (0–2): معرّف السؤال → true نعم / false لا.
+  Map<String, bool>? getAptitudeTestAnswers() {
+    final raw = _prefs.getString(_kAptitudeTestAnswers);
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      return decoded.map(
+        (key, value) => MapEntry(key, value == true),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> setAptitudeTestAnswers(Map<String, bool?> answers) async {
+    final toStore = <String, bool>{};
+    for (final entry in answers.entries) {
+      final value = entry.value;
+      if (value != null) toStore[entry.key] = value;
+    }
+    await _prefs.setString(_kAptitudeTestAnswers, jsonEncode(toStore));
+  }
 }
 
 /// Provider that must be overridden in main() with an initialized instance.

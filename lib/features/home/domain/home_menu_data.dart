@@ -28,25 +28,35 @@ const homeMenuSections = <HomeMenuSection>[
         children: [
           HomeMenuItem(
             id: 'curriculum_about',
-            title: 'ما هو المنهج؟ (أهدافه وأساليبه)',
+            title: '🌸 ما هو المنهج ؟ ( اهدافه و اساليبه)',
             icon: Symbols.auto_stories,
           ),
           HomeMenuItem(
-            id: 'mother_health_culture',
-            title: 'ثقافة هامة للأمهات للرعاية الصحية بطفلك',
+            id: 'parent_general_culture',
+            title: 'ثقافة هامة للأمهات / ولي الأمر لطفلك',
+            icon: Symbols.groups,
+          ),
+          HomeMenuItem(
+            id: 'parent_health_culture',
+            title: 'الثقافة الصحية',
             icon: Symbols.health_and_safety,
           ),
         ],
       ),
       HomeMenuItem(
         id: 'how_to_teach',
-        title: 'كيف أدرس طفلي',
+        title: '🌸 كيف ادررس طفلي ؟',
         icon: Symbols.location_on,
       ),
       HomeMenuItem(
         id: 'apply_activities',
         title: 'تطبيق الأنشطة',
         icon: Symbols.extension,
+      ),
+      HomeMenuItem(
+        id: 'baby_exercises',
+        title: 'الرياضة',
+        icon: Symbols.fitness_center,
       ),
       HomeMenuItem(
         id: 'age_levels',
@@ -164,8 +174,9 @@ const homeMenuSections = <HomeMenuSection>[
     items: [
       HomeMenuItem(id: 'activities', title: 'الأنشطة', icon: Symbols.sports_esports),
       HomeMenuItem(id: 'library_books', title: 'المكتبة', icon: Symbols.folder),
-      HomeMenuItem(id: 'nature_sounds', title: 'سمعيات الطبيعة', icon: Symbols.park),
+      HomeMenuItem(id: 'nature_sounds', title: 'صوت الطبيعة', icon: Symbols.park),
       HomeMenuItem(id: 'calm_music', title: 'موسيقى هادئة', icon: Symbols.music_note),
+      HomeMenuItem(id: 'lullabies', title: 'تهويدات', icon: Symbols.bedtime),
     ],
   ),
   HomeMenuSection(

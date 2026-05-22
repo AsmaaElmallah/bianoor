@@ -1,4 +1,4 @@
-name: bayanour
+﻿name: bayanour
 description: "Bayanour - Educational app for infants (Duolingo-style for babies)."
 publish_to: 'none'
 version: 1.0.0+1
@@ -24,6 +24,8 @@ dependencies:
   flutter_svg: ^2.0.10+1
   material_symbols_icons: ^4.2801.0
   just_audio: ^0.9.46
+  webview_flutter: ^4.10.0
+  url_launcher: ^6.3.1
 
 dev_dependencies:
   flutter_test:
@@ -38,8 +40,10 @@ flutter:
     - assets/videos/
     - assets/images/
     - assets/icons/
-    - assets/audio/quran/ahmed_khader/half_hizb/
-
+    - assets/audio/
+    - assets/math/
+    - assets/visual/
+    - assets/emotional/
   fonts:
     - family: XPNiloofar
       fonts:

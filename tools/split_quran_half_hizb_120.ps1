@@ -1,5 +1,6 @@
 # Build 120 MP3s (half-hizb / rub' juz) from 114 surah source files.
-# Each of the 60 standard hizbs is split in two at the middle ayah (ayah-safe edges).
+# Cuts use ayah_timings.json (silence-based) so sessions never end mid-ayah.
+# Run trim_surah_outro.ps1 + build_ayah_timings.ps1 first.
 param([string]$ReciterId = "ahmed_khader")
 
 $ErrorActionPreference = "Stop"
@@ -47,21 +48,45 @@ function Get-DurationSec {
   return [double]$d
 }
 
+function Get-AyahTimeBounds {
+  param([int]$Surah, [int]$StartAyah, [int]$EndAyahExclusive, [string]$Src, $Timings)
+  $total = $ayahCounts[$Surah - 1]
+  $key = "$Surah"
+  $t = $null
+  if ($Timings) { $t = $Timings.$key }
+  if ($t) {
+    $starts = @($t.ayahStarts)
+    $ends = @($t.ayahEnds)
+    if ($starts.Count -ge $total -and $ends.Count -ge $total) {
+      $ss = $starts[$StartAyah - 1]
+      $ee = if ($EndAyahExclusive -le $total) { $ends[$EndAyahExclusive - 1] } else { $ends[$total - 1] }
+      return @{ SS = [double]$ss; EE = [double]$ee }
+    }
+  }
+  $dur = Get-DurationSec $Src
+  return @{
+    SS = ($StartAyah - 1) / $total * $dur
+    EE = ($EndAyahExclusive - 1) / $total * $dur
+  }
+}
+
 function Extract-AyahRange {
   param(
     [string]$Src, [string]$WorkDir, [int]$Surah,
-    [int]$StartAyah, [int]$EndAyahExclusive
+    [int]$StartAyah, [int]$EndAyahExclusive,
+    $Timings
   )
   $total = $ayahCounts[$Surah - 1]
   if ($StartAyah -ge $EndAyahExclusive) { return $null }
-  if ($StartAyah -eq 1 -and $EndAyahExclusive -eq ($total + 1)) { return $Src }
 
   $out = Join-Path $WorkDir ("clip_s{0:D3}_{1}_{2}.mp3" -f $Surah, $StartAyah, ($EndAyahExclusive - 1))
   if (Test-Path $out) { return $out }
 
-  $dur = Get-DurationSec $Src
-  $ss = ($StartAyah - 1) / $total * $dur
-  $ee = ($EndAyahExclusive - 1) / $total * $dur
+  $bounds = Get-AyahTimeBounds -Surah $Surah -StartAyah $StartAyah -EndAyahExclusive $EndAyahExclusive -Src $Src -Timings $Timings
+  $ss = $bounds.SS
+  $ee = $bounds.EE
+  if ($ee -le $ss + 0.05) { throw "Invalid ayah window s$Surah a$StartAyah..$($EndAyahExclusive-1)" }
+
   & ffmpeg -y -hide_banner -loglevel error -ss $ss -to $ee -i $Src -acodec libmp3lame -q:a 4 $out
   if ($LASTEXITCODE -ne 0) { throw "ffmpeg failed for $Src" }
   return $out
@@ -71,7 +96,8 @@ function Build-ClipsForRange {
   param(
     [int]$StartSurah, [int]$StartAyah,
     [int]$EndSurah, [int]$EndAyah,
-    [string]$SourceDir, [string]$WorkDir
+    [string]$SourceDir, [string]$WorkDir,
+    $Timings
   )
   $clips = [System.Collections.Generic.List[string]]::new()
 
@@ -81,7 +107,7 @@ function Build-ClipsForRange {
     $endEx = if ($surah -eq $EndSurah) { $EndAyah } else { $ayahCounts[$surah - 1] + 1 }
     if ($startA -ge $endEx) { break }
 
-    $clip = Extract-AyahRange -Src $src -WorkDir $WorkDir -Surah $surah -StartAyah $startA -EndAyahExclusive $endEx
+    $clip = Extract-AyahRange -Src $src -WorkDir $WorkDir -Surah $surah -StartAyah $startA -EndAyahExclusive $endEx -Timings $Timings
     if ($clip) { [void]$clips.Add($clip) }
   }
   return $clips
@@ -121,12 +147,23 @@ function Get-HizbPairs {
 }
 
 $root = Split-Path $PSScriptRoot -Parent
-$sourceDir = Join-Path $root "tools\quran_archive\$ReciterId\source"
+$archiveRoot = Join-Path $root "tools\quran_archive\$ReciterId"
+$trimmedDir = Join-Path $archiveRoot "source\_trimmed"
+$sourceDir = if (Test-Path $trimmedDir) { $trimmedDir } else { Join-Path $archiveRoot "source" }
 if (-not (Test-Path $sourceDir)) {
   $sourceDir = Join-Path $root "assets\audio\quran\$ReciterId\source"
 }
 if (-not (Test-Path $sourceDir)) {
-  throw "Surah source not found. Expected tools\quran_archive\$ReciterId\source"
+  throw "Surah source not found. Run trim_surah_outro.ps1 first."
+}
+
+$timingsPath = Join-Path $archiveRoot "ayah_timings.json"
+$timings = $null
+if (Test-Path $timingsPath) {
+  $timings = Get-Content -LiteralPath $timingsPath -Raw -Encoding UTF8 | ConvertFrom-Json
+  Write-Host "Using ayah timings: $timingsPath"
+} else {
+  Write-Warning "ayah_timings.json missing - run build_ayah_timings.ps1 (cuts may be approximate)."
 }
 
 $outDir = Join-Path $root "assets\audio\quran\$ReciterId\half_hizb"
@@ -155,7 +192,7 @@ foreach ($hizbIndex in 1..$hizbPairs.Count) {
   )
 
   foreach ($half in $halves) {
-    $clips = Build-ClipsForRange -StartSurah $half.SS -StartAyah $half.SA -EndSurah $half.ES -EndAyah $half.EA -SourceDir $sourceDir -WorkDir $workDir
+    $clips = Build-ClipsForRange -StartSurah $half.SS -StartAyah $half.SA -EndSurah $half.ES -EndAyah $half.EA -SourceDir $sourceDir -WorkDir $workDir -Timings $timings
     $out = Join-Path $outDir ("session_{0:D3}.mp3" -f $segment)
     $fileList = @($clips)
     if ($clips -is [string]) { $fileList = @($clips) }
@@ -184,8 +221,9 @@ foreach ($hizbIndex in 1..$hizbPairs.Count) {
       sizeMb      = $mb
     })
 
-    Write-Host ("Seg {0:D3} (hizb {1} part {2}): {3}:{4} -> {5}:{6} | {7} MB | {8:D2}:{9:D2}" -f `
-      $segment, $hizbIndex, $half.Half, $half.SS, $half.SA, $half.ES, $half.EA, $mb, $mm, $ss)
+    $msg = 'Seg {0:D3} (hizb {1} part {2}): {3}:{4} -> {5}:{6} - {7} MB - {8:D2}:{9:D2}' -f `
+      $segment, $hizbIndex, $half.Half, $half.SS, $half.SA, $half.ES, $half.EA, $mb, $mm, $ss
+    Write-Host $msg
     $segment++
   }
 }

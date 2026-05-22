@@ -13,7 +13,6 @@ import '../application/quran_curriculum_provider.dart';
 import '../domain/quran_age_schedule.dart';
 import 'widgets/tactile/quran_floating_hero.dart';
 import 'widgets/tactile/quran_tactile_app_bar.dart';
-import 'widgets/tactile/tactile_clay_button.dart';
 import 'widgets/tactile/tactile_clay_card.dart';
 import 'widgets/tactile/tactile_clay_progress.dart';
 
@@ -301,12 +300,6 @@ class _QuranPlayerScreenState extends ConsumerState<QuranPlayerScreen> {
                 ],
               ),
             ],
-            const SizedBox(height: 20),
-            TactileClayButton(
-              label: _playing ? 'إيقاف مؤقت' : 'تشغيل',
-              icon: _playing ? Symbols.pause : Symbols.play_arrow,
-              onPressed: _completed ? null : _togglePlay,
-            ),
           ],
         ),
       ),

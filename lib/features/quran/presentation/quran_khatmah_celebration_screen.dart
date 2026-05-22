@@ -126,7 +126,7 @@ class QuranKhatmahCelebrationScreen extends StatelessWidget {
                                   label: 'ابدأ الختمة التالية',
                                   icon: Symbols.menu_book,
                                   onPressed: () {
-                                    context.go(AppRoutes.quranLesson);
+                                    context.go(AppRoutes.quranJourney);
                                   },
                                 ),
                                 const SizedBox(height: 12),
