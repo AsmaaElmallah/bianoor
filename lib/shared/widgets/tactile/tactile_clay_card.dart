@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_shadows.dart';
 
-/// Inflated clay panel (Stitch tactile / claymorphism).
-class TactileClayCard extends StatelessWidget {
+/// Inflated clay panel — tappable version has press-sink animation.
+class TactileClayCard extends StatefulWidget {
   const TactileClayCard({
     super.key,
     required this.child,
@@ -24,13 +25,45 @@ class TactileClayCard extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final r = borderRadius ?? AppRadius.brXl;
-    final bg = color ?? AppColors.surfaceContainerLowest;
+  State<TactileClayCard> createState() => _TactileClayCardState();
+}
 
-    final body = Container(
-      margin: margin,
-      padding: padding,
+class _TactileClayCardState extends State<TactileClayCard> {
+  bool _pressed = false;
+
+  void _onTapDown(TapDownDetails _) {
+    if (widget.onTap == null) return;
+    HapticFeedback.selectionClick();
+    setState(() => _pressed = true);
+  }
+
+  void _onTapUp(TapUpDetails _) {
+    if (widget.onTap == null) return;
+    setState(() => _pressed = false);
+    widget.onTap?.call();
+  }
+
+  void _onTapCancel() => setState(() => _pressed = false);
+
+  @override
+  Widget build(BuildContext context) {
+    final r = widget.borderRadius ?? AppRadius.brXl;
+    final bg = widget.color ?? AppColors.surfaceContainerLowest;
+    final tappable = widget.onTap != null;
+
+    final body = AnimatedContainer(
+      duration: _pressed
+          ? const Duration(milliseconds: 85)
+          : const Duration(milliseconds: 200),
+      curve: _pressed ? Curves.easeIn : Curves.elasticOut,
+      margin: widget.margin,
+      padding: widget.padding,
+      transform: tappable
+          ? (Matrix4.identity()
+            ..translate(0.0, _pressed ? 3.0 : 0.0)
+            ..scale(_pressed ? 0.97 : 1.0))
+          : null,
+      transformAlignment: Alignment.center,
       decoration: BoxDecoration(
         color: bg,
         borderRadius: r,
@@ -38,19 +71,18 @@ class TactileClayCard extends StatelessWidget {
           color: AppColors.surfaceContainerLow.withValues(alpha: 0.9),
           width: 3,
         ),
-        boxShadow: AppShadows.clayLift,
+        boxShadow: _pressed ? AppShadows.soft : AppShadows.clayLift,
       ),
-      child: child,
+      child: widget.child,
     );
 
-    if (onTap == null) return body;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: r,
-        child: body,
-      ),
+    if (!tappable) return body;
+
+    return GestureDetector(
+      onTapDown: _onTapDown,
+      onTapUp: _onTapUp,
+      onTapCancel: _onTapCancel,
+      child: body,
     );
   }
 }

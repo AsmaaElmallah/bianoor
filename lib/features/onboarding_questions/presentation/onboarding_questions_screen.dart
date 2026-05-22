@@ -7,6 +7,7 @@ import '../../../core/router/app_routes.dart';
 import '../../../core/storage/prefs_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
+import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../application/onboarding_controller.dart';
 import 'sections/baby_info_section.dart';
@@ -57,7 +58,10 @@ class _OnboardingQuestionsScreenState
           style: theme.textTheme.titleLarge,
         ),
       ),
-      body: SafeArea(
+      body: Stack(
+        children: [
+          const BeboShellBackground(showBottomCurve: false),
+          SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
           child: Column(
@@ -98,6 +102,8 @@ class _OnboardingQuestionsScreenState
             ],
           ),
         ),
+          ),
+        ],
       ),
     );
   }

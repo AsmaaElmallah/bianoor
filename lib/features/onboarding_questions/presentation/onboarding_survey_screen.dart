@@ -9,6 +9,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../shared/widgets/app_logo_avatar.dart';
 import '../../../shared/widgets/app_text_field.dart';
+import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/secondary_button.dart';
 import '../application/onboarding_controller.dart';
@@ -96,7 +97,10 @@ class _OnboardingSurveyScreenState extends ConsumerState<OnboardingSurveyScreen>
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
+      body: Stack(
+        children: [
+          const BeboShellBackground(showBottomCurve: false),
+          SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
           child: Column(
@@ -402,6 +406,8 @@ class _OnboardingSurveyScreenState extends ConsumerState<OnboardingSurveyScreen>
             ],
           ),
         ),
+          ),
+        ],
       ),
     );
   }

@@ -4,14 +4,21 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../../core/theme/app_colors.dart';
 import 'home_menu_item.dart';
 
-/// Pastel tints for lesson cards (from the design reference).
+/// Track-themed lesson card colors — warmer & more vibrant.
 class HomeLessonColors {
   HomeLessonColors._();
 
-  static const quran = Color(0xFFD4EDF7);
-  static const math = Color(0xFFF5E6B8);
-  static const visual = Color(0xFFF0EDD8);
-  static const emotional = Color(0xFFF8D4DC);
+  static const quranBg   = AppColors.trackQuranLight;    // #FFF3CC gold tint
+  static const quranIcon = AppColors.trackQuranGold;     // #FFAA00
+
+  static const mathBg    = AppColors.trackMathLight;     // #FFE4DB orange tint
+  static const mathIcon  = AppColors.trackMathOrange;    // #FF7043
+
+  static const visualBg  = AppColors.trackVisualLight;  // #EFE3FF purple tint
+  static const visualIcon= AppColors.trackVisualPurple; // #9C6FD6
+
+  static const emotionalBg  = AppColors.trackEmotionalLight; // #FFE4EC coral tint
+  static const emotionalIcon= AppColors.trackEmotionalRed;   // #F1758E
 }
 
 const homeMenuSections = <HomeMenuSection>[
@@ -81,29 +88,29 @@ const homeMenuSections = <HomeMenuSection>[
         id: 'lesson_quran',
         title: 'القرآن الكريم',
         icon: Symbols.menu_book,
-        cardColor: HomeLessonColors.quran,
-        iconColor: AppColors.tertiary,
+        cardColor: HomeLessonColors.quranBg,
+        iconColor: HomeLessonColors.quranIcon,
       ),
       HomeMenuItem(
         id: 'lesson_math',
         title: 'الحساب النقطي',
         icon: Symbols.grid_on,
-        cardColor: HomeLessonColors.math,
-        iconColor: AppColors.secondaryDim,
+        cardColor: HomeLessonColors.mathBg,
+        iconColor: HomeLessonColors.mathIcon,
       ),
       HomeMenuItem(
         id: 'lesson_visual',
         title: 'التحفيز البصري',
         icon: Symbols.visibility,
-        cardColor: HomeLessonColors.visual,
-        iconColor: AppColors.onSurfaceVariant,
+        cardColor: HomeLessonColors.visualBg,
+        iconColor: HomeLessonColors.visualIcon,
       ),
       HomeMenuItem(
         id: 'lesson_emotional',
         title: 'الذكاء العاطفي',
         icon: Symbols.favorite,
-        cardColor: HomeLessonColors.emotional,
-        iconColor: AppColors.secondary,
+        cardColor: HomeLessonColors.emotionalBg,
+        iconColor: HomeLessonColors.emotionalIcon,
       ),
     ],
   ),
@@ -172,11 +179,16 @@ const homeMenuSections = <HomeMenuSection>[
     accentColor: AppColors.primaryDim,
     layout: HomeSectionLayout.contentGrid,
     items: [
-      HomeMenuItem(id: 'activities', title: 'الأنشطة', icon: Symbols.sports_esports),
-      HomeMenuItem(id: 'library_books', title: 'المكتبة', icon: Symbols.folder),
-      HomeMenuItem(id: 'nature_sounds', title: 'صوت الطبيعة', icon: Symbols.park),
-      HomeMenuItem(id: 'calm_music', title: 'موسيقى هادئة', icon: Symbols.music_note),
-      HomeMenuItem(id: 'lullabies', title: 'تهويدات', icon: Symbols.bedtime),
+      HomeMenuItem(id: 'activities', title: 'الأنشطة', icon: Symbols.sports_esports,
+          cardColor: AppColors.trackExerciseLight, iconColor: AppColors.trackExerciseGreen),
+      HomeMenuItem(id: 'library_books', title: 'المكتبة', icon: Symbols.folder,
+          cardColor: AppColors.trackLibraryLight, iconColor: AppColors.trackLibraryBlue),
+      HomeMenuItem(id: 'nature_sounds', title: 'صوت الطبيعة', icon: Symbols.park,
+          cardColor: AppColors.trackExerciseLight, iconColor: AppColors.trackExerciseGreen),
+      HomeMenuItem(id: 'calm_music', title: 'موسيقى هادئة', icon: Symbols.music_note,
+          cardColor: AppColors.trackLibraryLight, iconColor: AppColors.trackLibraryBlue),
+      HomeMenuItem(id: 'lullabies', title: 'تهويدات', icon: Symbols.bedtime,
+          cardColor: AppColors.trackVisualLight, iconColor: AppColors.trackVisualPurple),
     ],
   ),
   HomeMenuSection(

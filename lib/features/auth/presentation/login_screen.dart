@@ -3,9 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
+import '../../../core/constants/app_assets.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/app_text_field.dart';
+import '../../../shared/widgets/bebo_shell_background.dart';
+import '../../../shared/widgets/floating_widget.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/tertiary_button.dart';
 import '../data/auth_repository.dart';
@@ -64,7 +67,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
+      body: Stack(
+        children: [
+          const BeboShellBackground(showBottomCurve: false),
+          SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
           child: Form(
@@ -72,28 +78,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 18),
+                const SizedBox(height: 10),
+                // Floating BeBo mascot
                 Center(
-                  child: Container(
-                    width: 92,
-                    height: 92,
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceContainerLowest,
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x0A31332F),
-                          blurRadius: 32,
-                          offset: Offset(0, 8),
+                  child: FloatingWidget(
+                    amplitude: 8,
+                    duration: const Duration(milliseconds: 3600),
+                    child: Image.asset(
+                      AppAssets.mascotCapLying,
+                      height: 110,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => Container(
+                        width: 92,
+                        height: 92,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryContainer,
+                          borderRadius: BorderRadius.circular(24),
                         ),
-                      ],
-                    ),
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      Symbols.child_care,
-                      color: AppColors.primary,
-                      size: 46,
-                      fill: 1,
+                        alignment: Alignment.center,
+                        child: const Icon(Symbols.child_care,
+                            color: AppColors.primary, size: 46, fill: 1),
+                      ),
                     ),
                   ),
                 ),
@@ -225,24 +230,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                Center(
-                  child: Container(
-                    width: 96,
-                    height: 96,
-                    decoration: const BoxDecoration(
-                      color: AppColors.primaryContainer,
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: const Icon(Symbols.directions_car, color: AppColors.primary, size: 48, fill: 1),
-                  ),
-                ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 24),
               ],
             ),
           ),
         ),
+          ),
+        ],
       ),
     );
   }

@@ -51,7 +51,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      scaffoldBackgroundColor: AppColors.background,
+      scaffoldBackgroundColor: AppColors.background, // warm cream #FFF8F2
       textTheme: textTheme,
       primaryTextTheme: textTheme,
       fontFamily: textTheme.bodyLarge?.fontFamily,
@@ -68,12 +68,12 @@ class AppTheme {
         },
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColors.background, // warm cream
         foregroundColor: AppColors.onSurface,
         elevation: 0,
-        scrolledUnderElevation: 0,
+        scrolledUnderElevation: 0.5,
         surfaceTintColor: Colors.transparent,
-        shadowColor: AppColors.onSurface.withValues(alpha: 0.04),
+        shadowColor: const Color(0xFFC8A090).withValues(alpha: 0.15), // warm shadow
         centerTitle: true,
         systemOverlayStyle: const SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
@@ -86,14 +86,14 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: AppColors.surfaceContainerLowest,
         surfaceTintColor: Colors.transparent,
-        elevation: 2,
-        shadowColor: AppColors.onSurface.withValues(alpha: 0.07),
+        elevation: 0,
+        shadowColor: Colors.transparent,
         margin: EdgeInsets.zero,
         clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
           borderRadius: AppRadius.brLg,
           side: BorderSide(
-            color: Colors.white.withValues(alpha: 0.55),
+            color: AppColors.outline.withValues(alpha: 0.5),
             width: 1,
           ),
         ),
@@ -163,11 +163,21 @@ class AppTheme {
         contentTextStyle: textTheme.bodyMedium?.copyWith(color: AppColors.inverseOnSurface),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: AppColors.surfaceContainerLowest,
+        backgroundColor: AppColors.surfaceBright, // pure white warm card
         surfaceTintColor: Colors.transparent,
-        elevation: 0,
+        elevation: 8,
+        shadowColor: const Color(0xFFC8A090).withValues(alpha: 0.18),
         indicatorColor: AppColors.primaryContainer,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const IconThemeData(color: AppColors.primary, size: 26);
+          }
+          return IconThemeData(
+            color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
+            size: 24,
+          );
+        }),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         elevation: 3,
@@ -189,7 +199,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surfaceContainerLow,
+        fillColor: AppColors.surfaceContainerLow, // warm cream-peach
         contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
         hintStyle: textTheme.bodyMedium?.copyWith(color: AppColors.outlineVariant),
         border: OutlineInputBorder(

@@ -80,7 +80,23 @@ class _LibraryMediaHubScreenState extends State<LibraryMediaHubScreen> {
     final url = libraryYoutubeEmbedUrl(videoId: video, playlistId: playlist);
     _webController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(AppColors.surfaceContainer)
+      ..setBackgroundColor(Colors.black)
+      ..setNavigationDelegate(NavigationDelegate(
+        onNavigationRequest: (request) {
+          final u = request.url;
+          if (u.contains('youtube.com/embed') ||
+              u.contains('youtube-nocookie.com') ||
+              u.contains('ytimg.com') ||
+              u.contains('googlevideo.com') ||
+              u.contains('doubleclick.net') ||
+              u.startsWith('about:')) {
+            return NavigationDecision.navigate;
+          }
+          return NavigationDecision.prevent;
+        },
+        onWebResourceError: (error) =>
+            setState(() => _loadError = 'تعذّر تحميل الفيديو'),
+      ))
       ..loadRequest(Uri.parse(url));
     setState(() => _playing = true);
   }

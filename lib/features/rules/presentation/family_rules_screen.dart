@@ -8,6 +8,7 @@ import '../../../core/storage/prefs_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/constants/app_assets.dart';
+import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../../shared/widgets/editorial_card.dart';
 import '../../../shared/widgets/primary_button.dart';
 
@@ -100,7 +101,10 @@ class _FamilyRulesScreenState extends ConsumerState<FamilyRulesScreen> {
           child: Divider(height: 1, thickness: 1, color: AppColors.surfaceContainerHighest),
         ),
       ),
-      body: SafeArea(
+      body: Stack(
+        children: [
+          const BeboShellBackground(showBottomCurve: false),
+          SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
           child: Column(
@@ -229,6 +233,8 @@ class _FamilyRulesScreenState extends ConsumerState<FamilyRulesScreen> {
             ],
           ),
         ),
+          ),
+        ],
       ),
     );
   }

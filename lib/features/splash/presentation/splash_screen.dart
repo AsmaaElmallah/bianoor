@@ -10,6 +10,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../../shared/widgets/floating_decoration.dart';
+import '../../../shared/widgets/floating_widget.dart';
 import '../../../shared/widgets/pebble_progress.dart';
 import '../../../shared/widgets/primary_button.dart';
 
@@ -91,26 +92,56 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                     clipBehavior: Clip.none,
                     alignment: Alignment.center,
                     children: [
+                      // Warm gradient circle background
                       Container(
-                        width: 288,
-                        height: 288,
+                        width: 292,
+                        height: 292,
                         decoration: BoxDecoration(
-                          color: AppColors.surfaceContainerLowest,
-                          shape: BoxShape.circle,
-                          boxShadow: AppShadows.editorial,
-                        ),
-                        alignment: Alignment.center,
-                        child: Container(
-                          width: 248,
-                          height: 248,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: AppShadows.soft,
+                          gradient: RadialGradient(
+                            colors: [
+                              AppColors.primaryContainer.withValues(alpha: 0.7),
+                              AppColors.secondaryContainer.withValues(alpha: 0.4),
+                              AppColors.tertiaryContainer.withValues(alpha: 0.2),
+                            ],
                           ),
-                          clipBehavior: Clip.antiAlias,
-                          child: Image.asset(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.12),
+                              blurRadius: 40,
+                              spreadRadius: 4,
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Glow below mascot
+                      Positioned(
+                        bottom: 20,
+                        child: Container(
+                          width: 140,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(50),
+                          ),
+                        ),
+                      ),
+
+                      // Floating mascot
+                      FloatingWidget(
+                        amplitude: 12,
+                        duration: const Duration(milliseconds: 3800),
+                        child: Image.asset(
+                          AppAssets.mascotCapLying,
+                          width: 230,
+                          height: 230,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => Image.asset(
                             AppAssets.logoBaby,
-                            fit: BoxFit.cover,
+                            width: 220,
+                            height: 220,
+                            fit: BoxFit.contain,
                             errorBuilder: (_, __, ___) => const Icon(
                               Symbols.child_care,
                               size: 100,
@@ -120,6 +151,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                           ),
                         ),
                       ),
+
+                      // Badge bottom-right
                       PositionedDirectional(
                         bottom: -4,
                         end: -10,
@@ -127,17 +160,24 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                           delay: const Duration(seconds: 1),
                           amplitude: 10,
                           child: Container(
-                            width: 72,
-                            height: 72,
-                            decoration: const BoxDecoration(
+                            width: 68,
+                            height: 68,
+                            decoration: BoxDecoration(
                               color: AppColors.secondaryContainer,
                               shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.secondary.withValues(alpha: 0.20),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                             ),
                             alignment: Alignment.center,
                             child: const Icon(
                               Symbols.school,
-                              color: AppColors.onSecondaryContainer,
-                              size: 34,
+                              color: AppColors.secondary,
+                              size: 32,
                               fill: 1,
                             ),
                           ),

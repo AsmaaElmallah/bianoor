@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
@@ -70,11 +71,33 @@ class _MediaAgeHubScreenState extends State<MediaAgeHubScreen> {
       return;
     }
     setState(() => _loadError = null);
-    final url = libraryYoutubeEmbedUrl(videoId: video, playlistId: playlist);
+    final embedUrl = libraryYoutubeEmbedUrl(videoId: video, playlistId: playlist);
+
     _webController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(AppColors.surfaceContainer)
-      ..loadRequest(Uri.parse(url));
+      ..setBackgroundColor(Colors.black)
+      // Block YouTube navigation leak — only allow embed URLs
+      ..setNavigationDelegate(NavigationDelegate(
+        onNavigationRequest: (request) {
+          final url = request.url;
+          // Allow embed and API calls only
+          if (url.contains('youtube.com/embed') ||
+              url.contains('youtube.com/api') ||
+              url.contains('youtube-nocookie.com') ||
+              url.contains('ytimg.com') ||
+              url.contains('googlevideo.com') ||
+              url.contains('doubleclick.net') ||
+              url.startsWith('about:')) {
+            return NavigationDecision.navigate;
+          }
+          // Block everything else (Home, Shorts, You tabs, etc.)
+          return NavigationDecision.prevent;
+        },
+        onWebResourceError: (error) {
+          setState(() => _loadError = 'تعذّر تحميل الفيديو\n${error.description}');
+        },
+      ))
+      ..loadRequest(Uri.parse(embedUrl));
     setState(() => _playing = true);
   }
 
@@ -122,16 +145,24 @@ class _MediaAgeHubScreenState extends State<MediaAgeHubScreen> {
 
     Widget videoArea;
     if (_loadError != null) {
-      videoArea = ColoredBox(
-        color: AppColors.surfaceContainerHighest,
-        child: Center(child: Text(_loadError!, textAlign: TextAlign.center)),
+      // Nice Arabic error state with open-in-YouTube button
+      videoArea = _VideoErrorState(
+        accentColor: cfg.accentColor,
+        onOpenExternal: hasContent ? _openExternal : null,
       );
     } else if (_playing && _webController != null) {
       videoArea = WebViewWidget(controller: _webController!);
     } else {
       final thumb = current?.youtubeThumbnailUrl;
       videoArea = thumb != null
-          ? Image.network(thumb, fit: BoxFit.cover)
+          ? Image.network(
+              thumb,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => ColoredBox(
+                color: AppColors.surfaceContainerHighest,
+                child: Icon(Symbols.fitness_center, size: 56, color: cfg.accentColor),
+              ),
+            )
           : ColoredBox(
               color: AppColors.surfaceContainerHighest,
               child: Icon(Symbols.fitness_center, size: 56, color: cfg.accentColor),
@@ -243,6 +274,80 @@ class _MediaAgeHubScreenState extends State<MediaAgeHubScreen> {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Video error state ──────────────────────────────────────────────────────
+
+class _VideoErrorState extends StatelessWidget {
+  const _VideoErrorState({required this.accentColor, this.onOpenExternal});
+
+  final Color accentColor;
+  final Future<void> Function()? onOpenExternal;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: const Color(0xFF1A1A2E),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 68,
+            height: 68,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.10),
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: const Icon(Symbols.error_outline,
+                color: Colors.white70, size: 36, fill: 1),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'تعذّر تشغيل الفيديو هنا',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'الفيديو قد يكون مقيّداً في التطبيق',
+            style: TextStyle(color: Colors.white54, fontSize: 12),
+          ),
+          if (onOpenExternal != null) ...[
+            const SizedBox(height: 16),
+            GestureDetector(
+              onTap: onOpenExternal,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF0000),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Symbols.play_circle, color: Colors.white, size: 20, fill: 1),
+                    SizedBox(width: 8),
+                    Text(
+                      'فتح في يوتيوب',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

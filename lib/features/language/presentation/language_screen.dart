@@ -7,6 +7,7 @@ import '../../../core/router/app_routes.dart';
 import '../../../core/storage/prefs_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
+import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../domain/language_model.dart';
 
@@ -49,7 +50,10 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
+      body: Stack(
+        children: [
+          const BeboShellBackground(showBottomCurve: false),
+          SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
@@ -107,12 +111,14 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
             ],
           ),
         ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _LanguageTile extends StatelessWidget {
+class _LanguageTile extends StatefulWidget {
   const _LanguageTile({
     required this.option,
     required this.isSelected,
@@ -124,88 +130,121 @@ class _LanguageTile extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
+  State<_LanguageTile> createState() => _LanguageTileState();
+}
+
+class _LanguageTileState extends State<_LanguageTile> {
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final selected = widget.isSelected;
+    final bg = selected
+        ? Color.lerp(widget.option.bgColor, Colors.white, 0.4)!
+        : AppColors.surfaceContainerLowest;
 
-    return Material(
-      color: AppColors.surfaceContainerLow,
-      borderRadius: AppRadius.brSm,
-      child: InkWell(
-        borderRadius: AppRadius.brSm,
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.surfaceContainerLowest : AppColors.surfaceContainerLow,
-            borderRadius: AppRadius.brSm,
-            border: Border.all(
-              color: isSelected ? AppColors.primary : Colors.transparent,
-              width: 2.2,
-            ),
-            boxShadow: isSelected
-                ? const [
-                    BoxShadow(
-                      color: Color(0x0F31332F),
-                      blurRadius: 24,
-                      spreadRadius: -4,
-                      offset: Offset(0, 8),
-                    ),
-                  ]
-                : null,
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) {
+        setState(() => _pressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedContainer(
+        duration: _pressed
+            ? const Duration(milliseconds: 85)
+            : const Duration(milliseconds: 250),
+        curve: _pressed ? Curves.easeIn : Curves.elasticOut,
+        transform: Matrix4.identity()
+          ..translate(0.0, _pressed ? 3.0 : 0.0)
+          ..scale(_pressed ? 0.95 : 1.0),
+        transformAlignment: Alignment.center,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: AppRadius.brLg,
+          border: Border.all(
+            color: selected
+                ? AppColors.primary.withValues(alpha: 0.5)
+                : AppColors.outline.withValues(alpha: 0.35),
+            width: selected ? 2.0 : 1.0,
           ),
-          child: Stack(
-            children: [
-              if (isSelected)
-                PositionedDirectional(
-                  top: 0,
-                  end: 0,
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceContainerLowest,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
-                    ),
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      Symbols.check_circle,
-                      color: AppColors.primary,
-                      size: 18,
-                      fill: 1,
-                    ),
+          boxShadow: _pressed
+              ? []
+              : selected
+                  ? [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.18),
+                        blurRadius: 18,
+                        offset: const Offset(0, 6),
+                      ),
+                    ]
+                  : [
+                      BoxShadow(
+                        color: const Color(0xFFC8906A).withValues(alpha: 0.08),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+        ),
+        child: Stack(
+          children: [
+            if (selected)
+              PositionedDirectional(
+                top: 0,
+                end: 0,
+                child: Container(
+                  width: 26,
+                  height: 26,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(Symbols.check,
+                      color: Colors.white, size: 16, fill: 1),
+                ),
+              ),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  width: selected ? 68 : 60,
+                  height: selected ? 68 : 60,
+                  decoration: BoxDecoration(
+                    color: widget.option.bgColor,
+                    shape: BoxShape.circle,
+                    boxShadow: selected
+                        ? [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.20),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            )
+                          ]
+                        : [],
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    widget.option.flagEmoji,
+                    style: theme.textTheme.headlineMedium
+                        ?.copyWith(height: 1, fontSize: selected ? 34 : 30),
                   ),
                 ),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      color: option.bgColor,
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      option.flagEmoji,
-                      style: theme.textTheme.headlineMedium?.copyWith(height: 1),
-                    ),
+                const SizedBox(height: 10),
+                Text(
+                  widget.option.name,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: selected ? AppColors.primary : AppColors.onSurface,
+                    fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                   ),
-                  const SizedBox(height: 10),
-                  Text(
-                    option.name,
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      color: isSelected ? AppColors.primary : AppColors.onSurface,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

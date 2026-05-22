@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
+import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../quran/presentation/widgets/tactile/quran_journey_node.dart';
 import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
 import '../../quran/presentation/widgets/tactile/tactile_clay_card.dart';
@@ -45,7 +46,10 @@ class CurriculumLessonJourneyScreen extends StatelessWidget {
         title: config.journeyTitle,
         onBack: () => context.pop(),
       ),
-      body: ListView(
+      body: Stack(
+        children: [
+          const BeboShellBackground(showBottomCurve: false),
+          ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
         children: [
           TactileClayCard(
@@ -110,6 +114,8 @@ class CurriculumLessonJourneyScreen extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ],
           ),
         ],
       ),

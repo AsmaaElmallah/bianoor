@@ -9,6 +9,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../shared/widgets/app_logo_avatar.dart';
+import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../../shared/widgets/floating_decoration.dart';
 import '../../../shared/widgets/tactile/tactile_clay_button.dart';
 import '../../../shared/widgets/tactile/tactile_clay_card.dart';
@@ -132,8 +133,14 @@ class _AptitudeTestScreenState extends ConsumerState<AptitudeTestScreen> {
         child: _AptitudeTactileHeader(onBack: () => context.pop()),
       ),
       body: !_loaded
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-          : Column(
+          ? const Stack(children: [
+              BeboShellBackground(showBottomCurve: false),
+              Center(child: CircularProgressIndicator(color: AppColors.primary)),
+            ])
+          : Stack(
+              children: [
+                const BeboShellBackground(showBottomCurve: false),
+                Column(
               children: [
                 Expanded(
                   child: PageView.builder(
@@ -160,6 +167,8 @@ class _AptitudeTestScreenState extends ConsumerState<AptitudeTestScreen> {
                   canGoNext: _currentStepComplete,
                   onBack: _goBack,
                   onNext: _goNext,
+                ),
+              ],
                 ),
               ],
             ),

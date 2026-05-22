@@ -6,6 +6,7 @@ import '../../../core/constants/app_assets.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
+import '../../../shared/widgets/floating_widget.dart';
 import '../domain/subscription_plan_model.dart';
 
 class SubscriptionScreen extends StatelessWidget {
@@ -20,26 +21,45 @@ class SubscriptionScreen extends StatelessWidget {
       body: SafeArea(
         child: Stack(
           children: [
-            Positioned(
-              top: -96,
-              right: -88,
-              child: Container(
-                width: 320,
-                height: 320,
+            // Mesh gradient background (from _6/code.html)
+            Positioned.fill(
+              child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: AppColors.primaryContainer.withValues(alpha: 0.62),
+                  gradient: LinearGradient(
+                    begin: Alignment.topRight,
+                    end: Alignment.bottomLeft,
+                    colors: [
+                      AppColors.primaryContainer.withValues(alpha: 0.55),
+                      AppColors.background,
+                      AppColors.secondaryContainer.withValues(alpha: 0.40),
+                    ],
+                    stops: const [0.0, 0.45, 1.0],
+                  ),
+                ),
+              ),
+            ),
+            // Extra blob top-right
+            Positioned(
+              top: -80,
+              right: -70,
+              child: Container(
+                width: 280,
+                height: 280,
+                decoration: BoxDecoration(
+                  color: AppColors.tertiaryContainer.withValues(alpha: 0.45),
                   shape: BoxShape.circle,
                 ),
               ),
             ),
+            // Blob bottom-left
             Positioned(
-              top: 248,
-              left: -150,
+              bottom: 80,
+              left: -100,
               child: Container(
-                width: 330,
-                height: 330,
+                width: 260,
+                height: 260,
                 decoration: BoxDecoration(
-                  color: AppColors.secondaryContainer.withValues(alpha: 0.46),
+                  color: AppColors.secondaryContainer.withValues(alpha: 0.35),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -80,26 +100,48 @@ class SubscriptionScreen extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 22),
                     child: Column(
                       children: [
-                        const SizedBox(height: 8),
-                        Container(
-                          width: 128,
-                          height: 128,
-                          decoration: const BoxDecoration(
-                            color: AppColors.surfaceContainerLowest,
-                            shape: BoxShape.circle,
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          child: Image.asset(
-                            AppAssets.logoBaby,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => const Icon(
-                              Symbols.child_care,
-                              color: AppColors.primary,
-                              fill: 1,
-                              size: 72,
+                const SizedBox(height: 8),
+                // Floating mascot with glow shadow
+                Center(
+                  child: SizedBox(
+                    height: 150,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Positioned(
+                          bottom: 4,
+                          child: Container(
+                            width: 90,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(50),
                             ),
                           ),
                         ),
+                        FloatingWidget(
+                          amplitude: 8,
+                          duration: const Duration(milliseconds: 3600),
+                          child: Image.asset(
+                            AppAssets.mascotCapLying,
+                            height: 135,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => Container(
+                              width: 128,
+                              height: 128,
+                              decoration: const BoxDecoration(
+                                color: AppColors.surfaceContainerLowest,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Symbols.child_care,
+                                  color: AppColors.primary, fill: 1, size: 72),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
                         const SizedBox(height: 20),
                         Text(
                           'اختر باقتك التعليمية',
@@ -247,26 +289,10 @@ class _PlanCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: Material(
-              color: plan.buttonColor,
-              borderRadius: BorderRadius.circular(16),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: onSubscribe,
-                child: Center(
-                  child: Text(
-                    'اشترك الآن',
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: plan.buttonTextColor,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ),
-            ),
+          _ClaySubscribeButton(
+            color: plan.buttonColor,
+            textColor: plan.buttonTextColor,
+            onTap: onSubscribe,
           ),
         ],
       ),
@@ -338,6 +364,81 @@ class _PayBadge extends StatelessWidget {
                   .labelMedium
                   ?.copyWith(color: fg, fontWeight: FontWeight.w800)),
         ],
+      ),
+    );
+  }
+}
+
+class _ClaySubscribeButton extends StatefulWidget {
+  const _ClaySubscribeButton({
+    required this.color,
+    required this.textColor,
+    required this.onTap,
+  });
+  final Color color;
+  final Color textColor;
+  final VoidCallback onTap;
+
+  @override
+  State<_ClaySubscribeButton> createState() => _ClaySubscribeButtonState();
+}
+
+class _ClaySubscribeButtonState extends State<_ClaySubscribeButton> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final depth = Color.lerp(widget.color, Colors.black, 0.2) ?? widget.color;
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) {
+        setState(() => _pressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedContainer(
+        duration: _pressed
+            ? const Duration(milliseconds: 90)
+            : const Duration(milliseconds: 200),
+        curve: _pressed ? Curves.easeIn : Curves.elasticOut,
+        height: 52 + (_pressed ? 0 : 5),
+        transform: Matrix4.translationValues(0, _pressed ? 5 : 0, 0),
+        child: Stack(
+          children: [
+            Positioned(
+              left: 0, right: 0, bottom: 0,
+              child: Container(
+                height: 52 + (_pressed ? 0 : 5),
+                decoration: BoxDecoration(
+                  color: depth,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 0, right: 0, top: 0,
+              child: Container(
+                height: 52,
+                decoration: BoxDecoration(
+                  color: widget.color,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.25),
+                    width: 1.5,
+                  ),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  'اشترك الآن',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: widget.textColor,
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

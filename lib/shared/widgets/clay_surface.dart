@@ -31,10 +31,10 @@ class ClaySurface extends StatelessWidget {
         color: bg,
         borderRadius: r,
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.5),
-          width: 1,
+          color: Colors.white.withValues(alpha: 0.7),
+          width: 1.5,
         ),
-        boxShadow: AppShadows.clayLift,
+        boxShadow: AppShadows.card,
       ),
       child: Padding(
         padding: padding ?? EdgeInsets.zero,

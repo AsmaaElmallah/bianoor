@@ -26,20 +26,35 @@ class EditorialCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: background,
+        // Subtle warm tint from accent color
+        color: Color.lerp(background, accentColor, 0.04),
         borderRadius: AppRadius.brLg,
-        boxShadow: AppShadows.soft,
+        border: Border.all(
+          color: accentColor.withValues(alpha: 0.12),
+          width: 1,
+        ),
+        boxShadow: AppShadows.card,
       ),
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
+          // Accent strip — more visible (was 0.25, now 0.55)
           PositionedDirectional(
             start: 0,
             top: 0,
             bottom: 0,
             child: Container(
               width: stripWidth,
-              color: accentColor.withValues(alpha: 0.25),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    accentColor.withValues(alpha: 0.75),
+                    accentColor.withValues(alpha: 0.45),
+                  ],
+                ),
+              ),
             ),
           ),
           Padding(padding: padding, child: child),

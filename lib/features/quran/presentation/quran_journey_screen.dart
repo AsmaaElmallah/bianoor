@@ -6,6 +6,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
+import '../../../shared/widgets/bebo_shell_background.dart';
 import '../application/quran_curriculum_provider.dart';
 import '../domain/quran_age_schedule.dart';
 import 'widgets/tactile/quran_journey_node.dart';
@@ -32,7 +33,10 @@ class QuranJourneyScreen extends ConsumerWidget {
         starsCount: stars,
         onBack: () => context.pop(),
       ),
-      body: ListView(
+      body: Stack(
+        children: [
+          const BeboShellBackground(showBottomCurve: false),
+          ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
         children: [
           TactileClayCard(
@@ -98,6 +102,8 @@ class QuranJourneyScreen extends ConsumerWidget {
               ],
             ),
           ),
+          ],
+        ),
         ],
       ),
     );
