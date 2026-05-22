@@ -19,12 +19,24 @@ class HomeSectionHeading extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
+          // Thicker accent pill with glow
           Container(
-            width: 4,
-            height: 22,
+            width: 5,
+            height: 26,
             decoration: BoxDecoration(
-              color: accentColor,
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [accentColor, accentColor.withValues(alpha: 0.5)],
+              ),
               borderRadius: AppRadius.brFull,
+              boxShadow: [
+                BoxShadow(
+                  color: accentColor.withValues(alpha: 0.3),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 10),
@@ -33,6 +45,7 @@ class HomeSectionHeading extends StatelessWidget {
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: AppColors.onSurface,
+                  letterSpacing: -0.2,
                 ),
           ),
         ],

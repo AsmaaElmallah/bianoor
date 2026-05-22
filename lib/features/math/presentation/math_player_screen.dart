@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,7 +8,7 @@ import 'package:material_symbols_icons/symbols.dart';
 
 import '../../../core/constants/app_assets.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_radius.dart';
+import '../../../shared/widgets/import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../application/math_curriculum_provider.dart';
 import '../domain/math_slide.dart';
@@ -456,3 +456,5 @@ class _AssetImageFit extends StatelessWidget {
     );
   }
 }
+
+

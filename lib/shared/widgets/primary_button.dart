@@ -66,8 +66,8 @@ class _PrimaryButtonState extends State<PrimaryButton>
     final fg = widget.foregroundColor ?? AppColors.onPrimary;
     final gradient = widget.gradient ?? AppColors.primaryGradient;
 
-    // Depth block color = darker shade of gradient start
-    const depthColor = Color(0xFF007A76); // darkened teal
+    // Depth block color = darker violet
+    const depthColor = Color(0xFF4C1D95); // Violet-900
 
     return Opacity(
       opacity: isEnabled ? 1.0 : 0.45,

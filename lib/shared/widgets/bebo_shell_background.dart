@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
 
-/// Warm pastel blob background — BeBo brand feel.
-/// Larger, more visible blobs on a warm cream gradient base.
+/// Royal BeBo background — violet, amber, teal blobs on violet cream gradient.
 class BeboShellBackground extends StatelessWidget {
   const BeboShellBackground({
     super.key,
@@ -19,77 +18,77 @@ class BeboShellBackground extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Warm gradient base
+        // Royal violet cream gradient base
         Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Color(0xFFFFF8F2),
-                Color(0xFFFFF0E4),
+                Color(0xFFFAF5FF), // Violet-50
+                Color(0xFFF3EEFF), // slightly deeper violet
               ],
             ),
           ),
         ),
 
-        // Top-right blob — lavender
+        // Top-right — large violet blob
         Positioned(
-          top: -60,
-          right: -50,
+          top: -55,
+          right: -55,
           child: _Blob(
-            diameter: 260,
-            color: AppColors.langFrenchBg.withValues(alpha: 0.55),
+            diameter: 270,
+            color: AppColors.primaryContainer.withValues(alpha: 0.65),
           ),
         ),
 
-        // Top-left blob — mint teal
+        // Top-left — amber gold blob
         Positioned(
-          top: -30,
-          left: -60,
+          top: -20,
+          left: -50,
           child: _Blob(
             diameter: 200,
-            color: AppColors.primaryContainer.withValues(alpha: 0.6),
-          ),
-        ),
-
-        // Mid-left blob — warm peach
-        Positioned(
-          top: 160,
-          left: -70,
-          child: _Blob(
-            diameter: 220,
             color: AppColors.secondaryContainer.withValues(alpha: 0.55),
           ),
         ),
 
-        // Mid-right blob — sky blue
+        // Mid-left — deep violet accent
         Positioned(
-          top: 280,
-          right: -50,
+          top: 180,
+          left: -65,
           child: _Blob(
-            diameter: 160,
-            color: AppColors.tertiaryContainer.withValues(alpha: 0.5),
+            diameter: 220,
+            color: AppColors.primaryFixed.withValues(alpha: 0.40),
           ),
         ),
 
-        // Bottom-right accent — coral
+        // Mid-right — teal ocean blob
         Positioned(
-          bottom: 160,
-          right: -30,
+          top: 300,
+          right: -45,
           child: _Blob(
-            diameter: 130,
+            diameter: 155,
+            color: AppColors.tertiaryContainer.withValues(alpha: 0.55),
+          ),
+        ),
+
+        // Lower-right — pink/rose accent (emotional track)
+        Positioned(
+          bottom: 170,
+          right: -25,
+          child: _Blob(
+            diameter: 120,
             color: AppColors.trackEmotionalLight.withValues(alpha: 0.65),
           ),
         ),
 
-        // Bottom-left accent — mint
+        // Lower-left — amber glow
         Positioned(
-          bottom: 200,
-          left: -20,
+          bottom: 220,
+          left: -15,
           child: _Blob(
-            diameter: 100,
-            color: AppColors.trackExerciseLight.withValues(alpha: 0.7),
+            diameter: 95,
+            color: AppColors.secondaryFixed.withValues(alpha: 0.60),
           ),
         ),
 
@@ -101,7 +100,7 @@ class BeboShellBackground extends StatelessWidget {
             height: bottomCurveHeight,
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.07),
+                color: AppColors.primary.withValues(alpha: 0.06),
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(44),
                 ),

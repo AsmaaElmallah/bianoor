@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +8,7 @@ import 'package:material_symbols_icons/symbols.dart';
 
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../../core/theme/app_radius.dart';
 import '../application/quran_curriculum_provider.dart';
 import '../domain/quran_age_schedule.dart';
@@ -184,7 +185,10 @@ class _QuranPlayerScreenState extends ConsumerState<QuranPlayerScreen> {
         title: state.currentSession.title,
         onBack: () => context.pop(),
       ),
-      body: SingleChildScrollView(
+      body: Stack(
+        children: [
+          const BeboShellBackground(showBottomCurve: false),
+          SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
         child: Column(
           children: [
@@ -302,6 +306,8 @@ class _QuranPlayerScreenState extends ConsumerState<QuranPlayerScreen> {
             ],
           ],
         ),
+          ),
+        ],
       ),
     );
   }
@@ -386,3 +392,4 @@ class _SkipChip extends StatelessWidget {
     );
   }
 }
+

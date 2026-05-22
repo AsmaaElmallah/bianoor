@@ -31,8 +31,8 @@ class HomeBottomNav extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
         child: Container(
           decoration: BoxDecoration(
-            // Frosted white glass — rgba(255,255,255,0.72)
-            color: Colors.white.withValues(alpha: 0.72),
+          // Frosted violet-white glass
+          color: const Color(0xFFFAF5FF).withValues(alpha: 0.88),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
             border: Border(
               top: BorderSide(
@@ -41,16 +41,16 @@ class HomeBottomNav extends StatelessWidget {
               ),
             ),
             boxShadow: [
-              BoxShadow(
-                color: const Color(0xFFC8906A).withValues(alpha: 0.12),
-                blurRadius: 32,
-                offset: const Offset(0, -8),
-              ),
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.05),
-                blurRadius: 16,
-                offset: const Offset(0, -2),
-              ),
+            BoxShadow(
+              color: const Color(0xFF4C1D95).withValues(alpha: 0.12),
+              blurRadius: 32,
+              offset: const Offset(0, -8),
+            ),
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.06),
+              blurRadius: 16,
+              offset: const Offset(0, -2),
+            ),
             ],
           ),
           child: Padding(

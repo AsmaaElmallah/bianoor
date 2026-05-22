@@ -109,7 +109,7 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           elevation: 2,
-          shadowColor: AppColors.onSurface.withValues(alpha: 0.08),
+          shadowColor: const Color(0xFF4C1D95).withValues(alpha: 0.07),
           surfaceTintColor: Colors.transparent,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
@@ -166,7 +166,7 @@ class AppTheme {
         backgroundColor: AppColors.surfaceBright, // pure white warm card
         surfaceTintColor: Colors.transparent,
         elevation: 8,
-        shadowColor: const Color(0xFFC8A090).withValues(alpha: 0.18),
+        shadowColor: const Color(0xFF4C1D95).withValues(alpha: 0.16),
         indicatorColor: AppColors.primaryContainer,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         iconTheme: WidgetStateProperty.resolveWith((states) {

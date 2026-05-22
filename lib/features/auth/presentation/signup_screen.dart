@@ -3,10 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
+import '../../../core/constants/app_assets.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../shared/widgets/app_text_field.dart';
+import '../../../shared/widgets/bebo_shell_background.dart';
+import '../../../shared/widgets/floating_widget.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/tertiary_button.dart';
 import '../data/auth_repository.dart';
@@ -68,18 +71,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       backgroundColor: AppColors.background,
       body: Stack(
         children: [
-          Positioned(
-            bottom: -60,
-            left: -60,
-            right: -60,
-            child: Container(
-              height: 260,
-              decoration: BoxDecoration(
-                color: AppColors.primaryContainer.withValues(alpha: 0.12),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(120)),
-              ),
-            ),
-          ),
+          const BeboShellBackground(showBottomCurve: false),
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
@@ -88,21 +80,27 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 10),
+                    // Floating mascot
                     Center(
-                      child: Container(
-                        width: 96,
-                        height: 96,
-                        decoration: const BoxDecoration(
-                          color: AppColors.primaryContainer,
-                          shape: BoxShape.circle,
-                        ),
-                        alignment: Alignment.center,
-                        child: const Icon(
-                          Symbols.sentiment_very_satisfied,
-                          color: AppColors.primary,
-                          size: 40,
-                          fill: 1,
+                      child: FloatingWidget(
+                        amplitude: 8,
+                        duration: const Duration(milliseconds: 3800),
+                        child: Image.asset(
+                          AppAssets.mascotCapLying,
+                          height: 110,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => Container(
+                            width: 96,
+                            height: 96,
+                            decoration: const BoxDecoration(
+                              color: AppColors.primaryContainer,
+                              shape: BoxShape.circle,
+                            ),
+                            alignment: Alignment.center,
+                            child: const Icon(Symbols.sentiment_very_satisfied,
+                                color: AppColors.primary, size: 40, fill: 1),
+                          ),
                         ),
                       ),
                     ),
