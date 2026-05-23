@@ -76,9 +76,9 @@ class _TactileClayButtonState extends State<TactileClayButton> {
             decoration: BoxDecoration(
               color: widget.backgroundColor,
               borderRadius: AppRadius.brLg,
-              border: Border(
-                top: BorderSide(color: Colors.white.withValues(alpha: 0.35)),
-                left: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.28),
+                width: 1.5,
               ),
             ),
             alignment: Alignment.center,

@@ -152,6 +152,51 @@ class PrefsService {
     }
     await _prefs.setString(_kAptitudeTestAnswers, jsonEncode(toStore));
   }
+
+  /// إجابات اختبارات الأم (مهارات / ميول): مفتاح التخزين → إجابات.
+  Map<String, bool>? getMotherQuizAnswers(String storageKey) {
+    final raw = _prefs.getString(storageKey);
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      return decoded.map(
+        (key, value) => MapEntry(key, value == true),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> setMotherQuizAnswers(
+    String storageKey,
+    Map<String, bool?> answers,
+  ) async {
+    final toStore = <String, bool>{};
+    for (final entry in answers.entries) {
+      final value = entry.value;
+      if (value != null) toStore[entry.key] = value;
+    }
+    await _prefs.setString(storageKey, jsonEncode(toStore));
+  }
+
+  /// سجل JSON (شكاوى / اقتراحات محلية).
+  List<Map<String, dynamic>>? getJsonList(String key) {
+    final raw = _prefs.getString(key);
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      final list = jsonDecode(raw) as List<dynamic>;
+      return list
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> setJsonList(String key, List<Map<String, dynamic>> items) async {
+    await _prefs.setString(key, jsonEncode(items));
+  }
 }
 
 /// Provider that must be overridden in main() with an initialized instance.

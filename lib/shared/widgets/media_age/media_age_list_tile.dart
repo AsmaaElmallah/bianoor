@@ -7,6 +7,7 @@ import '../../../core/theme/app_shadows.dart';
 import '../../../features/library/domain/library_media_catalog.dart';
 import '../floating_decoration.dart';
 import '../tactile/tactile_clay_card.dart';
+import '../youtube/youtube_thumbnail.dart';
 
 /// بطاقة تمرين/نشاط في القائمة (تصميم tamareen-ansheta).
 class MediaAgeListTile extends StatelessWidget {
@@ -28,7 +29,7 @@ class MediaAgeListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final thumb = item.youtubeThumbnailUrl;
+    final videoId = item.videoId;
 
     return TactileClayCard(
       onTap: onTap,
@@ -63,17 +64,11 @@ class MediaAgeListTile extends StatelessWidget {
                 ],
               ),
               clipBehavior: Clip.antiAlias,
-              child: thumb != null
-                  ? Image.network(
-                      thumb,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Icon(
-                        Symbols.play_circle,
-                        color: accentColor,
-                        size: 36,
-                      ),
-                    )
-                  : Icon(Symbols.playlist_play, color: accentColor, size: 36, fill: 1),
+              child: YoutubeThumbnail(
+                videoId: videoId,
+                icon: Symbols.play_circle,
+                iconColor: accentColor,
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(

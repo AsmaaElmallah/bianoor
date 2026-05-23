@@ -3,11 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:webview_flutter/webview_flutter.dart';
-
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../features/library/domain/library_media_catalog.dart';
+import '../youtube/youtube_embed_player.dart';
 import '../tactile/tactile_clay_card.dart';
 import 'media_age_hub_config.dart';
 import 'media_age_list_tile.dart';
@@ -38,10 +37,8 @@ class MediaAgeHubScreen extends StatefulWidget {
 }
 
 class _MediaAgeHubScreenState extends State<MediaAgeHubScreen> {
-  WebViewController? _webController;
   int _itemIndex = 0;
-  bool _playing = false;
-  String? _loadError;
+  bool _playing = true;
 
   List<LibraryMediaItem> get _items => widget.items;
 
@@ -50,68 +47,15 @@ class _MediaAgeHubScreenState extends State<MediaAgeHubScreen> {
     return _items[_itemIndex.clamp(0, _items.length - 1)];
   }
 
-  @override
-  void initState() {
-    super.initState();
-    if (_items.isNotEmpty) {
-      _loadPlayer();
-    }
-  }
-
-  void _loadPlayer() {
-    final item = _currentItem;
-    if (item == null) return;
-    final playlist = item.playlistId?.trim();
-    final video = item.videoId?.trim();
-    if ((playlist == null || playlist.isEmpty) && (video == null || video.isEmpty)) {
-      setState(() {
-        _loadError = 'لا يوجد رابط تشغيل';
-        _playing = false;
-      });
-      return;
-    }
-    setState(() => _loadError = null);
-    final embedUrl = libraryYoutubeEmbedUrl(videoId: video, playlistId: playlist);
-
-    _webController = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(Colors.black)
-      // Block YouTube navigation leak — only allow embed URLs
-      ..setNavigationDelegate(NavigationDelegate(
-        onNavigationRequest: (request) {
-          final url = request.url;
-          // Allow embed and API calls only
-          if (url.contains('youtube.com/embed') ||
-              url.contains('youtube.com/api') ||
-              url.contains('youtube-nocookie.com') ||
-              url.contains('ytimg.com') ||
-              url.contains('googlevideo.com') ||
-              url.contains('doubleclick.net') ||
-              url.startsWith('about:')) {
-            return NavigationDecision.navigate;
-          }
-          // Block everything else (Home, Shorts, You tabs, etc.)
-          return NavigationDecision.prevent;
-        },
-        onWebResourceError: (error) {
-          setState(() => _loadError = 'تعذّر تحميل الفيديو\n${error.description}');
-        },
-      ))
-      ..loadRequest(Uri.parse(embedUrl));
-    setState(() => _playing = true);
-  }
-
   void _selectItem(int index) {
-    setState(() => _itemIndex = index);
-    _loadPlayer();
+    setState(() {
+      _itemIndex = index;
+      _playing = true;
+    });
   }
 
   void _togglePlayPause() {
-    if (_playing) {
-      setState(() => _playing = false);
-    } else {
-      _loadPlayer();
-    }
+    setState(() => _playing = !_playing);
   }
 
   Future<void> _openExternal() async {
@@ -143,31 +87,21 @@ class _MediaAgeHubScreenState extends State<MediaAgeHubScreen> {
     final hasContent = items.isNotEmpty;
     final headerTitle = '${cfg.kindLabel} ${widget.ageTitle}';
 
-    Widget videoArea;
-    if (_loadError != null) {
-      // Nice Arabic error state with open-in-YouTube button
-      videoArea = _VideoErrorState(
-        accentColor: cfg.accentColor,
-        onOpenExternal: hasContent ? _openExternal : null,
-      );
-    } else if (_playing && _webController != null) {
-      videoArea = WebViewWidget(controller: _webController!);
-    } else {
-      final thumb = current?.youtubeThumbnailUrl;
-      videoArea = thumb != null
-          ? Image.network(
-              thumb,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => ColoredBox(
-                color: AppColors.surfaceContainerHighest,
-                child: Icon(Symbols.fitness_center, size: 56, color: cfg.accentColor),
-              ),
-            )
-          : ColoredBox(
-              color: AppColors.surfaceContainerHighest,
-              child: Icon(Symbols.fitness_center, size: 56, color: cfg.accentColor),
-            );
-    }
+    final videoArea = current == null
+        ? const SizedBox.shrink()
+        : YoutubeEmbedPlayer(
+            key: ValueKey('age_${current.videoId}_${current.playlistId}_$_playing'),
+            videoId: current.videoId,
+            playlistId: current.playlistId,
+            playing: _playing,
+            wrapInAspectRatio: false,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            onOpenExternal: _openExternal,
+            placeholderIcon: cfg.kindLabel == 'تمارين'
+                ? Symbols.fitness_center
+                : Symbols.toys,
+            placeholderIconColor: cfg.accentColor,
+          );
 
     return Scaffold(
       backgroundColor: cfg.scaffoldBackground,
@@ -280,76 +214,3 @@ class _MediaAgeHubScreenState extends State<MediaAgeHubScreen> {
   }
 }
 
-// ── Video error state ──────────────────────────────────────────────────────
-
-class _VideoErrorState extends StatelessWidget {
-  const _VideoErrorState({required this.accentColor, this.onOpenExternal});
-
-  final Color accentColor;
-  final Future<void> Function()? onOpenExternal;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: const Color(0xFF1A1A2E),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 68,
-            height: 68,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.10),
-              shape: BoxShape.circle,
-            ),
-            alignment: Alignment.center,
-            child: const Icon(Symbols.error_outline,
-                color: Colors.white70, size: 36, fill: 1),
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'تعذّر تشغيل الفيديو هنا',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'الفيديو قد يكون مقيّداً في التطبيق',
-            style: TextStyle(color: Colors.white54, fontSize: 12),
-          ),
-          if (onOpenExternal != null) ...[
-            const SizedBox(height: 16),
-            GestureDetector(
-              onTap: onOpenExternal,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF0000),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Symbols.play_circle, color: Colors.white, size: 20, fill: 1),
-                    SizedBox(width: 8),
-                    Text(
-                      'فتح في يوتيوب',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}

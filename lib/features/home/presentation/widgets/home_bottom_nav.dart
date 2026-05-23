@@ -34,12 +34,6 @@ class HomeBottomNav extends StatelessWidget {
           // Frosted violet-white glass
           color: const Color(0xFFFAF5FF).withValues(alpha: 0.88),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-            border: Border(
-              top: BorderSide(
-                color: Colors.white.withValues(alpha: 0.6),
-                width: 1.5,
-              ),
-            ),
             boxShadow: [
             BoxShadow(
               color: const Color(0xFF4C1D95).withValues(alpha: 0.12),
@@ -53,7 +47,17 @@ class HomeBottomNav extends StatelessWidget {
             ),
             ],
           ),
-          child: Padding(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                height: 1.5,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.6),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                ),
+              ),
+              Padding(
             padding: EdgeInsets.fromLTRB(8, 12, 8, 10 + bottomPad),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -68,6 +72,8 @@ class HomeBottomNav extends StatelessWidget {
                 );
               }),
             ),
+          ),
+            ],
           ),
         ),
       ),

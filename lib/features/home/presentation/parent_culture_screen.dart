@@ -4,6 +4,7 @@ import 'package:material_symbols_icons/symbols.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/bebo_shell_background.dart';
+import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
 import '../../../shared/widgets/editorial_card.dart';
 import '../domain/parenting_article.dart';
 import '../domain/parenting_articles_social_rules.dart';
@@ -21,18 +22,9 @@ class ParentGeneralCultureScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_forward_ios_rounded, size: 18),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(
-          'ثقافة هامة للأمهات',
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-        ),
-        centerTitle: true,
+      appBar: QuranTactileAppBar(
+        title: 'ثقافة هامة للأمهات',
+        onBack: () => context.pop(),
       ),
       body: Stack(
         children: [

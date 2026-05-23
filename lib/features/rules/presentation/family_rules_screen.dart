@@ -7,10 +7,10 @@ import '../../../core/router/app_routes.dart';
 import '../../../core/storage/prefs_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
-import '../../../core/constants/app_assets.dart';
 import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../../shared/widgets/editorial_card.dart';
 import '../../../shared/widgets/primary_button.dart';
+import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
 
 class _Rule {
   const _Rule({required this.icon, required this.color, required this.text});
@@ -66,41 +66,7 @@ class _FamilyRulesScreenState extends ConsumerState<FamilyRulesScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        toolbarHeight: 58,
-        automaticallyImplyLeading: false,
-        leading: IconButton(
-          icon: Container(
-            width: 42,
-            height: 42,
-            decoration: const BoxDecoration(
-              color: AppColors.surfaceContainerHighest,
-              shape: BoxShape.circle,
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: Image.asset(
-              AppAssets.logoBaby,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) =>
-                  const Icon(Symbols.account_circle, color: AppColors.primary, size: 26, fill: 1),
-            ),
-          ),
-          onPressed: () {},
-        ),
-        title: Text('أهلاً، سارة',
-            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
-        actions: [
-          IconButton(
-            icon: const Icon(Symbols.notifications, color: AppColors.primary, fill: 1),
-            onPressed: () {},
-          ),
-        ],
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, thickness: 1, color: AppColors.surfaceContainerHighest),
-        ),
-      ),
+      appBar: const QuranTactileAppBar(title: 'آداب مجتمع بيانور'),
       body: Stack(
         children: [
           const BeboShellBackground(showBottomCurve: false),

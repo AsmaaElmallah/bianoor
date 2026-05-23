@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
-import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../shared/widgets/app_logo_avatar.dart';
 import '../../../shared/widgets/app_text_field.dart';
-import '../../../shared/widgets/primary_button.dart';
 import '../application/onboarding_controller.dart';
 import '../domain/baby_profile_model.dart';
 import 'widgets/onboarding_progress_dots.dart';
@@ -46,7 +43,6 @@ class _ChildInfoScreenState extends ConsumerState<ChildInfoScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      bottomNavigationBar: const _SetupBottomNav(activeIndex: 2),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
@@ -135,27 +131,19 @@ class _ChildInfoScreenState extends ConsumerState<ChildInfoScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: BabyAgeRange.values.map((range) {
-                  final selected = profile.ageRange == range;
-                  return _AgeCard(
+              ...BabyAgeRange.values.map((range) {
+                final selected = profile.ageRange == range;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _AgeCard(
                     label: range.label,
                     selected: selected,
                     icon: _ageIcon(range),
                     onTap: () => ctrl.setAgeRange(range),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 28),
-              PrimaryButton(
-                label: 'التالي',
-                icon: Symbols.arrow_forward,
-                iconLeading: true,
-                height: 64,
-                onPressed: () => context.go(AppRoutes.onboardingSurvey),
-              ),
+                    fullWidth: true,
+                  ),
+                );
+              }),
             ],
           ),
         ),
@@ -221,17 +209,19 @@ class _AgeCard extends StatelessWidget {
     required this.selected,
     required this.icon,
     required this.onTap,
+    this.fullWidth = false,
   });
 
   final String label;
   final bool selected;
   final IconData icon;
   final VoidCallback onTap;
+  final bool fullWidth;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: (MediaQuery.sizeOf(context).width - 52) / 2,
+      width: fullWidth ? double.infinity : (MediaQuery.sizeOf(context).width - 52) / 2,
       child: Material(
         color: selected
             ? AppColors.primaryContainer.withValues(alpha: 0.22)
@@ -279,60 +269,6 @@ class _AgeCard extends StatelessWidget {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SetupBottomNav extends StatelessWidget {
-  const _SetupBottomNav({required this.activeIndex});
-  final int activeIndex;
-
-  @override
-  Widget build(BuildContext context) {
-    final items = const [
-      (Symbols.home, 'الرئيسية'),
-      (Symbols.menu_book, 'الدروس'),
-      (Symbols.auto_graph, 'النمو'),
-      (Symbols.settings, 'الإعدادات'),
-    ];
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: List.generate(items.length, (index) {
-            final item = items[index];
-            final active = index == activeIndex;
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  item.$1,
-                  size: 20,
-                  color: active
-                      ? AppColors.primary
-                      : AppColors.onSurfaceVariant,
-                  fill: active ? 1 : 0,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  item.$2,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: active
-                        ? AppColors.primary
-                        : AppColors.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            );
-          }),
         ),
       ),
     );

@@ -37,9 +37,23 @@ class AppTextField extends StatelessWidget {
   /// BeBo-style: white fill, thin grey outline, large pill radius.
   final bool beboPillBorder;
 
+  static TextStyle hintStyle(ThemeData theme) =>
+      theme.textTheme.bodyLarge?.copyWith(
+            color: AppColors.hintPlaceholder,
+            fontWeight: FontWeight.w500,
+          ) ??
+      const TextStyle(
+        color: AppColors.hintPlaceholder,
+        fontWeight: FontWeight.w500,
+        fontSize: 16,
+      );
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final hint = hintStyle(theme);
+    const iconColor = AppColors.hintPlaceholder;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -63,10 +77,15 @@ class AppTextField extends StatelessWidget {
           minLines: minLines,
           validator: validator,
           textInputAction: textInputAction,
-          style: theme.textTheme.bodyLarge,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            color: AppColors.onSurface,
+            fontWeight: FontWeight.w500,
+          ),
+          cursorColor: AppColors.primary,
           decoration: beboPillBorder
               ? InputDecoration(
-                  hintText: hint,
+                  hintText: this.hint,
+                  hintStyle: hint,
                   filled: true,
                   fillColor: AppColors.surfaceBright,
                   contentPadding: const EdgeInsets.symmetric(
@@ -81,7 +100,7 @@ class AppTextField extends StatelessWidget {
                           ),
                           child: Icon(
                             icon,
-                            color: AppColors.onSurfaceVariant,
+                            color: iconColor,
                             size: 22,
                           ),
                         )
@@ -95,7 +114,7 @@ class AppTextField extends StatelessWidget {
                           onPressed: onSuffixTap,
                           icon: Icon(
                             suffixIcon,
-                            color: AppColors.onSurfaceVariant,
+                            color: iconColor,
                             size: 22,
                           ),
                         )
@@ -127,8 +146,14 @@ class AppTextField extends StatelessWidget {
                   ),
                 )
               : InputDecoration(
-                  hintText: hint,
-                  // In RTL screens, prefix icon appears on the right side.
+                  hintText: this.hint,
+                  hintStyle: hint,
+                  filled: true,
+                  fillColor: AppColors.surfaceBright,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 16,
+                  ),
                   prefixIcon: icon != null
                       ? Padding(
                           padding: const EdgeInsetsDirectional.only(
@@ -137,7 +162,7 @@ class AppTextField extends StatelessWidget {
                           ),
                           child: Icon(
                             icon,
-                            color: AppColors.outlineVariant,
+                            color: iconColor,
                             size: 22,
                           ),
                         )
@@ -151,7 +176,7 @@ class AppTextField extends StatelessWidget {
                           onPressed: onSuffixTap,
                           icon: Icon(
                             suffixIcon,
-                            color: AppColors.outlineVariant,
+                            color: iconColor,
                             size: 22,
                           ),
                         )
@@ -162,7 +187,22 @@ class AppTextField extends StatelessWidget {
                   ),
                   border: const OutlineInputBorder(
                     borderRadius: AppRadius.brLg,
-                    borderSide: BorderSide.none,
+                    borderSide: BorderSide(color: AppColors.outline, width: 1),
+                  ),
+                  enabledBorder: const OutlineInputBorder(
+                    borderRadius: AppRadius.brLg,
+                    borderSide: BorderSide(color: AppColors.outline, width: 1),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: AppRadius.brLg,
+                    borderSide: BorderSide(
+                      color: AppColors.primary.withValues(alpha: 0.5),
+                      width: 2,
+                    ),
+                  ),
+                  errorBorder: const OutlineInputBorder(
+                    borderRadius: AppRadius.brLg,
+                    borderSide: BorderSide(color: AppColors.error, width: 1.5),
                   ),
                 ),
         ),

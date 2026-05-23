@@ -5,6 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/signup_screen.dart';
 import '../../features/home/presentation/feature_placeholder_screen.dart';
+import '../../features/community/presentation/mothers_club_screen.dart';
+import '../../features/assessment/presentation/mother_quiz_screen.dart';
+import '../../shared/presentation/lesson_celebration_screen.dart';
 import '../../features/home/presentation/home_shell_screen.dart';
 import '../../features/activities/presentation/activities_age_groups_screen.dart';
 import '../../features/activities/presentation/activities_hub_screen.dart';
@@ -14,7 +17,7 @@ import '../../features/library/presentation/library_media_hub_screen.dart';
 import '../../features/library/presentation/library_media_list_screen.dart';
 import '../../features/library/presentation/library_media_player_screen.dart';
 import '../../features/language/presentation/language_screen.dart';
-import '../../features/onboarding_questions/presentation/child_info_screen.dart';
+import '../../features/onboarding_questions/presentation/onboarding_questions_screen.dart';
 import '../../features/onboarding_questions/presentation/nutrition_screen.dart';
 import '../../features/onboarding_questions/presentation/onboarding_survey_screen.dart';
 import '../../features/onboarding_questions/presentation/skills_screen.dart';
@@ -82,7 +85,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.onboardingQuestions,
-        builder: (context, state) => const ChildInfoScreen(),
+        builder: (context, state) => const OnboardingQuestionsScreen(),
       ),
       GoRoute(
         path: AppRoutes.onboardingSurvey,
@@ -109,6 +112,25 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             parentNavigatorKey: rootNavigatorKey,
             builder: (context, state) => FeaturePlaceholderScreen(
               featureId: state.pathParameters['id']!,
+            ),
+          ),
+          GoRoute(
+            path: 'mothers-club',
+            parentNavigatorKey: rootNavigatorKey,
+            builder: (context, state) => const MothersClubScreen(),
+          ),
+          GoRoute(
+            path: 'quiz/:quizId',
+            parentNavigatorKey: rootNavigatorKey,
+            builder: (context, state) => MotherQuizScreen(
+              quizId: state.pathParameters['quizId']!,
+            ),
+          ),
+          GoRoute(
+            path: 'celebration/:track',
+            parentNavigatorKey: rootNavigatorKey,
+            builder: (context, state) => LessonCelebrationScreen(
+              track: state.pathParameters['track']!,
             ),
           ),
           GoRoute(

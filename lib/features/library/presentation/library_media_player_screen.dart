@@ -2,16 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_radius.dart';
+import '../../../shared/widgets/tactile/tactile_clay_card.dart';
 import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
-import '../../quran/presentation/widgets/tactile/tactile_clay_card.dart';
-import '../domain/library_media_catalog.dart';
+import '../../../shared/widgets/youtube/youtube_embed_player.dart';
 
-/// تشغيل مقطع YouTube أو قائمة تهويدات عبر WebView.
-class LibraryMediaPlayerScreen extends StatefulWidget {
+/// تشغيل مقطع YouTube أو قائمة تهويدات.
+class LibraryMediaPlayerScreen extends StatelessWidget {
   const LibraryMediaPlayerScreen({
     super.key,
     required this.title,
@@ -23,35 +21,9 @@ class LibraryMediaPlayerScreen extends StatefulWidget {
   final String? videoId;
   final String? playlistId;
 
-  @override
-  State<LibraryMediaPlayerScreen> createState() => _LibraryMediaPlayerScreenState();
-}
-
-class _LibraryMediaPlayerScreenState extends State<LibraryMediaPlayerScreen> {
-  WebViewController? _webController;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    final playlist = widget.playlistId?.trim();
-    final video = widget.videoId?.trim();
-
-    if ((playlist == null || playlist.isEmpty) && (video == null || video.isEmpty)) {
-      _error = 'لا يوجد رابط تشغيل';
-      return;
-    }
-
-    final embedUrl = libraryYoutubeEmbedUrl(videoId: video, playlistId: playlist);
-    _webController = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(AppColors.surfaceContainer)
-      ..loadRequest(Uri.parse(embedUrl));
-  }
-
   Future<void> _openInYoutube() async {
-    final playlist = widget.playlistId;
-    final video = widget.videoId;
+    final playlist = playlistId?.trim();
+    final video = videoId?.trim();
     final uri = playlist != null && playlist.isNotEmpty
         ? Uri.parse('https://www.youtube.com/playlist?list=$playlist')
         : Uri.parse('https://www.youtube.com/watch?v=$video');
@@ -63,72 +35,58 @@ class _LibraryMediaPlayerScreenState extends State<LibraryMediaPlayerScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final canPlay = YoutubeEmbedPlayer.hasPlayableSource(
+      videoId: videoId,
+      playlistId: playlistId,
+    );
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: QuranTactileAppBar(
-        title: widget.title,
+        title: title,
         onBack: () => context.pop(),
       ),
-      body: _error != null
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(_error!, textAlign: TextAlign.center),
-                    const SizedBox(height: 16),
-                    OutlinedButton.icon(
-                      onPressed: _openInYoutube,
-                      icon: const Icon(Symbols.open_in_new),
-                      label: const Text('فتح في يوتيوب'),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        children: [
+          YoutubeEmbedPlayer(
+            key: ValueKey('lib_${videoId}_$playlistId'),
+            videoId: videoId,
+            playlistId: playlistId,
+            playing: canPlay,
+            onOpenExternal: _openInYoutube,
+          ),
+          const SizedBox(height: 16),
+          TactileClayCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                ClipRRect(
-                  borderRadius: AppRadius.brLg,
-                  child: AspectRatio(
-                    aspectRatio: 16 / 9,
-                    child: WebViewWidget(controller: _webController!),
+                Text(
+                  title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 16),
-                TactileClayCard(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        widget.title,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'يتطلب اتصالاً بالإنترنت. إن لم يظهر الفيديو، افتحي التطبيق في يوتيوب.',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.onSurfaceVariant,
-                          height: 1.45,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      OutlinedButton.icon(
-                        onPressed: _openInYoutube,
-                        icon: const Icon(Symbols.open_in_new),
-                        label: const Text('فتح في يوتيوب'),
-                      ),
-                    ],
+                const SizedBox(height: 8),
+                Text(
+                  'يتطلب اتصالاً بالإنترنت. إن لم يظهر الفيديو، افتحي المقطع في تطبيق يوتيوب.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.onSurfaceVariant,
+                    height: 1.45,
                   ),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _openInYoutube,
+                  icon: const Icon(Symbols.open_in_new),
+                  label: const Text('فتح في يوتيوب'),
                 ),
               ],
             ),
+          ),
+        ],
+      ),
     );
   }
 }

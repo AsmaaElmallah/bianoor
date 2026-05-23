@@ -1,0 +1,1169 @@
+{
+    "version":  1,
+    "packages":  [
+                     {
+                         "id":  "emotional_src_01",
+                         "slideCount":  6,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_01/slide_001",
+                                            "durationSec":  2.82,
+                                            "imageCount":  1
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_01/slide_002",
+                                            "durationSec":  2.18,
+                                            "imageCount":  1
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_01/slide_003",
+                                            "durationSec":  1.66,
+                                            "imageCount":  1
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_01/slide_004",
+                                            "durationSec":  2.82,
+                                            "imageCount":  1
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_01/slide_005",
+                                            "durationSec":  1.66,
+                                            "imageCount":  1
+                                        },
+                                        {
+                                            "index":  6,
+                                            "folder":  "packages/emotional_src_01/slide_006",
+                                            "durationSec":  2.56,
+                                            "imageCount":  1
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_02",
+                         "slideCount":  5,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_02/slide_001",
+                                            "durationSec":  2.3,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_02/slide_002",
+                                            "durationSec":  1.92,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_02/slide_003",
+                                            "durationSec":  2.18,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_02/slide_004",
+                                            "durationSec":  2.05,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_02/slide_005",
+                                            "durationSec":  1.92,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_03",
+                         "slideCount":  5,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_03/slide_001",
+                                            "durationSec":  2.18,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_03/slide_002",
+                                            "durationSec":  2.05,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_03/slide_003",
+                                            "durationSec":  2.18,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_03/slide_004",
+                                            "durationSec":  1.92,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_03/slide_005",
+                                            "durationSec":  2.05,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_04",
+                         "slideCount":  5,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_04/slide_001",
+                                            "durationSec":  1.66,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_04/slide_002",
+                                            "durationSec":  2.43,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_04/slide_003",
+                                            "durationSec":  1.92,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_04/slide_004",
+                                            "durationSec":  2.18,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_04/slide_005",
+                                            "durationSec":  2.05,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_05",
+                         "slideCount":  5,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_05/slide_001",
+                                            "durationSec":  2.05,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_05/slide_002",
+                                            "durationSec":  2.18,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_05/slide_003",
+                                            "durationSec":  2.3,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_05/slide_004",
+                                            "durationSec":  2.69,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_05/slide_005",
+                                            "durationSec":  2.43,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_06",
+                         "slideCount":  5,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_06/slide_001",
+                                            "durationSec":  2.3,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_06/slide_002",
+                                            "durationSec":  2.18,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_06/slide_003",
+                                            "durationSec":  1.92,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_06/slide_004",
+                                            "durationSec":  2.43,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_06/slide_005",
+                                            "durationSec":  1.66,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_07",
+                         "slideCount":  5,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_07/slide_001",
+                                            "durationSec":  2.05,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_07/slide_002",
+                                            "durationSec":  2.82,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_07/slide_003",
+                                            "durationSec":  2.3,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_07/slide_004",
+                                            "durationSec":  2.05,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_07/slide_005",
+                                            "durationSec":  2.43,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_08",
+                         "slideCount":  5,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_08/slide_001",
+                                            "durationSec":  2.56,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_08/slide_002",
+                                            "durationSec":  2.05,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_08/slide_003",
+                                            "durationSec":  2.05,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_08/slide_004",
+                                            "durationSec":  2.18,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_08/slide_005",
+                                            "durationSec":  2.18,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_09",
+                         "slideCount":  5,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_09/slide_001",
+                                            "durationSec":  1.79,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_09/slide_002",
+                                            "durationSec":  2.3,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_09/slide_003",
+                                            "durationSec":  2.43,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_09/slide_004",
+                                            "durationSec":  2.3,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_09/slide_005",
+                                            "durationSec":  4.22,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_10",
+                         "slideCount":  5,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_10/slide_001",
+                                            "durationSec":  2.82,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_10/slide_002",
+                                            "durationSec":  2.3,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_10/slide_003",
+                                            "durationSec":  2.3,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_10/slide_004",
+                                            "durationSec":  2.3,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_10/slide_005",
+                                            "durationSec":  2.56,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_11",
+                         "slideCount":  5,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_11/slide_001",
+                                            "durationSec":  2.3,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_11/slide_002",
+                                            "durationSec":  2.3,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_11/slide_003",
+                                            "durationSec":  2.3,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_11/slide_004",
+                                            "durationSec":  2.05,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_11/slide_005",
+                                            "durationSec":  1.92,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_12",
+                         "slideCount":  5,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_12/slide_001",
+                                            "durationSec":  2.05,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_12/slide_002",
+                                            "durationSec":  2.56,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_12/slide_003",
+                                            "durationSec":  2.18,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_12/slide_004",
+                                            "durationSec":  2.18,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_12/slide_005",
+                                            "durationSec":  2.18,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_13",
+                         "slideCount":  5,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_13/slide_001",
+                                            "durationSec":  1.66,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_13/slide_002",
+                                            "durationSec":  2.05,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_13/slide_003",
+                                            "durationSec":  2.18,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_13/slide_004",
+                                            "durationSec":  2.05,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_13/slide_005",
+                                            "durationSec":  3.33,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_14",
+                         "slideCount":  5,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_14/slide_001",
+                                            "durationSec":  3.07,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_14/slide_002",
+                                            "durationSec":  2.56,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_14/slide_003",
+                                            "durationSec":  2.43,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_14/slide_004",
+                                            "durationSec":  3.33,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_14/slide_005",
+                                            "durationSec":  2.82,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_15",
+                         "slideCount":  5,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_15/slide_001",
+                                            "durationSec":  2.05,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_15/slide_002",
+                                            "durationSec":  2.18,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_15/slide_003",
+                                            "durationSec":  2.18,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_15/slide_004",
+                                            "durationSec":  2.18,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_15/slide_005",
+                                            "durationSec":  2.18,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_16",
+                         "slideCount":  5,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_16/slide_001",
+                                            "durationSec":  2.3,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_16/slide_002",
+                                            "durationSec":  2.3,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_16/slide_003",
+                                            "durationSec":  1.92,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_16/slide_004",
+                                            "durationSec":  1.92,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_16/slide_005",
+                                            "durationSec":  2.56,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_17",
+                         "slideCount":  5,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_17/slide_001",
+                                            "durationSec":  2.43,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_17/slide_002",
+                                            "durationSec":  2.05,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_17/slide_003",
+                                            "durationSec":  2.56,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_17/slide_004",
+                                            "durationSec":  2.82,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_17/slide_005",
+                                            "durationSec":  3.07,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_18",
+                         "slideCount":  5,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_18/slide_001",
+                                            "durationSec":  3.2,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_18/slide_002",
+                                            "durationSec":  2.3,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_18/slide_003",
+                                            "durationSec":  2.94,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_18/slide_004",
+                                            "durationSec":  2.56,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_18/slide_005",
+                                            "durationSec":  2.3,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_19",
+                         "slideCount":  5,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_19/slide_001",
+                                            "durationSec":  2.18,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_19/slide_002",
+                                            "durationSec":  2.18,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_19/slide_003",
+                                            "durationSec":  3.97,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_19/slide_004",
+                                            "durationSec":  2.05,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_19/slide_005",
+                                            "durationSec":  1.79,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_20",
+                         "slideCount":  5,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_20/slide_001",
+                                            "durationSec":  2.3,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_20/slide_002",
+                                            "durationSec":  2.05,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_20/slide_003",
+                                            "durationSec":  2.18,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_20/slide_004",
+                                            "durationSec":  2.05,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_20/slide_005",
+                                            "durationSec":  1.92,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_21",
+                         "slideCount":  5,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_21/slide_001",
+                                            "durationSec":  2.05,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_21/slide_002",
+                                            "durationSec":  2.18,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_21/slide_003",
+                                            "durationSec":  1.92,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_21/slide_004",
+                                            "durationSec":  1.92,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_21/slide_005",
+                                            "durationSec":  2.18,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_22",
+                         "slideCount":  5,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_22/slide_001",
+                                            "durationSec":  2.05,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_22/slide_002",
+                                            "durationSec":  2.3,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_22/slide_003",
+                                            "durationSec":  2.56,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_22/slide_004",
+                                            "durationSec":  2.3,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_22/slide_005",
+                                            "durationSec":  2.05,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_23",
+                         "slideCount":  6,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_23/slide_001",
+                                            "durationSec":  2.82,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_23/slide_002",
+                                            "durationSec":  2.18,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_23/slide_003",
+                                            "durationSec":  1.66,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_23/slide_004",
+                                            "durationSec":  2.82,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_23/slide_005",
+                                            "durationSec":  1.66,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  6,
+                                            "folder":  "packages/emotional_src_23/slide_006",
+                                            "durationSec":  2.56,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_24",
+                         "slideCount":  5,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_24/slide_001",
+                                            "durationSec":  3.07,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_24/slide_002",
+                                            "durationSec":  2.05,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_24/slide_003",
+                                            "durationSec":  1.92,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_24/slide_004",
+                                            "durationSec":  1.92,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_24/slide_005",
+                                            "durationSec":  2.18,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_25",
+                         "slideCount":  5,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_25/slide_001",
+                                            "durationSec":  2.05,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_25/slide_002",
+                                            "durationSec":  2.05,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_25/slide_003",
+                                            "durationSec":  2.3,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_25/slide_004",
+                                            "durationSec":  2.3,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_25/slide_005",
+                                            "durationSec":  2.3,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_26",
+                         "slideCount":  5,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_26/slide_001",
+                                            "durationSec":  2.18,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_26/slide_002",
+                                            "durationSec":  2.56,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_26/slide_003",
+                                            "durationSec":  2.82,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_26/slide_004",
+                                            "durationSec":  2.05,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_26/slide_005",
+                                            "durationSec":  2.18,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_27",
+                         "slideCount":  5,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_27/slide_001",
+                                            "durationSec":  1.66,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_27/slide_002",
+                                            "durationSec":  3.46,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_27/slide_003",
+                                            "durationSec":  2.82,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_27/slide_004",
+                                            "durationSec":  3.58,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_27/slide_005",
+                                            "durationSec":  2.94,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_28",
+                         "slideCount":  5,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_28/slide_001",
+                                            "durationSec":  2.43,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_28/slide_002",
+                                            "durationSec":  3.2,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_28/slide_003",
+                                            "durationSec":  2.18,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_28/slide_004",
+                                            "durationSec":  2.05,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_28/slide_005",
+                                            "durationSec":  2.18,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_29",
+                         "slideCount":  5,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_29/slide_001",
+                                            "durationSec":  2.82,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_29/slide_002",
+                                            "durationSec":  2.43,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_29/slide_003",
+                                            "durationSec":  2.05,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_29/slide_004",
+                                            "durationSec":  2.82,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_29/slide_005",
+                                            "durationSec":  2.3,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_30",
+                         "slideCount":  5,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_30/slide_001",
+                                            "durationSec":  3.07,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_30/slide_002",
+                                            "durationSec":  2.82,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_30/slide_003",
+                                            "durationSec":  3.2,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_30/slide_004",
+                                            "durationSec":  1.92,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_30/slide_005",
+                                            "durationSec":  3.07,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_31",
+                         "slideCount":  5,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_31/slide_001",
+                                            "durationSec":  2.3,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_31/slide_002",
+                                            "durationSec":  2.05,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_31/slide_003",
+                                            "durationSec":  1.92,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_31/slide_004",
+                                            "durationSec":  1.92,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_31/slide_005",
+                                            "durationSec":  2.18,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     },
+                     {
+                         "id":  "emotional_src_32",
+                         "slideCount":  5,
+                         "slides":  [
+                                        {
+                                            "index":  1,
+                                            "folder":  "packages/emotional_src_32/slide_001",
+                                            "durationSec":  2.05,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  2,
+                                            "folder":  "packages/emotional_src_32/slide_002",
+                                            "durationSec":  2.05,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  3,
+                                            "folder":  "packages/emotional_src_32/slide_003",
+                                            "durationSec":  2.18,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  4,
+                                            "folder":  "packages/emotional_src_32/slide_004",
+                                            "durationSec":  3.33,
+                                            "imageCount":  2
+                                        },
+                                        {
+                                            "index":  5,
+                                            "folder":  "packages/emotional_src_32/slide_005",
+                                            "durationSec":  1.79,
+                                            "imageCount":  2
+                                        }
+                                    ]
+                     }
+                 ]
+}

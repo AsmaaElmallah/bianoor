@@ -7,8 +7,10 @@ import 'package:just_audio/just_audio.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../../../core/constants/app_assets.dart';
+import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../shared/widgets/import '../../../core/theme/app_radius.dart';
+import '../../../shared/widgets/bebo_shell_background.dart';
+import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../application/emotional_curriculum_provider.dart';
 import '../domain/emotional_slide.dart';
@@ -125,7 +127,7 @@ class _EmotionalPlayerScreenState extends ConsumerState<EmotionalPlayerScreen> {
     await ref.read(emotionalCurriculumProvider.notifier).completeRound();
     if (!mounted) return;
     _advancing = false;
-    context.pop();
+    context.pushReplacement(AppRoutes.lessonCelebrationPath('emotional'));
   }
 
   @override
@@ -144,30 +146,33 @@ class _EmotionalPlayerScreenState extends ConsumerState<EmotionalPlayerScreen> {
     final curriculum = ref.watch(emotionalCurriculumProvider).valueOrNull;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8D4DC),
+      backgroundColor: AppColors.background,
       appBar: QuranTactileAppBar(
         title: 'الذكاء الاجتماعي والعاطفي',
         onBack: () => context.pop(),
       ),
-      body: _loading
-          ? Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const CircularProgressIndicator(),
-                  const SizedBox(height: 16),
-                  Text(
-                    'جاري تحميل شرائح الدرس...',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: AppColors.onSurfaceVariant,
-                    ),
+      body: Stack(
+        children: [
+          const BeboShellBackground(showBottomCurve: false),
+          _loading
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: 16),
+                      Text(
+                        'جاري تحميل شرائح الدرس...',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: AppColors.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            )
-          : step == null
-              ? _EmptyState(onBack: () => context.pop())
-              : Column(
+                )
+              : step == null
+                  ? _EmptyState(onBack: () => context.pop())
+                  : Column(
                   children: [
                     Padding(
                       padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
@@ -280,6 +285,8 @@ class _EmotionalPlayerScreenState extends ConsumerState<EmotionalPlayerScreen> {
                     ),
                   ],
                 ),
+        ],
+      ),
     );
   }
 }

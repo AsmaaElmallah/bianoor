@@ -177,10 +177,4 @@ LibraryMediaCategory? libraryCategoryByMenuId(String menuId) {
   return null;
 }
 
-/// رابط تضمين YouTube للعرض داخل التطبيق.
-String libraryYoutubeEmbedUrl({String? videoId, String? playlistId}) {
-  if (playlistId != null && playlistId.isNotEmpty) {
-    return 'https://www.youtube.com/embed/videoseries?list=$playlistId&autoplay=1&rel=0';
-  }
-  return 'https://www.youtube.com/embed/$videoId?autoplay=1&rel=0';
-}
+// تضمين YouTube: انظر shared/widgets/youtube/youtube_embed_helper.dart

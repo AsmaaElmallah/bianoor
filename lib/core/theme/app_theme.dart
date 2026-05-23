@@ -201,7 +201,14 @@ class AppTheme {
         filled: true,
         fillColor: AppColors.surfaceContainerLow, // warm cream-peach
         contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
-        hintStyle: textTheme.bodyMedium?.copyWith(color: AppColors.outlineVariant),
+        hintStyle: textTheme.bodyLarge?.copyWith(
+          color: AppColors.hintPlaceholder,
+          fontWeight: FontWeight.w500,
+        ),
+        labelStyle: textTheme.labelMedium?.copyWith(
+          color: AppColors.onSurfaceVariant,
+          fontWeight: FontWeight.w600,
+        ),
         border: OutlineInputBorder(
           borderRadius: clayFieldRadius,
           borderSide: BorderSide.none,

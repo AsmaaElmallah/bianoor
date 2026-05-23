@@ -72,6 +72,9 @@ class AppColors {
   static const Color outline        = Color(0xFFDDD6FE); // Violet-200
   static const Color outlineVariant = Color(0xFFEDE9FE); // Violet-100
 
+  /// نص placeholder داخل الحقول — واضح على الخلفية البيضاء/الكريمية.
+  static const Color hintPlaceholder = Color(0xFF5B5678); // violet-gray ~4.5:1 on white
+
   // ── Progress ──────────────────────────────────────────────────────────────
   static const Color progressActive   = Color(0xFF6D28D9);
   static const Color progressInactive = Color(0xFFDDD6FE);

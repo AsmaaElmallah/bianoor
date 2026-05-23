@@ -31,6 +31,9 @@ class AppRoutes {
   static const home = '/home';
 
   static const homeFeature = '/home/feature/:id';
+  static const mothersClub = '/home/mothers-club';
+  static const motherQuiz = '/home/quiz/:quizId';
+  static const lessonCelebration = '/home/celebration/:track';
   static const libraryMedia = '/home/library/:categoryId';
   static const libraryMediaWatch = '/home/library/:categoryId/watch';
 
@@ -85,6 +88,10 @@ class AppRoutes {
 
 
   static String homeFeaturePath(String id) => '/home/feature/$id';
+
+  static String motherQuizPath(String quizId) => '/home/quiz/$quizId';
+
+  static String lessonCelebrationPath(String track) => '/home/celebration/$track';
 
   static String libraryMediaPath(String categoryId) => '/home/library/$categoryId';
 

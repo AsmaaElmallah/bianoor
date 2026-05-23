@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:webview_flutter/webview_flutter.dart';
-
 import '../../../core/constants/app_assets.dart';
+import '../../../shared/widgets/youtube/youtube_embed_player.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_shadows.dart';
@@ -28,11 +27,9 @@ class LibraryMediaHubScreen extends StatefulWidget {
 }
 
 class _LibraryMediaHubScreenState extends State<LibraryMediaHubScreen> {
-  WebViewController? _webController;
   NatureSoundChip _natureChip = NatureSoundChip.rain;
   int _itemIndex = 0;
   bool _playing = true;
-  String? _loadError;
 
   LibraryMediaCategory? get _category => libraryCategoryByMenuId(widget.categoryId);
 
@@ -58,60 +55,19 @@ class _LibraryMediaHubScreenState extends State<LibraryMediaHubScreen> {
     return items[idx];
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _loadPlayer();
-  }
-
-  void _loadPlayer() {
-    final item = _currentItem;
-    if (item == null) {
-      setState(() => _loadError = 'لا يوجد محتوى');
-      return;
-    }
-    final playlist = item.playlistId?.trim();
-    final video = item.videoId?.trim();
-    if ((playlist == null || playlist.isEmpty) && (video == null || video.isEmpty)) {
-      setState(() => _loadError = 'لا يوجد رابط تشغيل');
-      return;
-    }
-    setState(() => _loadError = null);
-    final url = libraryYoutubeEmbedUrl(videoId: video, playlistId: playlist);
-    _webController = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(Colors.black)
-      ..setNavigationDelegate(NavigationDelegate(
-        onNavigationRequest: (request) {
-          final u = request.url;
-          if (u.contains('youtube.com/embed') ||
-              u.contains('youtube-nocookie.com') ||
-              u.contains('ytimg.com') ||
-              u.contains('googlevideo.com') ||
-              u.contains('doubleclick.net') ||
-              u.startsWith('about:')) {
-            return NavigationDecision.navigate;
-          }
-          return NavigationDecision.prevent;
-        },
-        onWebResourceError: (error) =>
-            setState(() => _loadError = 'تعذّر تحميل الفيديو'),
-      ))
-      ..loadRequest(Uri.parse(url));
-    setState(() => _playing = true);
-  }
-
   void _selectItem(int index) {
-    setState(() => _itemIndex = index);
-    _loadPlayer();
+    setState(() {
+      _itemIndex = index;
+      _playing = true;
+    });
   }
 
   void _onNatureChip(NatureSoundChip chip) {
     setState(() {
       _natureChip = chip;
       _itemIndex = 0;
+      _playing = true;
     });
-    _loadPlayer();
   }
 
   void _previous() {
@@ -127,11 +83,7 @@ class _LibraryMediaHubScreenState extends State<LibraryMediaHubScreen> {
   }
 
   void _togglePlayPause() {
-    if (_playing) {
-      setState(() => _playing = false);
-    } else {
-      _loadPlayer();
-    }
+    setState(() => _playing = !_playing);
   }
 
   Future<void> _openInYoutube() async {
@@ -241,13 +193,14 @@ class _LibraryMediaHubScreenState extends State<LibraryMediaHubScreen> {
                             category.id == LibraryMediaCategoryId.lullabies,
                       ),
                       const SizedBox(height: 16),
-                      _PlayerSection(
-                        webController: _webController,
-                        loadError: _loadError,
-                        playing: _playing,
-                        onPlayPause: _togglePlayPause,
-                        accentColor: hubTheme.accentColor,
-                      ),
+            _PlayerSection(
+              videoId: _currentItem?.videoId,
+              playlistId: _currentItem?.playlistId,
+              playing: _playing,
+              onPlayPause: _togglePlayPause,
+              onOpenYoutube: _openInYoutube,
+              accentColor: hubTheme.accentColor,
+            ),
                       const SizedBox(height: 16),
                       TactileClayProgress(value: progress, height: 16),
                       const SizedBox(height: 8),
@@ -506,72 +459,67 @@ class _TitleSection extends StatelessWidget {
 
 class _PlayerSection extends StatelessWidget {
   const _PlayerSection({
-    required this.webController,
-    required this.loadError,
+    required this.videoId,
+    required this.playlistId,
     required this.playing,
     required this.onPlayPause,
+    required this.onOpenYoutube,
     required this.accentColor,
   });
 
-  final WebViewController? webController;
-  final String? loadError;
+  final String? videoId;
+  final String? playlistId;
   final bool playing;
   final VoidCallback onPlayPause;
+  final Future<void> Function() onOpenYoutube;
   final Color accentColor;
 
   @override
   Widget build(BuildContext context) {
     return TactileClayCard(
       padding: const EdgeInsets.all(10),
-      child: AspectRatio(
-        aspectRatio: 16 / 9,
-        child: ClipRRect(
-          borderRadius: AppRadius.brLg,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              if (loadError != null)
-                ColoredBox(
-                  color: AppColors.surfaceContainerHighest,
-                  child: Center(
-                    child: Text(loadError!, textAlign: TextAlign.center),
-                  ),
-                )
-              else if (playing && webController != null)
-                WebViewWidget(controller: webController!)
-              else
-                ColoredBox(
-                  color: AppColors.surfaceContainerHighest,
-                  child: Center(
-                    child: GestureDetector(
-                      onTap: onPlayPause,
-                      child: Container(
-                        width: 72,
-                        height: 72,
-                        decoration: BoxDecoration(
-                          color: AppColors.secondaryContainer,
-                          shape: BoxShape.circle,
-                          boxShadow: AppShadows.clayLift,
-                          border: Border(
-                            bottom: BorderSide(
-                              color: AppColors.onSecondaryContainer.withValues(alpha: 0.4),
-                              width: 4,
-                            ),
-                          ),
-                        ),
-                        child: const Icon(
-                          Symbols.play_arrow,
-                          size: 40,
-                          color: AppColors.onSecondaryContainer,
-                          fill: 1,
-                        ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          YoutubeEmbedPlayer(
+            key: ValueKey('hub_${videoId}_${playlistId}_$playing'),
+            videoId: videoId,
+            playlistId: playlistId,
+            playing: playing,
+            onOpenExternal: onOpenYoutube,
+            placeholderIcon: Symbols.music_note,
+            placeholderIconColor: accentColor,
+          ),
+          if (!playing)
+            Positioned.fill(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: onPlayPause,
+                  borderRadius: AppRadius.brLg,
+                  child: Container(
+                    alignment: Alignment.center,
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    child: Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        color: AppColors.secondaryContainer,
+                        shape: BoxShape.circle,
+                        boxShadow: AppShadows.clayLift,
+                      ),
+                      child: const Icon(
+                        Symbols.play_arrow,
+                        size: 40,
+                        color: AppColors.onSecondaryContainer,
+                        fill: 1,
                       ),
                     ),
                   ),
                 ),
-            ],
-          ),
-        ),
+              ),
+            ),
+        ],
       ),
     );
   }

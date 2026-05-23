@@ -6,6 +6,7 @@ import '../../../core/constants/app_assets.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
+import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../../shared/widgets/floating_widget.dart';
 import '../domain/subscription_plan_model.dart';
 
@@ -21,37 +22,8 @@ class SubscriptionScreen extends StatelessWidget {
       body: SafeArea(
         child: Stack(
           children: [
-            // Mesh gradient background (from _6/code.html)
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topRight,
-                    end: Alignment.bottomLeft,
-                    colors: [
-                      AppColors.primaryContainer.withValues(alpha: 0.55),
-                      AppColors.background,
-                      AppColors.secondaryContainer.withValues(alpha: 0.40),
-                    ],
-                    stops: const [0.0, 0.45, 1.0],
-                  ),
-                ),
-              ),
-            ),
-            // Extra blob top-right
-            Positioned(
-              top: -80,
-              right: -70,
-              child: Container(
-                width: 280,
-                height: 280,
-                decoration: BoxDecoration(
-                  color: AppColors.tertiaryContainer.withValues(alpha: 0.45),
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ),
-            // Blob bottom-left
+            const BeboShellBackground(showBottomCurve: false),
+            // Blob bottom-left (accent over shell)
             Positioned(
               bottom: 80,
               left: -100,

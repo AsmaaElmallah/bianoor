@@ -113,25 +113,20 @@ class _BabyInfoSectionState extends ConsumerState<BabyInfoSection> {
             ),
           ),
         ),
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 2,
-          childAspectRatio: 1.4,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          children: BabyAgeRange.values.map((age) {
-            final isSelected = profile.ageRange == age;
-            return SelectableCard(
+        ...BabyAgeRange.values.map((age) {
+          final isSelected = profile.ageRange == age;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: SelectableCard(
               label: age.label,
               icon: _ageIcon(age),
               isSelected: isSelected,
               onTap: () => ctrl.setAgeRange(age),
               iconBg: _ageBg(age),
               iconColor: _ageColor(age),
-            );
-          }).toList(),
-        ),
+            ),
+          );
+        }),
       ],
     );
   }

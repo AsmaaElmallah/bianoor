@@ -25,6 +25,7 @@ dependencies:
   material_symbols_icons: ^4.2801.0
   just_audio: ^0.9.46
   webview_flutter: ^4.10.0
+  webview_flutter_android: ^4.3.2
   url_launcher: ^6.3.1
 
 dev_dependencies:

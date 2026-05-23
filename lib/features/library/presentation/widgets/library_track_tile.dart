@@ -4,6 +4,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../shared/widgets/tactile/tactile_clay_card.dart';
+import '../../../../shared/widgets/youtube/youtube_thumbnail.dart';
 import '../../domain/library_hub_theme.dart';
 import '../../domain/library_media_catalog.dart';
 
@@ -26,7 +27,7 @@ class LibraryTrackTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final thumbUrl = item.youtubeThumbnailUrl;
+    final videoId = item.videoId;
 
     if (listStyle == LibraryHubListStyle.queue) {
       return Material(
@@ -44,7 +45,7 @@ class LibraryTrackTile extends StatelessWidget {
             ),
             child: Row(
               children: [
-                _Thumbnail(url: thumbUrl, size: 64),
+                _Thumbnail(videoId: videoId, size: 64),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -92,7 +93,7 @@ class LibraryTrackTile extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                _Thumbnail(url: thumbUrl, size: 64),
+                _Thumbnail(videoId: videoId, size: 64),
                 if (isActive)
                   Container(
                     decoration: BoxDecoration(
@@ -142,29 +143,22 @@ class LibraryTrackTile extends StatelessWidget {
 }
 
 class _Thumbnail extends StatelessWidget {
-  const _Thumbnail({required this.url, required this.size});
+  const _Thumbnail({required this.videoId, required this.size});
 
-  final String? url;
+  final String? videoId;
   final double size;
 
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: AppRadius.brMd,
-      child: Container(
+      child: SizedBox(
         width: size,
         height: size,
-        color: AppColors.primaryFixed,
-        child: url != null
-            ? Image.network(
-                url!,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Icon(
-                  Symbols.music_note,
-                  color: AppColors.primary,
-                ),
-              )
-            : const Icon(Symbols.playlist_play, color: AppColors.primary, fill: 1),
+        child: YoutubeThumbnail(
+          videoId: videoId,
+          icon: Symbols.music_note,
+        ),
       ),
     );
   }
