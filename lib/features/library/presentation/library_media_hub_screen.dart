@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/content/content_providers.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_assets.dart';
@@ -17,21 +19,28 @@ import 'library_media_list_screen.dart';
 import 'widgets/library_track_tile.dart';
 
 /// مشغّل clay لأصوات الطبيعة / التهويدات / الموسيقى الهادئة (تصاميم 3d_*).
-class LibraryMediaHubScreen extends StatefulWidget {
+class LibraryMediaHubScreen extends ConsumerStatefulWidget {
   const LibraryMediaHubScreen({super.key, required this.categoryId});
 
   final String categoryId;
 
   @override
-  State<LibraryMediaHubScreen> createState() => _LibraryMediaHubScreenState();
+  ConsumerState<LibraryMediaHubScreen> createState() => _LibraryMediaHubScreenState();
 }
 
-class _LibraryMediaHubScreenState extends State<LibraryMediaHubScreen> {
+class _LibraryMediaHubScreenState extends ConsumerState<LibraryMediaHubScreen> {
   NatureSoundChip _natureChip = NatureSoundChip.rain;
   int _itemIndex = 0;
   bool _playing = true;
 
-  LibraryMediaCategory? get _category => libraryCategoryByMenuId(widget.categoryId);
+  LibraryMediaCategory? get _category {
+    final async = ref.watch(libraryCategoryProvider(widget.categoryId));
+    return async.maybeWhen(
+          data: (c) => c,
+          orElse: () => null,
+        ) ??
+        libraryCategoryByMenuId(widget.categoryId);
+  }
 
   LibraryHubTheme get _theme {
     final cat = _category;
@@ -107,6 +116,14 @@ class _LibraryMediaHubScreenState extends State<LibraryMediaHubScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final asyncCategory = ref.watch(libraryCategoryProvider(widget.categoryId));
+
+    if (asyncCategory.isLoading && _category == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     final category = _category;
     final theme = Theme.of(context);
     final hubTheme = _theme;

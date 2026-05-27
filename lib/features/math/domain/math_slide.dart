@@ -6,6 +6,8 @@ class MathSlide {
     required this.durationSec,
     required this.imageAssets,
     this.audioAsset,
+    this.imageNetworkUrls = const [],
+    this.audioNetworkUrl,
   });
 
   final String packageId;
@@ -14,6 +16,15 @@ class MathSlide {
   final double durationSec;
   final List<String> imageAssets;
   final String? audioAsset;
+  final List<String> imageNetworkUrls;
+  final String? audioNetworkUrl;
+
+  List<String> get displayImageSources =>
+      imageNetworkUrls.isNotEmpty ? imageNetworkUrls : imageAssets;
+
+  String? get playableAudio => audioNetworkUrl ?? audioAsset;
+
+  bool get usesNetworkImage => imageNetworkUrls.isNotEmpty;
 }
 
 class MathRoundStep {

@@ -27,6 +27,8 @@ class CurriculumJourneyConfig {
   final String Function(int lessonNumber) lessonDaysPath;
   final String playerPath;
 
+  String playerPathForLesson(int lessonNumber) => '$playerPath?lesson=$lessonNumber';
+
   String lessonLabel(int lessonNumber) => 'الدرس $lessonNumber';
 }
 

@@ -1,10 +1,13 @@
 import '../../../core/storage/prefs_service.dart';
+import '../../../core/sync/user_progress_sync_service.dart';
+import '../../curriculum/domain/curriculum_shared_schedule.dart';
 import '../domain/math_progress.dart';
 
 class MathProgressStorage {
-  MathProgressStorage(this._prefs);
+  MathProgressStorage(this._prefs, [this._sync]);
 
   final PrefsService _prefs;
+  final UserProgressSyncService? _sync;
 
   MathProgress load() {
     return MathProgress(
@@ -24,6 +27,7 @@ class MathProgressStorage {
     if (progress.programStartDateIso != null) {
       await _prefs.setMathProgramStartDate(progress.programStartDateIso!);
     }
+    await _sync?.pushIfLoggedIn();
   }
 
   Future<MathProgress> ensureProgramStart() async {
@@ -33,6 +37,13 @@ class MathProgressStorage {
     final updated = current.copyWith(programStartDateIso: today);
     await save(updated);
     return updated;
+  }
+
+  int effectiveCurriculumDay(MathProgress progress) {
+    if (_prefs.isDevBypassProgramCalendar()) {
+      return progress.curriculumDay.clamp(1, curriculumProgramTotalDays);
+    }
+    return curriculumDayFromStart(progress);
   }
 
   int curriculumDayFromStart(MathProgress progress) {

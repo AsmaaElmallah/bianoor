@@ -17,12 +17,14 @@ class CurriculumLessonDaysScreen extends StatelessWidget {
     required this.lessonNumber,
     required this.curriculumDay,
     this.slideInfo,
+    this.unlockAllLessons = false,
   });
 
   final CurriculumJourneyConfig config;
   final int lessonNumber;
   final int curriculumDay;
   final String? slideInfo;
+  final bool unlockAllLessons;
 
   @override
   Widget build(BuildContext context) {
@@ -157,14 +159,20 @@ class CurriculumLessonDaysScreen extends StatelessWidget {
           final dayInLesson = index;
           final dx = quranJourneyPathOffsets[(dayInLesson - 1) % quranJourneyPathOffsets.length];
           final isDone = dayInLesson <= completedDays;
-          final isActive = isCurrentLesson && !lessonDone && dayInLesson == currentDayInLesson;
-          final isLocked = !isDone && !isActive;
+          final isActive = !unlockAllLessons &&
+              isCurrentLesson &&
+              !lessonDone &&
+              dayInLesson == currentDayInLesson;
+          final isLocked = !unlockAllLessons && !isDone && !isActive;
+          final canPlay = unlockAllLessons || isActive || isDone;
 
           String? subtitle;
           if (isDone) {
-            subtitle = 'مكتمل';
+            subtitle = unlockAllLessons ? 'مكتمل · إعادة' : 'مكتمل';
           } else if (isActive) {
             subtitle = 'اليوم الحالي';
+          } else if (unlockAllLessons) {
+            subtitle = 'متاح للتجربة';
           }
 
           return Padding(
@@ -175,10 +183,12 @@ class CurriculumLessonDaysScreen extends StatelessWidget {
                 label: curriculumLessonDayLabel(dayInLesson),
                 subtitle: subtitle,
                 isDone: isDone,
-                isActive: isActive,
+                isActive: isActive || (unlockAllLessons && canPlay && !isDone),
                 isLocked: isLocked,
-                speechBubble: isActive ? 'ابدأ الآن' : null,
-                onTap: isActive ? () => context.push(config.playerPath) : null,
+                speechBubble: canPlay ? 'ابدأ الآن' : null,
+                onTap: canPlay
+                    ? () => context.push(config.playerPathForLesson(lessonNumber))
+                    : null,
               ),
             ),
           );

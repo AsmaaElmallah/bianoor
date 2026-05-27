@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../../../core/constants/app_assets.dart';
+import '../../../core/content/content_fetch_result.dart';
+import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_shadows.dart';
@@ -11,73 +14,62 @@ import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../../shared/widgets/tactile/tactile_clay_card.dart';
 import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
+import '../application/mothers_club_provider.dart';
+import '../domain/mothers_club_models.dart';
+import 'widgets/mothers_club_post_image.dart';
 
-/// نادي الأمهات — مطابق لتصميم `nady-mothers/code.html` بلوحة Royal.
-class MothersClubScreen extends StatelessWidget {
+/// نادي الأمهات — قائمة منشورات من Supabase مع fallback محلي.
+class MothersClubScreen extends ConsumerStatefulWidget {
   const MothersClubScreen({super.key});
 
-  static const _categories = [
-    _ClubCategory(
-      label: 'نصائح التربية',
-      icon: Symbols.child_care,
-      tint: AppColors.primaryFixed,
-      iconColor: AppColors.primary,
-    ),
-    _ClubCategory(
-      label: 'رحلات قرآنية',
-      icon: Symbols.menu_book,
-      tint: AppColors.tertiaryFixed,
-      iconColor: AppColors.tertiary,
-    ),
-    _ClubCategory(
-      label: 'التغذية',
-      icon: Symbols.restaurant,
-      tint: AppColors.secondaryFixed,
-      iconColor: AppColors.secondary,
-    ),
-    _ClubCategory(
-      label: 'أنشطة',
-      icon: Symbols.toys,
-      tint: AppColors.primaryContainer,
-      iconColor: AppColors.onPrimaryContainer,
-    ),
-  ];
+  @override
+  ConsumerState<MothersClubScreen> createState() => _MothersClubScreenState();
+}
 
-  static const _posts = [
-    _ClubPost(
-      author: 'سارة أحمد',
-      timeAgo: 'منذ ٢ ساعة',
-      tag: '#الختمة_الأولى',
-      tagBg: AppColors.secondaryContainer,
-      tagFg: AppColors.onSecondaryContainer,
-      title: 'كيف بدأتم تعليم أطفالكم السور القصيرة؟',
-      body:
-          'بدأت مع طفلي ذو الثلاث سنوات في تحفيظ سورة الفاتحة والإخلاص، وجدت أن التكرار وقت اللعب هو الأكثر فعالية. هل لديكم تجارب أخرى؟',
-      likes: 24,
-      comments: 12,
-      liked: false,
-      avatarTint: AppColors.tertiaryContainer,
-    ),
-    _ClubPost(
-      author: 'ليلى محمد',
-      timeAgo: 'منذ ٥ ساعات',
-      tag: '#تغذية_الطفل',
-      tagBg: AppColors.primaryFixed,
-      tagFg: AppColors.onPrimaryFixedVariant,
-      title: 'وجبات خفيفة وصحية للمدرسة',
-      body:
-          'أبحث عن أفكار لوجبات خفيفة لا تستغرق وقتاً طويلاً في التحضير وتكون غنية بالعناصر الغذائية الضرورية لنمو الطفل.',
-      likes: 45,
-      comments: 8,
-      liked: true,
-      avatarTint: AppColors.primaryContainer,
-      muted: true,
-    ),
-  ];
+class _MothersClubScreenState extends ConsumerState<MothersClubScreen> {
+  final _searchController = TextEditingController();
+  final _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final pos = _scrollController.position;
+    if (pos.pixels >= pos.maxScrollExtent - 200) {
+      ref.read(mothersClubFeedProvider.notifier).loadMore();
+    }
+  }
+
+  void _onSearchChanged(String value) {
+    ref.read(mothersClubFeedProvider.notifier).applySearch(value);
+  }
+
+  void _selectCategory(String? categoryId) {
+    final current = ref.read(mothersClubFeedFilterProvider);
+    ref.read(mothersClubFeedFilterProvider.notifier).state = MothersClubFeedFilter(
+      categoryId: categoryId,
+      searchQuery: current.searchQuery,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final feedAsync = ref.watch(mothersClubFeedProvider);
+    final categoriesAsync = ref.watch(mothersClubCategoriesProvider);
+    final selectedCategory = ref.watch(mothersClubFeedFilterProvider).categoryId;
+    final searchQuery = ref.watch(mothersClubFeedFilterProvider).searchQuery;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -87,93 +79,186 @@ class MothersClubScreen extends StatelessWidget {
         starsCount: 12,
         onBack: () => context.pop(),
       ),
-      floatingActionButton: _NewPostFab(onPressed: () {}),
+      floatingActionButton: _NewPostFab(
+        onPressed: () => context.push(AppRoutes.mothersClubNewPost),
+      ),
       floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
       body: Stack(
         children: [
           const BeboShellBackground(showBottomCurve: false),
           SafeArea(
-            child: CustomScrollView(
-              slivers: [
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-                  sliver: SliverToBoxAdapter(
-                    child: _SearchField(),
-                  ),
-                ),
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-                  sliver: SliverToBoxAdapter(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'التصنيفات',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () {},
-                          child: Text(
-                            'رؤية الكل',
-                            style: theme.textTheme.labelLarge?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                SliverToBoxAdapter(
-                  child: SizedBox(
-                    height: 168,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
-                      itemCount: _categories.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 12),
-                      itemBuilder: (context, i) => _CategoryCard(
-                        category: _categories[i],
+            child: RefreshIndicator(
+              onRefresh: () async {
+                await ref.read(mothersClubFeedProvider.notifier).refresh();
+                ref.invalidate(mothersClubCategoriesProvider);
+              },
+              child: CustomScrollView(
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                    sliver: SliverToBoxAdapter(
+                      child: _SearchField(
+                        controller: _searchController,
+                        onChanged: _onSearchChanged,
                       ),
                     ),
                   ),
-                ),
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                  sliver: SliverToBoxAdapter(
-                    child: Row(
-                      children: [
-                        Text(
-                          'أحدث المناقشات',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w800,
+                  feedAsync.when(
+                    loading: () => const SliverToBoxAdapter(child: SizedBox.shrink()),
+                    error: (_, __) => const SliverToBoxAdapter(child: SizedBox.shrink()),
+                    data: (feed) {
+                      if (feed.source != ContentFetchSource.remote &&
+                          feed.source != ContentFetchSource.supabaseDisabled) {
+                        return SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                          sliver: SliverToBoxAdapter(
+                            child: _SourceBanner(feed: feed),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: AppColors.error,
-                            shape: BoxShape.circle,
+                        );
+                      }
+                      return const SliverToBoxAdapter(child: SizedBox.shrink());
+                    },
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                    sliver: SliverToBoxAdapter(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'التصنيفات',
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
-                        ),
-                      ],
+                          TextButton(
+                            onPressed: () => _selectCategory(null),
+                            child: Text(
+                              selectedCategory == null ? 'الكل' : 'رؤية الكل',
+                              style: theme.textTheme.labelLarge?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-                  sliver: SliverList.separated(
-                    itemCount: _posts.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 16),
-                    itemBuilder: (context, i) => _PostCard(post: _posts[i]),
+                  categoriesAsync.when(
+                    loading: () => const SliverToBoxAdapter(
+                      child: SizedBox(
+                        height: 168,
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                    ),
+                    error: (_, __) => const SliverToBoxAdapter(child: SizedBox.shrink()),
+                    data: (result) => SliverToBoxAdapter(
+                      child: SizedBox(
+                        height: 168,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                          itemCount: result.data.length,
+                          separatorBuilder: (_, __) => const SizedBox(width: 12),
+                          itemBuilder: (context, i) {
+                            final cat = result.data[i];
+                            final selected = selectedCategory == cat.id;
+                            return _CategoryCard(
+                              category: cat,
+                              selected: selected,
+                              onTap: () => _selectCategory(
+                                selected ? null : cat.id,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                    sliver: SliverToBoxAdapter(
+                      child: Row(
+                        children: [
+                          Text(
+                            'أحدث المناقشات',
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: AppColors.error,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  feedAsync.when(
+                    loading: () => const SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                    error: (e, _) => SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(child: Text('تعذر التحميل: $e')),
+                    ),
+                    data: (feed) {
+                      final posts = feed.postsForQuery(searchQuery);
+                      if (posts.isEmpty) {
+                        return SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: Center(
+                            child: Text(
+                              'لا منشورات بعد — كوني أول من يشارك.',
+                              style: theme.textTheme.bodyLarge?.copyWith(
+                                color: AppColors.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+                      return SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, i) {
+                              if (i >= posts.length) {
+                                return feed.loadingMore
+                                    ? const Padding(
+                                        padding: EdgeInsets.all(16),
+                                        child: Center(
+                                          child: CircularProgressIndicator(),
+                                        ),
+                                      )
+                                    : const SizedBox(height: 8);
+                              }
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: _PostCard(
+                                  post: posts[i],
+                                  onTap: () => context.push(
+                                    AppRoutes.mothersClubPostPath(posts[i].id),
+                                  ),
+                                ),
+                              );
+                            },
+                            childCount: posts.length + (feed.hasMore ? 1 : 0),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -182,7 +267,41 @@ class MothersClubScreen extends StatelessWidget {
   }
 }
 
+class _SourceBanner extends StatelessWidget {
+  const _SourceBanner({required this.feed});
+
+  final MothersClubFeedState feed;
+
+  @override
+  Widget build(BuildContext context) {
+    final msg = switch (feed.source) {
+      ContentFetchSource.remoteEmpty =>
+        'متصل — لا منشورات منشورة بعد. يُعرض محتوى تجريبي.',
+      ContentFetchSource.errorFallback =>
+        feed.errorMessage ?? 'تعذر الجلب من Supabase — يُعرض محتوى محلي.',
+      _ => 'تحققي من الاتصال بـ Supabase',
+    };
+
+    return TactileClayCard(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      color: AppColors.secondaryContainer.withValues(alpha: 0.4),
+      child: Text(
+        msg,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              height: 1.35,
+            ),
+      ),
+    );
+  }
+}
+
 class _SearchField extends StatelessWidget {
+  const _SearchField({required this.controller, required this.onChanged});
+
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -204,6 +323,8 @@ class _SearchField extends StatelessWidget {
         ],
       ),
       child: TextField(
+        controller: controller,
+        onChanged: onChanged,
         textAlign: TextAlign.right,
         decoration: InputDecoration(
           hintText: 'ابحثي عن مواضيع تهمك...',
@@ -218,18 +339,26 @@ class _SearchField extends StatelessWidget {
 }
 
 class _CategoryCard extends StatelessWidget {
-  const _CategoryCard({required this.category});
+  const _CategoryCard({
+    required this.category,
+    required this.selected,
+    required this.onTap,
+  });
 
-  final _ClubCategory category;
+  final MothersClubCategory category;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return TactileClayCard(
-      onTap: () {},
+      onTap: onTap,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-      color: category.tint.withValues(alpha: 0.35),
+      color: selected
+          ? AppColors.primaryContainer.withValues(alpha: 0.55)
+          : category.tint.withValues(alpha: 0.35),
       borderRadius: AppRadius.brLg,
       child: SizedBox(
         width: 120,
@@ -267,15 +396,18 @@ class _CategoryCard extends StatelessWidget {
 }
 
 class _PostCard extends StatelessWidget {
-  const _PostCard({required this.post});
+  const _PostCard({required this.post, required this.onTap});
 
-  final _ClubPost post;
+  final MothersClubPost post;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tagColors = post.tagColors;
 
     return TactileClayCard(
+      onTap: onTap,
       color: post.muted
           ? AppColors.surfaceContainerLow
           : AppColors.surfaceContainerLowest,
@@ -292,11 +424,14 @@ class _PostCard extends StatelessWidget {
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        color: post.avatarTint.withValues(alpha: 0.35),
+                        color: AppColors.tertiaryContainer.withValues(alpha: 0.35),
                         shape: BoxShape.circle,
                         boxShadow: AppShadows.soft,
                       ),
-                      child: const AppLogoAvatar(size: 44, imageAsset: AppAssets.logoBaby),
+                      child: const AppLogoAvatar(
+                        size: 44,
+                        imageAsset: AppAssets.logoBaby,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -304,13 +439,13 @@ class _PostCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            post.author,
+                            post.authorDisplayName,
                             style: theme.textTheme.titleSmall?.copyWith(
                               fontWeight: FontWeight.w800,
                             ),
                           ),
                           Text(
-                            post.timeAgo,
+                            post.timeAgoLabel,
                             style: theme.textTheme.labelMedium?.copyWith(
                               color: AppColors.outline,
                               fontWeight: FontWeight.w700,
@@ -322,20 +457,21 @@ class _PostCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: post.tagBg,
-                  borderRadius: AppRadius.brFull,
-                ),
-                child: Text(
-                  post.tag,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: post.tagFg,
+              if (post.tag.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: tagColors.$1,
+                    borderRadius: AppRadius.brFull,
+                  ),
+                  child: Text(
+                    post.tag,
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: tagColors.$2,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: 14),
@@ -343,6 +479,10 @@ class _PostCard extends StatelessWidget {
             post.title,
             style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
+          if (post.imageUrl != null && post.imageUrl!.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            MothersClubPostImage(imageUrl: post.imageUrl!),
+          ],
           const SizedBox(height: 6),
           Text(
             post.body,
@@ -359,22 +499,22 @@ class _PostCard extends StatelessWidget {
               Icon(
                 Symbols.favorite,
                 size: 22,
-                fill: post.liked ? 1 : 0,
-                color: post.liked ? AppColors.error : AppColors.outline,
+                fill: post.likedByMe ? 1 : 0,
+                color: post.likedByMe ? AppColors.error : AppColors.outline,
               ),
               const SizedBox(width: 6),
               Text(
-                '${post.likes}',
+                '${post.likeCount}',
                 style: theme.textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.w800,
-                  color: post.liked ? AppColors.error : AppColors.outline,
+                  color: post.likedByMe ? AppColors.error : AppColors.outline,
                 ),
               ),
               const SizedBox(width: 20),
               const Icon(Symbols.chat_bubble, size: 22, color: AppColors.outline),
               const SizedBox(width: 6),
               Text(
-                '${post.comments}',
+                '${post.commentCount}',
                 style: theme.textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: AppColors.outline,
@@ -403,11 +543,10 @@ class _NewPostFabState extends State<_NewPostFab> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: widget.onPressed,
       onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) {
-        setState(() => _pressed = false);
-        widget.onPressed();
-      },
+      onTapUp: (_) => setState(() => _pressed = false),
       onTapCancel: () => setState(() => _pressed = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 100),
@@ -438,48 +577,4 @@ class _NewPostFabState extends State<_NewPostFab> {
       ),
     );
   }
-}
-
-class _ClubCategory {
-  const _ClubCategory({
-    required this.label,
-    required this.icon,
-    required this.tint,
-    required this.iconColor,
-  });
-
-  final String label;
-  final IconData icon;
-  final Color tint;
-  final Color iconColor;
-}
-
-class _ClubPost {
-  const _ClubPost({
-    required this.author,
-    required this.timeAgo,
-    required this.tag,
-    required this.tagBg,
-    required this.tagFg,
-    required this.title,
-    required this.body,
-    required this.likes,
-    required this.comments,
-    required this.liked,
-    required this.avatarTint,
-    this.muted = false,
-  });
-
-  final String author;
-  final String timeAgo;
-  final String tag;
-  final Color tagBg;
-  final Color tagFg;
-  final String title;
-  final String body;
-  final int likes;
-  final int comments;
-  final bool liked;
-  final Color avatarTint;
-  final bool muted;
 }

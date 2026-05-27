@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/dev/presentation/dev_tools_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/signup_screen.dart';
 import '../../features/home/presentation/feature_placeholder_screen.dart';
 import '../../features/community/presentation/mothers_club_screen.dart';
+import '../../features/community/presentation/mothers_club_post_detail_screen.dart';
+import '../../features/community/presentation/mothers_club_create_post_screen.dart';
 import '../../features/assessment/presentation/mother_quiz_screen.dart';
 import '../../shared/presentation/lesson_celebration_screen.dart';
 import '../../features/home/presentation/home_shell_screen.dart';
@@ -14,7 +17,6 @@ import '../../features/activities/presentation/activities_hub_screen.dart';
 import '../../features/exercises/presentation/exercises_age_groups_screen.dart';
 import '../../features/exercises/presentation/exercises_hub_screen.dart';
 import '../../features/library/presentation/library_media_hub_screen.dart';
-import '../../features/library/presentation/library_media_list_screen.dart';
 import '../../features/library/presentation/library_media_player_screen.dart';
 import '../../features/language/presentation/language_screen.dart';
 import '../../features/onboarding_questions/presentation/onboarding_questions_screen.dart';
@@ -45,15 +47,21 @@ import '../../features/quran/presentation/quran_player_screen.dart';
 import '../../features/rules/presentation/family_rules_screen.dart';
 import '../../features/splash/presentation/splash_screen.dart';
 import '../../features/subscription/presentation/subscription_screen.dart';
+import 'app_redirect.dart';
 import 'app_routes.dart';
+import '../../features/auth/application/auth_session_provider.dart';
 
 /// يعرض شاشات الدروس فوق الرئيسية (مثل القرآن) وليس داخل شجرة /home المخفية.
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final appRouterProvider = Provider<GoRouter>((ref) {
+  final refresh = ref.watch(authRefreshListenableProvider);
+
   final router = GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: AppRoutes.splash,
+    refreshListenable: refresh,
+    redirect: (context, state) => resolveAppRedirect(state, ref),
     routes: [
       GoRoute(
         path: AppRoutes.splash,
@@ -104,6 +112,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const SkillsScreen(),
       ),
       GoRoute(
+        path: AppRoutes.devTools,
+        builder: (context, state) => const DevToolsScreen(),
+      ),
+      GoRoute(
         path: AppRoutes.home,
         builder: (context, state) => const HomeShellScreen(),
         routes: [
@@ -118,6 +130,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: 'mothers-club',
             parentNavigatorKey: rootNavigatorKey,
             builder: (context, state) => const MothersClubScreen(),
+            routes: [
+              GoRoute(
+                path: 'new',
+                parentNavigatorKey: rootNavigatorKey,
+                builder: (context, state) => const MothersClubCreatePostScreen(),
+              ),
+              GoRoute(
+                path: 'post/:postId',
+                parentNavigatorKey: rootNavigatorKey,
+                builder: (context, state) => MothersClubPostDetailScreen(
+                  postId: state.pathParameters['postId']!,
+                ),
+              ),
+            ],
           ),
           GoRoute(
             path: 'quiz/:quizId',
@@ -193,7 +219,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'player',
                 parentNavigatorKey: rootNavigatorKey,
-                builder: (context, state) => const MathPlayerScreen(),
+                builder: (context, state) {
+                  final lesson = int.tryParse(state.uri.queryParameters['lesson'] ?? '');
+                  return MathPlayerScreen(lessonNumberOverride: lesson);
+                },
               ),
               GoRoute(
                 path: 'roadmap',
@@ -221,7 +250,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'player',
                 parentNavigatorKey: rootNavigatorKey,
-                builder: (context, state) => const VisualPlayerScreen(),
+                builder: (context, state) {
+                  final lesson = int.tryParse(state.uri.queryParameters['lesson'] ?? '');
+                  return VisualPlayerScreen(lessonNumberOverride: lesson);
+                },
               ),
               GoRoute(
                 path: 'roadmap',
@@ -249,7 +281,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'player',
                 parentNavigatorKey: rootNavigatorKey,
-                builder: (context, state) => const EmotionalPlayerScreen(),
+                builder: (context, state) {
+                  final lesson = int.tryParse(state.uri.queryParameters['lesson'] ?? '');
+                  return EmotionalPlayerScreen(lessonNumberOverride: lesson);
+                },
               ),
               GoRoute(
                 path: 'roadmap',

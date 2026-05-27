@@ -5,6 +5,11 @@ import 'package:material_symbols_icons/symbols.dart';
 
 import '../../../core/router/app_routes.dart';
 import '../../../core/storage/prefs_service.dart';
+import '../../auth/application/auth_session_provider.dart';
+import '../../emotional/application/emotional_curriculum_provider.dart';
+import '../../math/application/math_curriculum_provider.dart';
+import '../../quran/application/quran_curriculum_provider.dart';
+import '../../visual/application/visual_curriculum_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../shared/widgets/app_logo_avatar.dart';
@@ -42,6 +47,11 @@ class _OnboardingQuestionsScreenState
     await prefs.setBabyName(profile.name.trim());
     await prefs.setBabyAgeRangeIndex(BabyAgeRange.values.indexOf(profile.ageRange));
     await prefs.setOnboardingComplete(true);
+    await ref.read(userProgressSyncProvider).pushIfLoggedIn();
+    ref.invalidate(mathCurriculumProvider);
+    ref.invalidate(visualCurriculumProvider);
+    ref.invalidate(emotionalCurriculumProvider);
+    ref.invalidate(quranCurriculumProvider);
 
     if (mounted) context.go(AppRoutes.home);
   }

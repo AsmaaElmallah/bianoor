@@ -30,8 +30,12 @@ class AppRoutes {
 
   static const home = '/home';
 
+  static const devTools = '/dev-tools';
+
   static const homeFeature = '/home/feature/:id';
   static const mothersClub = '/home/mothers-club';
+  static const mothersClubNewPost = '/home/mothers-club/new';
+  static String mothersClubPostPath(String postId) => '/home/mothers-club/post/$postId';
   static const motherQuiz = '/home/quiz/:quizId';
   static const lessonCelebration = '/home/celebration/:track';
   static const libraryMedia = '/home/library/:categoryId';

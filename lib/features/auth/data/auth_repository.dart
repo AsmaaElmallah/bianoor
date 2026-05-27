@@ -1,5 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../../../core/storage/prefs_service.dart';
 import '../domain/user_model.dart';
 
@@ -85,7 +83,3 @@ class MockAuthRepository implements AuthRepository {
     await _prefs.setAuthenticated(false);
   }
 }
-
-final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  return MockAuthRepository(ref.read(prefsServiceProvider));
-});

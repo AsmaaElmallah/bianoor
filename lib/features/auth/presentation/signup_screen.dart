@@ -12,7 +12,12 @@ import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../../shared/widgets/floating_widget.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/tertiary_button.dart';
-import '../data/auth_repository.dart';
+import '../application/auth_session_provider.dart';
+import '../domain/auth_exception.dart' show BayanourAuthException;
+import '../../emotional/application/emotional_curriculum_provider.dart';
+import '../../math/application/math_curriculum_provider.dart';
+import '../../quran/application/quran_curriculum_provider.dart';
+import '../../visual/application/visual_curriculum_provider.dart';
 
 class SignupScreen extends ConsumerStatefulWidget {
   const SignupScreen({super.key});
@@ -46,7 +51,17 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
             email: _emailCtrl.text.trim(),
             password: _passwordCtrl.text,
           );
+      ref.invalidate(mathCurriculumProvider);
+      ref.invalidate(visualCurriculumProvider);
+      ref.invalidate(emotionalCurriculumProvider);
+      ref.invalidate(quranCurriculumProvider);
       if (mounted) context.go(AppRoutes.language);
+    } on BayanourAuthException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }

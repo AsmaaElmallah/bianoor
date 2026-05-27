@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/bebo_shell_background.dart';
+import '../../../shared/widgets/content_sync_banner.dart';
 import '../domain/home_menu_item.dart';
 import 'tabs/home_dashboard_tab.dart';
 import 'widgets/home_bottom_nav.dart';
@@ -35,7 +36,12 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
                     padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
                     child: const HomeHeader(),
                   ),
-                if (showHeader) const SizedBox(height: 16),
+                if (showHeader)
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(24, 8, 24, 0),
+                    child: ContentSyncBanner(),
+                  ),
+                if (showHeader) const SizedBox(height: 8),
                 Expanded(
                   child: Padding(
                     padding: EdgeInsets.symmetric(horizontal: showHeader ? 24 : 24),

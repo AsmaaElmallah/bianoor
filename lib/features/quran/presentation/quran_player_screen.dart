@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
+import '../../../core/content/content_providers.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/bebo_shell_background.dart';
@@ -42,11 +43,22 @@ class _QuranPlayerScreenState extends ConsumerState<QuranPlayerScreen> {
   }
 
   Future<void> _initAudio() async {
-    final session = ref.read(quranCurriculumProvider).currentSession;
+    final curriculum = ref.read(quranCurriculumProvider);
+    final session = await ref.read(quranSessionResolverProvider).resolve(
+          khatmahIndex: curriculum.currentSession.khatmahIndex,
+          sessionIndex: curriculum.currentSession.sessionIndex,
+        );
+
+    final networkUrl = session.audioUrl;
     final asset = session.localAsset;
-    if (asset == null) return;
+    if (networkUrl == null && asset == null) return;
+
     try {
-      await _player.setAsset(asset);
+      if (networkUrl != null) {
+        await _player.setUrl(networkUrl);
+      } else {
+        await _player.setAsset(asset!);
+      }
       final duration = _player.duration;
       if (duration != null && duration > Duration.zero) {
         if (!mounted) return;

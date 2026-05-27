@@ -1,26 +1,48 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/storage/prefs_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
 import '../../../../shared/widgets/app_logo_avatar.dart';
 
-class HomeHeader extends ConsumerWidget {
+class HomeHeader extends ConsumerStatefulWidget {
   const HomeHeader({super.key, this.motherName = 'سارة'});
 
   final String motherName;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeHeader> createState() => _HomeHeaderState();
+}
+
+class _HomeHeaderState extends ConsumerState<HomeHeader> {
+  int _devTapCount = 0;
+
+  void _onLogoTap() {
+    if (!kDebugMode) return;
+    _devTapCount += 1;
+    if (_devTapCount >= 5) {
+      _devTapCount = 0;
+      context.push(AppRoutes.devTools);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final babyName = ref.watch(prefsServiceProvider).getBabyName();
-    final greetingName = motherName;
+    final greetingName = widget.motherName;
 
     return Row(
       children: [
-        const AppLogoAvatar(size: 48),
+        GestureDetector(
+          onTap: _onLogoTap,
+          child: const AppLogoAvatar(size: 48),
+        ),
         const SizedBox(width: 12),
         Expanded(
           child: Column(

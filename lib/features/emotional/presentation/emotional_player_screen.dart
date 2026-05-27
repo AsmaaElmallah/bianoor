@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,12 +15,15 @@ import '../../../core/theme/app_shadows.dart';
 import '../application/emotional_curriculum_provider.dart';
 import '../domain/emotional_slide.dart';
 import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
+import '../../../shared/widgets/curriculum/curriculum_slide_image.dart';
 import '../../quran/presentation/widgets/tactile/tactile_clay_button.dart';
 import '../../quran/presentation/widgets/tactile/tactile_clay_card.dart';
 import '../../quran/presentation/widgets/tactile/tactile_clay_progress.dart';
 
 class EmotionalPlayerScreen extends ConsumerStatefulWidget {
-  const EmotionalPlayerScreen({super.key});
+  const EmotionalPlayerScreen({super.key, this.lessonNumberOverride});
+
+  final int? lessonNumberOverride;
 
   @override
   ConsumerState<EmotionalPlayerScreen> createState() => _EmotionalPlayerScreenState();
@@ -57,7 +60,9 @@ class _EmotionalPlayerScreenState extends ConsumerState<EmotionalPlayerScreen> {
   }
 
   Future<void> _load() async {
-    final steps = await ref.read(emotionalCurriculumProvider.notifier).buildRoundSteps();
+    final steps = await ref.read(emotionalCurriculumProvider.notifier).buildRoundSteps(
+          lessonNumberOverride: widget.lessonNumberOverride,
+        );
     if (!mounted) return;
     setState(() {
       _steps = steps;
@@ -80,13 +85,10 @@ class _EmotionalPlayerScreenState extends ConsumerState<EmotionalPlayerScreen> {
     if (mounted) setState(() => _audioProgress = 0);
 
     final slide = step.slide;
-    final audio = slide.audioAsset;
+    final audio = slide.playableAudio;
     if (audio != null) {
-      try {
-        await _audio.setAsset(audio);
-        await _audio.play();
-        return;
-      } catch (_) {}
+      final played = await playCurriculumSlideAudio(_audio, audio);
+      if (played) return;
     }
 
     final sec = slide.durationSec.clamp(2.0, 120.0);
@@ -100,12 +102,9 @@ class _EmotionalPlayerScreenState extends ConsumerState<EmotionalPlayerScreen> {
   }
 
   Future<void> _replayAudio() async {
-    final audio = _current?.slide.audioAsset;
+    final audio = _current?.slide.playableAudio;
     if (audio == null) return;
-    try {
-      await _audio.setAsset(audio);
-      await _audio.play();
-    } catch (_) {}
+    await playCurriculumSlideAudio(_audio, audio);
   }
 
   Future<void> _onSlideFinished() async {
@@ -223,7 +222,7 @@ class _EmotionalPlayerScreenState extends ConsumerState<EmotionalPlayerScreen> {
                                     ),
                                   ),
                                 ),
-                                if (step.slide.audioAsset != null)
+                                if (step.slide.playableAudio != null)
                                   Positioned(
                                     top: 8,
                                     left: 8,
@@ -387,60 +386,7 @@ class _SlideView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final images = slide.imageAssets;
-    if (images.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Symbols.broken_image, size: 56, color: AppColors.outline),
-            const SizedBox(height: 8),
-            Text(
-              'تعذر تحميل الشريحة',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.onSurfaceVariant,
-                  ),
-            ),
-          ],
-        ),
-      );
-    }
-    if (images.length == 1) {
-      return _AssetImageFit(path: images.first);
-    }
-    return Stack(
-      fit: StackFit.expand,
-      alignment: Alignment.center,
-      children: [for (final path in images) _AssetImageFit(path: path)],
-    );
+    return CurriculumSlideImage(sources: slide.displayImageSources);
   }
 }
-
-class _AssetImageFit extends StatelessWidget {
-  const _AssetImageFit({required this.path});
-
-  final String path;
-
-  @override
-  Widget build(BuildContext context) {
-    return Image.asset(
-      path,
-      fit: BoxFit.contain,
-      gaplessPlayback: true,
-      errorBuilder: (_, __, ___) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Text(
-            'ملف غير موجود في التطبيق',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.error,
-                ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 

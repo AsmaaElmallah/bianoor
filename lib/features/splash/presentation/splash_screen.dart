@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../../../core/constants/app_assets.dart';
+import '../../../core/config/supabase_config.dart';
 import '../../../core/router/app_routes.dart';
+import '../../auth/application/auth_session_provider.dart';
 import '../../../core/storage/prefs_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
@@ -29,7 +31,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       final prefs = ref.read(prefsServiceProvider);
       if (prefs.isOnboardingComplete()) {
         Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted) context.go(AppRoutes.home);
+          if (!mounted) return;
+          if (SupabaseConfig.isConfigured) {
+            final loggedIn =
+                ref.read(authSessionProvider).valueOrNull?.isLoggedIn ?? false;
+            context.go(loggedIn ? AppRoutes.home : AppRoutes.login);
+          } else {
+            context.go(AppRoutes.home);
+          }
         });
       }
     });

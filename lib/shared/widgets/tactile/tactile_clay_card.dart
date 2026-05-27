@@ -50,20 +50,16 @@ class _TactileClayCardState extends State<TactileClayCard> {
     final r = widget.borderRadius ?? AppRadius.brXl;
     final bg = widget.color ?? AppColors.surfaceContainerLowest;
     final tappable = widget.onTap != null;
+    final duration = _pressed
+        ? const Duration(milliseconds: 85)
+        : const Duration(milliseconds: 200);
+    final curve = _pressed ? Curves.easeIn : Curves.elasticOut;
 
-    final body = AnimatedContainer(
-      duration: _pressed
-          ? const Duration(milliseconds: 85)
-          : const Duration(milliseconds: 200),
-      curve: _pressed ? Curves.easeIn : Curves.elasticOut,
+    // Keep shadows fixed — lerping unlike shadow lists crashes Flutter
+    // ("Text shadow blur radius should be non-negative").
+    final card = Container(
       margin: widget.margin,
       padding: widget.padding,
-      transform: tappable
-          ? (Matrix4.identity()
-            ..translate(0.0, _pressed ? 3.0 : 0.0)
-            ..scale(_pressed ? 0.97 : 1.0))
-          : null,
-      transformAlignment: Alignment.center,
       decoration: BoxDecoration(
         color: bg,
         borderRadius: r,
@@ -76,13 +72,24 @@ class _TactileClayCardState extends State<TactileClayCard> {
       child: widget.child,
     );
 
-    if (!tappable) return body;
+    if (!tappable) return card;
 
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTapDown: _onTapDown,
       onTapUp: _onTapUp,
       onTapCancel: _onTapCancel,
-      child: body,
+      child: AnimatedScale(
+        scale: _pressed ? 0.97 : 1.0,
+        duration: duration,
+        curve: curve,
+        child: AnimatedSlide(
+          offset: _pressed ? const Offset(0, 0.015) : Offset.zero,
+          duration: duration,
+          curve: curve,
+          child: card,
+        ),
+      ),
     );
   }
 }

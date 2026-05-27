@@ -1,5 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/content/content_providers.dart';
+import '../../auth/application/auth_session_provider.dart';
 import '../../../core/storage/prefs_service.dart';
 import '../../curriculum/domain/curriculum_day_rules.dart';
 import '../data/visual_manifest.dart';
@@ -13,7 +16,10 @@ final visualManifestRepositoryProvider = Provider<VisualManifestRepository>((ref
 });
 
 final visualProgressStorageProvider = Provider<VisualProgressStorage>((ref) {
-  return VisualProgressStorage(ref.watch(prefsServiceProvider));
+  return VisualProgressStorage(
+    ref.watch(prefsServiceProvider),
+    ref.watch(userProgressSyncProvider),
+  );
 });
 
 class VisualCurriculumState {
@@ -59,7 +65,7 @@ class VisualCurriculumNotifier extends AsyncNotifier<VisualCurriculumState> {
     final manifestRepo = ref.read(visualManifestRepositoryProvider);
 
     var progress = await storage.ensureProgramStart();
-    final day = storage.curriculumDayFromStart(progress);
+    final day = storage.effectiveCurriculumDay(progress);
     if (progress.curriculumDay != day) {
       progress = progress.copyWith(curriculumDay: day);
       await storage.save(progress);
@@ -76,7 +82,7 @@ class VisualCurriculumNotifier extends AsyncNotifier<VisualCurriculumState> {
     );
   }
 
-  Future<List<VisualRoundStep>> buildRoundSteps() async {
+  Future<List<VisualRoundStep>> buildRoundSteps({int? lessonNumberOverride}) async {
     final state = await future;
     final manifest = state.manifest;
     if (manifest == null) return [];
@@ -89,22 +95,36 @@ class VisualCurriculumNotifier extends AsyncNotifier<VisualCurriculumState> {
     final sequence = buildVisualGlobalSlideSequence(counts);
     if (sequence.isEmpty) return [];
 
-    final range = state.lessonRange;
+    final range = lessonNumberOverride != null
+        ? visualLessonSlideRange(lessonNumberOverride)
+        : state.lessonRange;
     final start = range.globalStart;
     final end = range.globalEnd.clamp(start, sequence.length);
     if (end < start) return [];
 
     final repo = ref.read(visualManifestRepositoryProvider);
+    final cloudSlides = await ref.read(curriculumSlidesRepositoryProvider).slidesForTrack('visual');
+    if (kDebugMode) {
+      debugPrint('[Visual] cloud slides published: ${cloudSlides.length}');
+    }
+    var cloudUsed = 0;
     final steps = <VisualRoundStep>[];
     final totalInLesson = end - start + 1;
 
     for (var global = start; global <= end; global++) {
-      final refSlide = sequence[global - 1];
-      final slide = await repo.buildSlide(
-        manifest: manifest,
-        packageId: refSlide.packageId,
-        slideIndex: refSlide.slideIndex,
-      );
+      final cloud = cloudSlides[global];
+      VisualSlide? slide;
+      if (cloud != null && cloud.isPlayable) {
+        slide = cloud.toVisualSlide();
+        cloudUsed += 1;
+      } else {
+        final refSlide = sequence[global - 1];
+        slide = await repo.buildSlide(
+          manifest: manifest,
+          packageId: refSlide.packageId,
+          slideIndex: refSlide.slideIndex,
+        );
+      }
       if (slide == null) continue;
 
       steps.add(
@@ -116,6 +136,9 @@ class VisualCurriculumNotifier extends AsyncNotifier<VisualCurriculumState> {
       );
     }
 
+    if (kDebugMode) {
+      debugPrint('[Visual] round uses $cloudUsed/${steps.length} slides from Supabase');
+    }
     return steps;
   }
 
@@ -136,6 +159,7 @@ class VisualCurriculumNotifier extends AsyncNotifier<VisualCurriculumState> {
   }
 
   bool canStartAnotherRoundToday() {
+    if (ref.read(prefsServiceProvider).isDevUnlockAllLessons()) return true;
     final current = state.value;
     if (current == null) return false;
     if (!current.rules.isTrainingDay || current.rules.repetitionsPerDay <= 0) {

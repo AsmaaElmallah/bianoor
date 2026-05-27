@@ -10,9 +10,12 @@ import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../../shared/widgets/tactile/tactile_clay_button.dart';
 import '../../../shared/widgets/tactile/tactile_clay_card.dart';
+import '../../auth/application/auth_session_provider.dart';
 import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
-
-enum CommunityFeedbackKind { complaint, suggestion }
+import '../application/community_providers.dart';
+import '../domain/community_feedback_models.dart';
+export '../domain/community_feedback_models.dart';
+import 'community_feedback_history_screen.dart';
 
 class CommunityFeedbackScreen extends ConsumerStatefulWidget {
   const CommunityFeedbackScreen({super.key, required this.kind});
@@ -49,15 +52,34 @@ class _CommunityFeedbackScreenState
     if (!_formKey.currentState!.validate()) return;
     setState(() => _sending = true);
 
-    final entry = {
-      'at': DateTime.now().toIso8601String(),
-      'subject': _subjectController.text.trim(),
-      'body': _bodyController.text.trim(),
-    };
+    final subject = _subjectController.text.trim();
+    final body = _bodyController.text.trim();
     final prefs = ref.read(prefsServiceProvider);
-    final existing = prefs.getJsonList(_prefsKey) ?? [];
-    existing.insert(0, entry);
-    await prefs.setJsonList(_prefsKey, existing.take(20).toList());
+    var sentToCloud = false;
+
+    try {
+      final user = ref.read(authSessionProvider).valueOrNull?.user;
+      sentToCloud = await ref.read(communityFeedbackRepositoryProvider).submit(
+            isComplaint: _isComplaint,
+            subject: subject,
+            body: body,
+            userId: user?.id,
+            authorDisplayName: user?.name ?? user?.email.split('@').first,
+          );
+    } catch (_) {
+      sentToCloud = false;
+    }
+
+    if (!sentToCloud) {
+      final entry = {
+        'at': DateTime.now().toIso8601String(),
+        'subject': subject,
+        'body': body,
+      };
+      final existing = prefs.getJsonList(_prefsKey) ?? [];
+      existing.insert(0, entry);
+      await prefs.setJsonList(_prefsKey, existing.take(20).toList());
+    }
 
     if (!mounted) return;
     setState(() => _sending = false);
@@ -67,9 +89,13 @@ class _CommunityFeedbackScreenState
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          _isComplaint
-              ? 'شكراً — تم تسجيل شكواكِ وسنعود إليكِ قريباً.'
-              : 'شكراً — اقتراحكِ محفوظ ويُراجع من الفريق.',
+          sentToCloud
+              ? (_isComplaint
+                  ? 'شكراً — وصلت شكواكِ للفريق وسنعود إليكِ قريباً.'
+                  : 'شكراً — وصل اقتراحكِ للفريق.')
+              : (_isComplaint
+                  ? 'شكراً — تم حفظ الشكوى محلياً (تحققي من الاتصال).'
+                  : 'شكراً — تم حفظ الاقتراح محلياً.'),
         ),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.brMd),
@@ -119,6 +145,33 @@ class _CommunityFeedbackScreenState
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => CommunityFeedbackHistoryScreen(
+                              kind: widget.kind,
+                            ),
+                          ),
+                        );
+                      },
+                      icon: Icon(
+                        Symbols.history,
+                        size: 20,
+                        color: AppColors.primary,
+                      ),
+                      label: Text(
+                        _isComplaint ? 'شكوايَ السابقة وردود الفريق' : 'اقتراحاتي السابقة',
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),

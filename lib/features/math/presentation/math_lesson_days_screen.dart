@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/storage/prefs_service.dart';
 import '../../curriculum/domain/curriculum_journey_config.dart';
 import '../../curriculum/presentation/curriculum_lesson_days_screen.dart';
 import '../application/math_curriculum_provider.dart';
@@ -21,10 +22,12 @@ class MathLessonDaysScreen extends ConsumerWidget {
       error: (e, _) => Scaffold(body: Center(child: Text('تعذر التحميل: $e'))),
       data: (state) {
         final range = mathLessonSlideRange(lessonNumber);
+        final unlockAll = ref.watch(prefsServiceProvider).isDevUnlockAllLessons();
         return CurriculumLessonDaysScreen(
           config: mathJourneyConfig(),
           lessonNumber: lessonNumber,
           curriculumDay: state.curriculumDay,
+          unlockAllLessons: unlockAll,
           slideInfo:
               '${range.slideCount} شرائح (${range.globalStart}–${range.globalEnd})',
         );

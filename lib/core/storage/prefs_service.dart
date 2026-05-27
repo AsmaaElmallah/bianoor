@@ -34,6 +34,8 @@ class PrefsService {
   static const _kEmotionalLastSessionDate = 'emotional_last_session_date';
   static const _kEmotionalProgramStartDate = 'emotional_program_start_date';
   static const _kAptitudeTestAnswers = 'aptitude_test_0_2_answers';
+  static const _kDevBypassProgramCalendar = 'dev_bypass_program_calendar';
+  static const _kDevUnlockAllLessons = 'dev_unlock_all_lessons';
 
   int getVideoIndex() => _prefs.getInt(_kVideoIndex) ?? 0;
   Future<void> setVideoIndex(int value) => _prefs.setInt(_kVideoIndex, value);
@@ -197,6 +199,17 @@ class PrefsService {
   Future<void> setJsonList(String key, List<Map<String, dynamic>> items) async {
     await _prefs.setString(key, jsonEncode(items));
   }
+
+  bool isDevBypassProgramCalendar() =>
+      _prefs.getBool(_kDevBypassProgramCalendar) ?? false;
+
+  Future<void> setDevBypassProgramCalendar(bool value) =>
+      _prefs.setBool(_kDevBypassProgramCalendar, value);
+
+  bool isDevUnlockAllLessons() => _prefs.getBool(_kDevUnlockAllLessons) ?? false;
+
+  Future<void> setDevUnlockAllLessons(bool value) =>
+      _prefs.setBool(_kDevUnlockAllLessons, value);
 }
 
 /// Provider that must be overridden in main() with an initialized instance.

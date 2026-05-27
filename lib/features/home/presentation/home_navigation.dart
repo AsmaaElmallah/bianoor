@@ -12,7 +12,6 @@ import '../../assessment/presentation/mother_quiz_screen.dart';
 import '../../assessment/presentation/our_assessment_screen.dart';
 import '../../community/presentation/community_faq_screen.dart';
 import '../../community/presentation/community_feedback_screen.dart';
-import '../../community/presentation/mothers_club_screen.dart';
 import '../../support/presentation/support_topics_screen.dart';
 import '../../support/domain/support_topics_data.dart';
 import '../../support/presentation/consultations_screen.dart';
@@ -75,9 +74,7 @@ void openHomeMenuItem(BuildContext context, HomeMenuItem item) {
     return;
   }
   if (item.id == 'mothers_club') {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const MothersClubScreen()),
-    );
+    context.push(AppRoutes.mothersClub);
     return;
   }
   if (item.id == 'faq') {

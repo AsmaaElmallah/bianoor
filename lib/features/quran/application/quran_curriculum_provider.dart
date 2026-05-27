@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/storage/prefs_service.dart';
+import '../../auth/application/auth_session_provider.dart';
 import '../data/quran_progress_storage.dart';
 import '../data/quran_reciters_data.dart';
 import '../domain/quran_age_schedule.dart';
@@ -32,10 +33,17 @@ class QuranCurriculumState {
   }
 }
 
+final quranProgressStorageProvider = Provider<QuranProgressStorage>((ref) {
+  return QuranProgressStorage(
+    ref.watch(prefsServiceProvider),
+    ref.watch(userProgressSyncProvider),
+  );
+});
+
 class QuranCurriculumController extends StateNotifier<QuranCurriculumState> {
   QuranCurriculumController(this._ref)
       : super(_initialState(_ref)) {
-    _storage = QuranProgressStorage(_ref.read(prefsServiceProvider));
+    _storage = _ref.read(quranProgressStorageProvider);
   }
 
   final Ref _ref;
@@ -43,7 +51,7 @@ class QuranCurriculumController extends StateNotifier<QuranCurriculumState> {
 
   static QuranCurriculumState _initialState(Ref ref) {
     final prefs = ref.read(prefsServiceProvider);
-    final storage = QuranProgressStorage(prefs);
+    final storage = ref.read(quranProgressStorageProvider);
     final progress = storage.load();
     final ageRange = babyAgeRangeFromIndex(prefs.getBabyAgeRangeIndex());
     final months = approximateMonthsFromAgeRange(ageRange);

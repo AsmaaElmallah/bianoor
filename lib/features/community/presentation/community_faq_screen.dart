@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
@@ -6,13 +7,16 @@ import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../../shared/widgets/tactile/tactile_clay_card.dart';
 import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
+import '../application/community_providers.dart';
 import '../domain/community_faq_data.dart';
 
-class CommunityFaqScreen extends StatelessWidget {
+class CommunityFaqScreen extends ConsumerWidget {
   const CommunityFaqScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final faqAsync = ref.watch(communityFaqItemsProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: QuranTactileAppBar(
@@ -23,22 +27,28 @@ class CommunityFaqScreen extends StatelessWidget {
         children: [
           const BeboShellBackground(showBottomCurve: false),
           SafeArea(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-              children: [
-                Text(
-                  'إجابات سريعة لأكثر ما تسأل عنه الأمهات',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.onSurfaceVariant,
-                        height: 1.45,
-                      ),
-                ),
-                const SizedBox(height: 16),
-                ...communityFaqItems.map((item) => Padding(
+            child: faqAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text('تعذر التحميل: $e')),
+              data: (items) => ListView(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                children: [
+                  Text(
+                    'إجابات سريعة لأكثر ما تسأل عنه الأمهات',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.onSurfaceVariant,
+                          height: 1.45,
+                        ),
+                  ),
+                  const SizedBox(height: 16),
+                  ...items.map(
+                    (item) => Padding(
                       padding: const EdgeInsets.only(bottom: 10),
                       child: _FaqTile(item: item),
-                    )),
-              ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],

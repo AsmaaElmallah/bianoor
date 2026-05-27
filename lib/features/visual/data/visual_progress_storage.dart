@@ -1,10 +1,13 @@
 import '../../../core/storage/prefs_service.dart';
+import '../../../core/sync/user_progress_sync_service.dart';
+import '../../curriculum/domain/curriculum_shared_schedule.dart';
 import '../domain/visual_progress.dart';
 
 class VisualProgressStorage {
-  VisualProgressStorage(this._prefs);
+  VisualProgressStorage(this._prefs, [this._sync]);
 
   final PrefsService _prefs;
+  final UserProgressSyncService? _sync;
 
   VisualProgress load() {
     return VisualProgress(
@@ -24,6 +27,7 @@ class VisualProgressStorage {
     if (progress.programStartDateIso != null) {
       await _prefs.setVisualProgramStartDate(progress.programStartDateIso!);
     }
+    await _sync?.pushIfLoggedIn();
   }
 
   Future<VisualProgress> ensureProgramStart() async {
@@ -33,6 +37,13 @@ class VisualProgressStorage {
     final updated = current.copyWith(programStartDateIso: today);
     await save(updated);
     return updated;
+  }
+
+  int effectiveCurriculumDay(VisualProgress progress) {
+    if (_prefs.isDevBypassProgramCalendar()) {
+      return progress.curriculumDay.clamp(1, curriculumProgramTotalDays);
+    }
+    return curriculumDayFromStart(progress);
   }
 
   int curriculumDayFromStart(VisualProgress progress) {

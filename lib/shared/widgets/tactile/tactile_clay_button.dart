@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
@@ -42,14 +43,17 @@ class _TactileClayButtonState extends State<TactileClayButton> {
     return Opacity(
       opacity: enabled ? 1 : 0.5,
       child: GestureDetector(
-        onTapDown: enabled ? (_) => setState(() => _pressed = true) : null,
-        onTapUp: enabled
-            ? (_) {
-                setState(() => _pressed = false);
+        behavior: HitTestBehavior.opaque,
+        onTap: enabled
+            ? () {
+                HapticFeedback.selectionClick();
+                setState(() => _pressed = true);
+                Future<void>.delayed(const Duration(milliseconds: 100), () {
+                  if (mounted) setState(() => _pressed = false);
+                });
                 widget.onPressed?.call();
               }
             : null,
-        onTapCancel: enabled ? () => setState(() => _pressed = false) : null,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 120),
           curve: Curves.easeOutCubic,

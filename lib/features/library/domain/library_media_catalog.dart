@@ -72,7 +72,8 @@ const _calmVideos = <({String id, String title, String duration, String mood})>[
   (id: 'tDVyPiRnAEw', title: 'نجوم الليل', duration: '07:15', mood: 'مريح'),
 ];
 
-final libraryMediaCategories = <LibraryMediaCategory>[
+/// كتالوج محلي — fallback عند عدم وجود Supabase أو شبكة.
+final localLibraryMediaCategories = <LibraryMediaCategory>[
   LibraryMediaCategory(
     id: LibraryMediaCategoryId.natureSounds,
     title: 'أصوات الطبيعة',
@@ -148,6 +149,9 @@ final libraryMediaCategories = <LibraryMediaCategory>[
   ),
 ];
 
+/// Alias للتوافق — يفضّل [localLibraryMediaCategories] أو [libraryCatalogProvider].
+final libraryMediaCategories = localLibraryMediaCategories;
+
 List<LibraryMediaItem> libraryItemsForNatureChip(
   List<LibraryMediaItem> items,
   NatureSoundChip chip,
@@ -171,7 +175,7 @@ LibraryMediaCategoryId? libraryCategoryIdFromMenuId(String menuId) {
 LibraryMediaCategory? libraryCategoryByMenuId(String menuId) {
   final catId = libraryCategoryIdFromMenuId(menuId);
   if (catId == null) return null;
-  for (final c in libraryMediaCategories) {
+  for (final c in localLibraryMediaCategories) {
     if (c.id == catId) return c;
   }
   return null;
