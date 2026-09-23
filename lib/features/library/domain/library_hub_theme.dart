@@ -40,11 +40,11 @@ class LibraryHubTheme {
         );
       case LibraryMediaCategoryId.lullabies:
         return const LibraryHubTheme(
-          scaffoldBackground: Color(0xFFF3E8FF),
+          scaffoldBackground: Color(0xFFF6E8E5),
           heroSubtitle: 'وقت الراحة الصغير...',
-          titleColor: Color(0xFF772953),
-          accentColor: Color(0xFF95416C),
-          progressGradient: [Color(0xFFFA95C4), Color(0xFF95416C)],
+          titleColor: Color(0xFF5A3834),
+          accentColor: Color(0xFFB77B72),
+          progressGradient: [Color(0xFFC7928A), Color(0xFF9A635C)],
           showNatureChips: false,
           listSectionTitle: 'المزيد من الأغاني',
           listStyle: LibraryHubListStyle.rich,
@@ -59,6 +59,17 @@ class LibraryHubTheme {
           showNatureChips: false,
           listSectionTitle: 'التالي في القائمة',
           listStyle: LibraryHubListStyle.queue,
+        );
+      case LibraryMediaCategoryId.libraryBooks:
+        return const LibraryHubTheme(
+          scaffoldBackground: Color(0xFFFFF8E7),
+          heroSubtitle: 'قصص وكتب مرئية لصغيرك',
+          titleColor: Color(0xFF8B5E00),
+          accentColor: Color(0xFFC9A227),
+          progressGradient: [Color(0xFFE8C547), Color(0xFF8B5E00)],
+          showNatureChips: false,
+          listSectionTitle: 'المزيد من الكتب',
+          listStyle: LibraryHubListStyle.rich,
         );
     }
   }

@@ -31,20 +31,20 @@ class HomeBottomNav extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
         child: Container(
           decoration: BoxDecoration(
-          // Frosted violet-white glass
-          color: const Color(0xFFFAF5FF).withValues(alpha: 0.88),
+            // Frosted sugar-beige glass.
+            color: AppColors.background.withValues(alpha: 0.88),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
             boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF4C1D95).withValues(alpha: 0.12),
-              blurRadius: 32,
-              offset: const Offset(0, -8),
-            ),
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.06),
-              blurRadius: 16,
-              offset: const Offset(0, -2),
-            ),
+              BoxShadow(
+                color: AppColors.primaryDim.withValues(alpha: 0.12),
+                blurRadius: 32,
+                offset: const Offset(0, -8),
+              ),
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.06),
+                blurRadius: 16,
+                offset: const Offset(0, -2),
+              ),
             ],
           ),
           child: Column(
@@ -54,25 +54,27 @@ class HomeBottomNav extends StatelessWidget {
                 height: 1.5,
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.6),
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(32),
+                  ),
                 ),
               ),
               Padding(
-            padding: EdgeInsets.fromLTRB(8, 12, 8, 10 + bottomPad),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: List.generate(tabs.length, (i) {
-                return _NavItem(
-                  tab: tabs[i],
-                  isActive: i == currentIndex,
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    onTap(i);
-                  },
-                );
-              }),
-            ),
-          ),
+                padding: EdgeInsets.fromLTRB(8, 12, 8, 10 + bottomPad),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: List.generate(tabs.length, (i) {
+                    return _NavItem(
+                      tab: tabs[i],
+                      isActive: i == currentIndex,
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        onTap(i);
+                      },
+                    );
+                  }),
+                ),
+              ),
             ],
           ),
         ),
@@ -109,9 +111,10 @@ class _NavItemState extends State<_NavItem>
       duration: const Duration(milliseconds: 150),
       reverseDuration: const Duration(milliseconds: 220),
     );
-    _scale = Tween<double>(begin: 1.0, end: 0.88).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeIn),
-    );
+    _scale = Tween<double>(
+      begin: 1.0,
+      end: 0.88,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeIn));
   }
 
   @override
@@ -125,6 +128,7 @@ class _NavItemState extends State<_NavItem>
     _ctrl.reverse();
     widget.onTap();
   }
+
   void _onTapCancel() => _ctrl.reverse();
 
   @override

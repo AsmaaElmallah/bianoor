@@ -1,8 +1,11 @@
-import '../../../core/storage/prefs_service.dart';
-import '../domain/user_model.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Auth interface. Swap the mock impl for Firebase/Supabase later by
-/// replacing the provider's implementation only — UI stays untouched.
+import '../../../core/storage/prefs_service.dart';
+import '../../../core/supabase/supabase_bootstrap.dart';
+import '../domain/user_model.dart';
+import 'supabase_auth_repository.dart';
+
+/// Auth interface — UI depends on this only.
 abstract class AuthRepository {
   Future<UserModel> login({required String email, required String password});
   Future<UserModel> signup({
@@ -14,72 +17,64 @@ abstract class AuthRepository {
   Future<UserModel> loginWithApple();
   Future<UserModel> loginWithFacebook();
   Future<void> logout();
+  Future<void> resetPassword({required String email});
+  Future<void> updatePassword({required String newPassword});
+  Future<void> deleteAccount();
 }
 
-class MockAuthRepository implements AuthRepository {
-  MockAuthRepository(this._prefs);
+/// Used only when dart_defines are missing — never fakes a successful login.
+class DisabledAuthRepository implements AuthRepository {
+  static const _msg =
+      'السحابة غير مفعّلة.\nشغّلي من مجلد bayanour:\n.\\run.ps1\nأو:\nflutter run --dart-define-from-file=dart_defines.json';
 
-  final PrefsService _prefs;
-
-  Future<UserModel> _delayedReturn(UserModel user) async {
-    await Future.delayed(const Duration(milliseconds: 700));
-    await _prefs.setAuthenticated(true);
-    return user;
+  Future<UserModel> _blocked() async {
+    throw AuthFailure(_msg);
   }
 
   @override
-  Future<UserModel> login({required String email, required String password}) {
-    return _delayedReturn(
-      UserModel(id: 'mock-${email.hashCode}', email: email),
-    );
-  }
+  Future<UserModel> login({required String email, required String password}) =>
+      _blocked();
 
   @override
   Future<UserModel> signup({
     required String name,
     required String email,
     required String password,
-  }) {
-    return _delayedReturn(
-      UserModel(id: 'mock-${email.hashCode}', email: email, name: name),
-    );
+  }) =>
+      _blocked();
+
+  @override
+  Future<UserModel> loginWithGoogle() => _blocked();
+
+  @override
+  Future<UserModel> loginWithApple() => _blocked();
+
+  @override
+  Future<UserModel> loginWithFacebook() => _blocked();
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<void> resetPassword({required String email}) async {
+    throw AuthFailure(_msg);
   }
 
   @override
-  Future<UserModel> loginWithGoogle() {
-    return _delayedReturn(
-      const UserModel(
-        id: 'google-mock',
-        email: 'google@bayanour.app',
-        name: 'Google User',
-      ),
-    );
+  Future<void> updatePassword({required String newPassword}) async {
+    throw AuthFailure(_msg);
   }
 
   @override
-  Future<UserModel> loginWithApple() {
-    return _delayedReturn(
-      const UserModel(
-        id: 'apple-mock',
-        email: 'apple@bayanour.app',
-        name: 'Apple User',
-      ),
-    );
-  }
-
-  @override
-  Future<UserModel> loginWithFacebook() {
-    return _delayedReturn(
-      const UserModel(
-        id: 'fb-mock',
-        email: 'fb@bayanour.app',
-        name: 'Facebook User',
-      ),
-    );
-  }
-
-  @override
-  Future<void> logout() async {
-    await _prefs.setAuthenticated(false);
+  Future<void> deleteAccount() async {
+    throw AuthFailure(_msg);
   }
 }
+
+final authRepositoryProvider = Provider<AuthRepository>((ref) {
+  final prefs = ref.read(prefsServiceProvider);
+  if (SupabaseBootstrap.isEnabled) {
+    return SupabaseAuthRepository(prefs);
+  }
+  return DisabledAuthRepository();
+});

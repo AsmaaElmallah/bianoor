@@ -1,22 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/bebo_shell_background.dart';
-import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
 import '../../../shared/widgets/editorial_card.dart';
+import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
+import '../data/cms_cloud_repository.dart';
 import '../domain/how_to_teach_content.dart';
 import '../domain/parenting_article.dart';
-import '../domain/parenting_articles_how_to_teach.dart';
 import 'parenting_article_screen.dart';
 
-class HowToTeachScreen extends StatelessWidget {
+class HowToTeachScreen extends ConsumerWidget {
   const HowToTeachScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final asyncArticles =
+        ref.watch(cmsArticlesBySectionProvider('how_to_teach'));
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -60,7 +63,8 @@ class HowToTeachScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 22),
-                  ...howToTeachBlocks.map((block) => _buildBlockCard(context, theme, block)),
+                  ...howToTeachBlocks
+                      .map((block) => _buildBlockCard(context, theme, block)),
                   const SizedBox(height: 8),
                   Text(
                     'مقالات إرشادية',
@@ -71,16 +75,41 @@ class HowToTeachScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  _ArticleLinkCard(
-                    article: teachEmotional0to2Article,
-                    accent: AppColors.tertiary,
-                    icon: Symbols.favorite,
-                  ),
-                  const SizedBox(height: 10),
-                  _ArticleLinkCard(
-                    article: discoverAptitudes0to2Article,
-                    accent: AppColors.primary,
-                    icon: Symbols.psychology,
+                  asyncArticles.when(
+                    loading: () => const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Center(
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                    error: (_, __) => const Text(
+                      'تعذّر تحميل المقالات من السحابة',
+                      textAlign: TextAlign.center,
+                    ),
+                    data: (articles) {
+                      if (articles.isEmpty) {
+                        return const Text(
+                          'لا توجد مقالات منشورة من الإدارة بعد.',
+                          textAlign: TextAlign.center,
+                        );
+                      }
+                      return Column(
+                        children: [
+                          for (var i = 0; i < articles.length; i++) ...[
+                            if (i > 0) const SizedBox(height: 10),
+                            _ArticleLinkCard(
+                              article: articles[i],
+                              accent: i.isEven
+                                  ? AppColors.tertiary
+                                  : AppColors.primary,
+                              icon: i.isEven
+                                  ? Symbols.favorite
+                                  : Symbols.psychology,
+                            ),
+                          ],
+                        ],
+                      );
+                    },
                   ),
                 ],
               ),

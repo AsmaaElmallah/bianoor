@@ -12,6 +12,7 @@ import '../../../shared/widgets/tactile/tactile_clay_card.dart';
 import '../../../shared/widgets/tactile/tactile_clay_progress.dart';
 import '../../../shared/widgets/tactile/tactile_clay_toggle.dart';
 import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
+import '../data/assessments_cloud_repository.dart';
 
 class MotherQuizQuestion {
   const MotherQuizQuestion({required this.id, required this.text});
@@ -36,102 +37,29 @@ class MotherQuizDefinition {
   final String prefsKey;
 }
 
-final motherQuizDefinitions = <String, MotherQuizDefinition>{
+/// Shell metadata — questions come from published Supabase `assessments`.
+final motherQuizShell = <String, MotherQuizDefinition>{
   'skills_test': MotherQuizDefinition(
     title: 'اختبار المهارات',
-    intro: 'سجّلي ملاحظاتك عن مهارات طفلك اليومية — الإجابات تُحفظ على جهازك.',
+    intro: 'سجّلي ملاحظاتك عن مهارات طفلك اليومية.',
     icon: Symbols.fact_check,
     prefsKey: 'skills_test_v1',
-    questions: const [
-      MotherQuizQuestion(
-        id: 's1',
-        text: 'هل يمسك الطفل الأشياء الصغيرة بين الإبهام والسبابة؟',
-      ),
-      MotherQuizQuestion(
-        id: 's2',
-        text: 'هل يحاول تقليد حركات اليدين (تصفيق، تلويح)؟',
-      ),
-      MotherQuizQuestion(
-        id: 's3',
-        text: 'هل يتبع نظرةك إلى جسم متحرك؟',
-      ),
-      MotherQuizQuestion(
-        id: 's4',
-        text: 'هل ينتج أصواتاً متنوعة غير البكاء؟',
-      ),
-      MotherQuizQuestion(
-        id: 's5',
-        text: 'هل يستجيب لاسمه أو صوتك القريب؟',
-      ),
-      MotherQuizQuestion(
-        id: 's6',
-        text: 'هل يجلس بثبات لبضع ثوانٍ دون دعم؟',
-      ),
-    ],
+    questions: const [],
   ),
   'interests_test': MotherQuizDefinition(
     title: 'فحص ميول الطفل وشغفه',
     intro: 'لاحظي ما يجذب انتباه طفلك — يساعدك في اختيار الأنشطة المناسبة.',
     icon: Symbols.interests,
     prefsKey: 'interests_test_v1',
-    questions: const [
-      MotherQuizQuestion(
-        id: 'i1',
-        text: 'هل يهتم بالألوان والأضواء المتحركة؟',
-      ),
-      MotherQuizQuestion(
-        id: 'i2',
-        text: 'هل يستمتع بالأصوات الإيقاعية أو الموسيقى الهادئة؟',
-      ),
-      MotherQuizQuestion(
-        id: 'i3',
-        text: 'هل يفضّل اللعب بالماء أو الرمل؟',
-      ),
-      MotherQuizQuestion(
-        id: 'i4',
-        text: 'هل يتابع وجهك أثناء القراءة أو الغناء؟',
-      ),
-      MotherQuizQuestion(
-        id: 'i5',
-        text: 'هل يبدي فرحاً عند رؤية حيوانات أو صور طبيعة؟',
-      ),
-      MotherQuizQuestion(
-        id: 'i6',
-        text: 'هل يحب التفاعل مع أطفال آخرين أو مرآة؟',
-      ),
-    ],
+    questions: const [],
   ),
   'child_tests': MotherQuizDefinition(
     title: 'اختبارات الطفل',
-    intro: 'مؤشرات نمو مبكرة لطفلك — ليست تشخيصاً طبياً، بل ملاحظة أمومية تُناقش مع الطبيب عند الحاجة.',
+    intro:
+        'مؤشرات نمو مبكرة لطفلك — ليست تشخيصاً طبياً، بل ملاحظة أمومية تُناقش مع الطبيب عند الحاجة.',
     icon: Symbols.assignment,
     prefsKey: 'child_tests_v1',
-    questions: const [
-      MotherQuizQuestion(
-        id: 'c1',
-        text: 'هل يبتسم طفلك استجابة لوجهك أو صوتك؟',
-      ),
-      MotherQuizQuestion(
-        id: 'c2',
-        text: 'هل يحاول الدحرجة أو الزحف للأمام؟',
-      ),
-      MotherQuizQuestion(
-        id: 'c3',
-        text: 'هل يميّز بين صوتك وصوت غريب؟',
-      ),
-      MotherQuizQuestion(
-        id: 'c4',
-        text: 'هل يمسك لعبة ويهزّها أو يضعها في فمه بفضول؟',
-      ),
-      MotherQuizQuestion(
-        id: 'c5',
-        text: 'هل يظهر قلقاً عند غيابك لفترة قصيرة؟',
-      ),
-      MotherQuizQuestion(
-        id: 'c6',
-        text: 'هل ينام نوماً منتظماً نسبياً ليلاً؟',
-      ),
-    ],
+    questions: const [],
   ),
 };
 
@@ -147,46 +75,35 @@ class MotherQuizScreen extends ConsumerStatefulWidget {
 class _MotherQuizScreenState extends ConsumerState<MotherQuizScreen> {
   final Map<String, bool?> _answers = {};
   int _index = 0;
+  bool _prefsLoaded = false;
 
-  MotherQuizDefinition? get _def => motherQuizDefinitions[widget.quizId];
+  MotherQuizDefinition? get _shell => motherQuizShell[widget.quizId];
 
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  void _load() {
-    final def = _def;
-    if (def == null) return;
-    final stored = ref.read(prefsServiceProvider).getMotherQuizAnswers(def.prefsKey);
+  void _ensurePrefsLoaded(String prefsKey) {
+    if (_prefsLoaded) return;
+    _prefsLoaded = true;
+    final stored = ref.read(prefsServiceProvider).getMotherQuizAnswers(prefsKey);
     if (stored != null) {
       for (final e in stored.entries) {
         _answers[e.key] = e.value;
       }
     }
-    setState(() {});
   }
 
-  Future<void> _setAnswer(String id, bool value) async {
-    final def = _def;
-    if (def == null) return;
+  Future<void> _setAnswer(String prefsKey, String id, bool value) async {
     setState(() => _answers[id] = value);
-    await ref.read(prefsServiceProvider).setMotherQuizAnswers(def.prefsKey, _answers);
+    await ref.read(prefsServiceProvider).setMotherQuizAnswers(prefsKey, _answers);
   }
 
-  void _next() {
-    final def = _def;
-    if (def == null) return;
-    if (_index < def.questions.length - 1) {
+  void _next(int questionCount) {
+    if (_index < questionCount - 1) {
       setState(() => _index++);
       return;
     }
-    _showDone();
+    _showDone(questionCount);
   }
 
-  void _showDone() {
-    final def = _def!;
+  void _showDone(int questionCount) {
     final yes = _answers.values.where((v) => v == true).length;
     showDialog<void>(
       context: context,
@@ -197,7 +114,7 @@ class _MotherQuizScreenState extends ConsumerState<MotherQuizScreen> {
           style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
         ),
         content: Text(
-          'أجبتِ «نعم» على $yes من ${def.questions.length} أسئلة.\n\nراجعي النتائج مع طبيب أو مختص عند الحاجة.',
+          'أجبتِ «نعم» على $yes من $questionCount أسئلة.\n\nراجعي النتائج مع طبيب أو مختص عند الحاجة.',
           style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(height: 1.45),
         ),
         actions: [
@@ -215,97 +132,129 @@ class _MotherQuizScreenState extends ConsumerState<MotherQuizScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final def = _def;
-    if (def == null) {
+    final shell = _shell;
+    if (shell == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('غير متوفر')),
         body: const Center(child: Text('الاختبار غير متوفر')),
       );
     }
 
-    final q = def.questions[_index];
-    final progress = (_index + 1) / def.questions.length;
-    final babyName = ref.watch(prefsServiceProvider).getBabyName() ?? 'طفلك';
-    final theme = Theme.of(context);
-    final answer = _answers[q.id];
+    final asyncCloud = ref.watch(cloudAssessmentProvider(widget.quizId));
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: QuranTactileAppBar(title: def.title, onBack: () => context.pop()),
-      body: Stack(
-        children: [
-          const BeboShellBackground(showBottomCurve: false),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  TactileClayProgress(value: progress, height: 10),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          if (_index == 0) ...[
-                            TactileClayCard(
-                              child: Row(
-                                children: [
-                                  Icon(def.icon, color: AppColors.primary, size: 32, fill: 1),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      def.intro,
-                                      style: theme.textTheme.bodyMedium?.copyWith(
-                                        color: AppColors.onSurfaceVariant,
-                                        height: 1.45,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                          ],
-                          Text(
-                            'السؤال ${_index + 1} من ${def.questions.length}',
-                            style: theme.textTheme.labelLarge?.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          TactileClayCard(
-                            child: Text(
-                              q.text.replaceAll('طفلك', babyName),
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                height: 1.4,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          TactileClayToggle(
-                            value: answer,
-                            onChanged: (v) => _setAnswer(q.id, v),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TactileClayButton(
-                    label: _index < def.questions.length - 1 ? 'التالي' : 'إنهاء',
-                    icon: Symbols.arrow_back,
-                    onPressed: answer == null ? null : _next,
-                  ),
-                ],
+    return asyncCloud.when(
+      loading: () => Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: QuranTactileAppBar(title: shell.title, onBack: () => context.pop()),
+        body: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      ),
+      error: (_, __) => Scaffold(
+        appBar: QuranTactileAppBar(title: shell.title, onBack: () => context.pop()),
+        body: const Center(child: Text('تعذّر تحميل الاختبار من السحابة')),
+      ),
+      data: (cloud) {
+        if (cloud == null || cloud.questions.isEmpty) {
+          return Scaffold(
+            backgroundColor: AppColors.background,
+            appBar: QuranTactileAppBar(title: shell.title, onBack: () => context.pop()),
+            body: const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Text(
+                  'لا توجد أسئلة منشورة لهذا الاختبار من الإدارة بعد.',
+                  textAlign: TextAlign.center,
+                ),
               ),
             ),
+          );
+        }
+
+        _ensurePrefsLoaded(shell.prefsKey);
+
+        final questions = [
+          for (final q in cloud.questions)
+            MotherQuizQuestion(id: q.id, text: q.prompt),
+        ];
+        final safeIndex = _index.clamp(0, questions.length - 1);
+        final q = questions[safeIndex];
+        final progress = (safeIndex + 1) / questions.length;
+        final babyName = ref.watch(prefsServiceProvider).getBabyName() ?? 'طفلك';
+        final theme = Theme.of(context);
+        final answer = _answers[q.id];
+
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: QuranTactileAppBar(
+            title: cloud.title.isNotEmpty ? cloud.title : shell.title,
+            onBack: () => context.pop(),
           ),
-        ],
-      ),
+          body: Stack(
+            children: [
+              const BeboShellBackground(showBottomCurve: false),
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        shell.intro,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: AppColors.onSurfaceVariant,
+                          height: 1.45,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TactileClayProgress(value: progress),
+                      const SizedBox(height: 8),
+                      Text(
+                        'سؤال ${safeIndex + 1} من ${questions.length} — $babyName',
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Expanded(
+                        child: TactileClayCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Icon(shell.icon, color: AppColors.primary, size: 36, fill: 1),
+                              const SizedBox(height: 16),
+                              Text(
+                                q.text,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  height: 1.4,
+                                ),
+                              ),
+                              const Spacer(),
+                              TactileClayToggle(
+                                value: answer,
+                                onChanged: (v) =>
+                                    _setAnswer(shell.prefsKey, q.id, v),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TactileClayButton(
+                        label: safeIndex < questions.length - 1 ? 'التالي' : 'إنهاء',
+                        icon: Symbols.arrow_back,
+                        onPressed: answer == null
+                            ? null
+                            : () => _next(questions.length),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

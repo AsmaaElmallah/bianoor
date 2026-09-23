@@ -1,13 +1,11 @@
 import '../../../core/storage/prefs_service.dart';
-import '../../../core/sync/user_progress_sync_service.dart';
 import '../domain/quran_age_schedule.dart';
 import '../domain/quran_progress.dart';
 
 class QuranProgressStorage {
-  QuranProgressStorage(this._prefs, [this._sync]);
+  QuranProgressStorage(this._prefs);
 
   final PrefsService _prefs;
-  final UserProgressSyncService? _sync;
 
   QuranProgress load() {
     return QuranProgress(
@@ -27,7 +25,6 @@ class QuranProgressStorage {
     if (progress.lastListenDateIso != null) {
       await _prefs.setQuranLastListenDate(progress.lastListenDateIso!);
     }
-    await _sync?.pushIfLoggedIn();
   }
 
   Future<QuranProgress> completeSession({

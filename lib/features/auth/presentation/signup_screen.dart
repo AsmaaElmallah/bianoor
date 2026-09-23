@@ -5,6 +5,7 @@ import 'package:material_symbols_icons/symbols.dart';
 
 import '../../../core/constants/app_assets.dart';
 import '../../../core/router/app_routes.dart';
+import '../../../core/storage/prefs_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../shared/widgets/app_text_field.dart';
@@ -12,12 +13,9 @@ import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../../shared/widgets/floating_widget.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/tertiary_button.dart';
-import '../application/auth_session_provider.dart';
-import '../domain/auth_exception.dart' show BayanourAuthException;
-import '../../emotional/application/emotional_curriculum_provider.dart';
-import '../../math/application/math_curriculum_provider.dart';
-import '../../quran/application/quran_curriculum_provider.dart';
-import '../../visual/application/visual_curriculum_provider.dart';
+import '../data/auth_repository.dart';
+import '../data/supabase_auth_repository.dart';
+import '../domain/user_model.dart';
 
 class SignupScreen extends ConsumerStatefulWidget {
   const SignupScreen({super.key});
@@ -42,6 +40,39 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     super.dispose();
   }
 
+  void _goAfterSocialAuth() {
+    final prefs = ref.read(prefsServiceProvider);
+    final hasBaby = prefs.getBabyName()?.trim().isNotEmpty ?? false;
+    context.go(
+      prefs.isOnboardingComplete() && hasBaby
+          ? AppRoutes.home
+          : AppRoutes.language,
+    );
+  }
+
+  Future<void> _resetLocalOnboardingForNewAccount() async {
+    final prefs = ref.read(prefsServiceProvider);
+    await prefs.setOnboardingComplete(false);
+    await prefs.setRulesAccepted(false);
+    await prefs.setBabyName('');
+  }
+
+  Future<void> _goToLoginAfterSignup(String message) async {
+    await _resetLocalOnboardingForNewAccount();
+    // Session already cleared in repository after email signup.
+    try {
+      await ref.read(authRepositoryProvider).logout();
+    } catch (_) {}
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+    // Use go + microtask so router sees logged-out state first.
+    await Future<void>.delayed(Duration.zero);
+    if (!mounted) return;
+    context.go(AppRoutes.login);
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
@@ -51,15 +82,26 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
             email: _emailCtrl.text.trim(),
             password: _passwordCtrl.text,
           );
-      ref.invalidate(mathCurriculumProvider);
-      ref.invalidate(visualCurriculumProvider);
-      ref.invalidate(emotionalCurriculumProvider);
-      ref.invalidate(quranCurriculumProvider);
-      if (mounted) context.go(AppRoutes.language);
-    } on BayanourAuthException catch (e) {
       if (mounted) {
+        await _goToLoginAfterSignup(
+          'تم إنشاء الحساب بنجاح — سجّلي الدخول الآن',
+        );
+      }
+    } on AuthFailure catch (e) {
+      if (!mounted) return;
+      final needsLogin = e.message.contains('تم إنشاء الحساب') ||
+          e.message.contains('سجّلي الدخول');
+      if (needsLogin) {
+        await _goToLoginAfterSignup(e.message);
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(e.message)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AuthFailure.from(e).message)),
         );
       }
     } finally {
@@ -67,11 +109,24 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     }
   }
 
-  Future<void> _socialSignup(Future<void> Function() action) async {
+  Future<void> _socialSignup(Future<UserModel> Function() action) async {
     setState(() => _loading = true);
     try {
       await action();
-      if (mounted) context.go(AppRoutes.language);
+      await _resetLocalOnboardingForNewAccount();
+      if (mounted) _goAfterSocialAuth();
+    } on AuthFailure catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AuthFailure.from(e).message)),
+        );
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -229,10 +284,14 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Text('لديكِ حساب بالفعل؟', style: theme.textTheme.bodyMedium),
+                        Text(
+                          'لديكِ حساب بالفعل؟',
+                          style: theme.textTheme.bodyMedium,
+                        ),
                         TertiaryButton(
                           label: 'تسجيل الدخول',
                           onPressed: () => context.go(AppRoutes.login),

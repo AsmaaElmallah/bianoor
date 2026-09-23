@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/content/content_providers.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_assets.dart';
@@ -13,6 +12,7 @@ import '../../../shared/widgets/app_logo_avatar.dart';
 import '../../../shared/widgets/floating_decoration.dart';
 import '../../../shared/widgets/tactile/tactile_clay_card.dart';
 import '../../../shared/widgets/tactile/tactile_clay_progress.dart';
+import '../data/library_content_repository.dart';
 import '../domain/library_hub_theme.dart';
 import '../domain/library_media_catalog.dart';
 import 'library_media_list_screen.dart';
@@ -25,26 +25,21 @@ class LibraryMediaHubScreen extends ConsumerStatefulWidget {
   final String categoryId;
 
   @override
-  ConsumerState<LibraryMediaHubScreen> createState() => _LibraryMediaHubScreenState();
+  ConsumerState<LibraryMediaHubScreen> createState() =>
+      _LibraryMediaHubScreenState();
 }
 
 class _LibraryMediaHubScreenState extends ConsumerState<LibraryMediaHubScreen> {
   NatureSoundChip _natureChip = NatureSoundChip.rain;
   int _itemIndex = 0;
   bool _playing = true;
-
-  LibraryMediaCategory? get _category {
-    final async = ref.watch(libraryCategoryProvider(widget.categoryId));
-    return async.maybeWhen(
-          data: (c) => c,
-          orElse: () => null,
-        ) ??
-        libraryCategoryByMenuId(widget.categoryId);
-  }
+  LibraryMediaCategory? _category;
 
   LibraryHubTheme get _theme {
     final cat = _category;
-    if (cat == null) return LibraryHubTheme.forCategory(LibraryMediaCategoryId.calmMusic);
+    if (cat == null) {
+      return LibraryHubTheme.forCategory(LibraryMediaCategoryId.calmMusic);
+    }
     return LibraryHubTheme.forCategory(cat.id);
   }
 
@@ -117,216 +112,252 @@ class _LibraryMediaHubScreenState extends ConsumerState<LibraryMediaHubScreen> {
   @override
   Widget build(BuildContext context) {
     final asyncCategory = ref.watch(libraryCategoryProvider(widget.categoryId));
-
-    if (asyncCategory.isLoading && _category == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    final category = _category;
     final theme = Theme.of(context);
-    final hubTheme = _theme;
 
-    if (category == null) {
-      return Scaffold(
+    return asyncCategory.when(
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      ),
+      error: (_, __) => Scaffold(
         appBar: AppBar(title: const Text('المحتوى')),
-        body: const Center(child: Text('المحتوى غير متوفر')),
-      );
-    }
+        body: const Center(child: Text('تعذّر تحميل المحتوى من السحابة')),
+      ),
+      data: (loaded) {
+        _category = loaded;
+        final category = loaded;
+        final hubTheme = _theme;
 
-    final items = _visibleItems;
-    final current = _currentItem;
-    final progress = items.isEmpty ? 0.0 : (_itemIndex + 1) / items.length;
+        if (category == null) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('المحتوى')),
+            body: const Center(child: Text('المحتوى غير متوفر')),
+          );
+        }
 
-    return Scaffold(
-      backgroundColor: hubTheme.scaffoldBackground,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _HubHeader(
-              onBack: () => context.pop(),
-              onOpenYoutube: _openInYoutube,
-            ),
-            Expanded(
-              child: Stack(
+        final items = _visibleItems;
+        final current = _currentItem;
+        final progress =
+            items.isEmpty ? 0.0 : (_itemIndex + 1) / items.length;
+
+        if (items.isEmpty) {
+          return Scaffold(
+            backgroundColor: hubTheme.scaffoldBackground,
+            body: SafeArea(
+              child: Column(
                 children: [
-                  if (category.id == LibraryMediaCategoryId.natureSounds) ...[
-                    Positioned(
-                      left: -20,
-                      top: 80,
-                      child: Opacity(
-                        opacity: 0.35,
-                        child: FloatingDecoration(
-                          child: Icon(
-                            Symbols.park,
-                            size: 72,
-                            color: AppColors.primary.withValues(alpha: 0.5),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      right: -10,
-                      top: 280,
-                      child: Opacity(
-                        opacity: 0.35,
-                        child: FloatingDecoration(
-                          delay: const Duration(milliseconds: 800),
-                          child: Icon(
-                            Symbols.eco,
-                            size: 56,
-                            color: AppColors.tertiary.withValues(alpha: 0.6),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                  if (category.id == LibraryMediaCategoryId.calmMusic)
-                    Positioned(
-                      top: 40,
-                      left: 0,
-                      right: 0,
-                      child: Center(
-                        child: Container(
-                          width: 220,
-                          height: 220,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: AppColors.primaryContainer.withValues(alpha: 0.25),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                    children: [
-                      _TitleSection(
-                        title: category.title,
-                        subtitle: hubTheme.heroSubtitle,
-                        titleColor: hubTheme.titleColor,
-                        icon: category.icon,
-                        showBedtimeBadge:
-                            category.id == LibraryMediaCategoryId.lullabies,
-                      ),
-                      const SizedBox(height: 16),
-            _PlayerSection(
-              videoId: _currentItem?.videoId,
-              playlistId: _currentItem?.playlistId,
-              playing: _playing,
-              onPlayPause: _togglePlayPause,
-              onOpenYoutube: _openInYoutube,
-              accentColor: hubTheme.accentColor,
-            ),
-                      const SizedBox(height: 16),
-                      TactileClayProgress(value: progress, height: 16),
-                      const SizedBox(height: 8),
-                      if (current != null)
-                        Text(
-                          current.title,
+                  _HubHeader(
+                    onBack: () => context.pop(),
+                    onOpenYoutube: () {},
+                  ),
+                  Expanded(
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(
+                          'لا يوجد محتوى منشور من الإدارة بعد.',
                           textAlign: TextAlign.center,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      const SizedBox(height: 16),
-                      _PlaybackControls(
-                        onPrevious: _previous,
-                        onNext: _next,
-                        playing: _playing,
-                        onPlayPause: _togglePlayPause,
-                        showShuffle: category.id == LibraryMediaCategoryId.lullabies,
-                        canPrevious: _itemIndex > 0,
-                        canNext: _itemIndex < items.length - 1,
-                      ),
-                      if (hubTheme.showNatureChips) ...[
-                        const SizedBox(height: 20),
-                        _NatureChipsRow(
-                          selected: _natureChip,
-                          onSelected: _onNatureChip,
-                        ),
-                      ],
-                      if (hubTheme.listStyle != LibraryHubListStyle.hidden) ...[
-                        const SizedBox(height: 24),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              hubTheme.listSectionTitle,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                color: hubTheme.titleColor,
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: _openFullList,
-                              child: Text(
-                                'عرض الكل',
-                                style: TextStyle(
-                                  color: hubTheme.titleColor,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        ...List.generate(items.length, (i) {
-                          final item = items[i];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: LibraryTrackTile(
-                              item: item,
-                              isActive: i == _itemIndex,
-                              listStyle: hubTheme.listStyle,
-                              showFavorite:
-                                  category.id == LibraryMediaCategoryId.lullabies,
-                              onTap: () => _selectItem(i),
-                            ),
-                          );
-                        }),
-                      ] else ...[
-                        const SizedBox(height: 16),
-                        Center(
-                          child: TextButton.icon(
-                            onPressed: _openFullList,
-                            icon: const Icon(Symbols.queue_music),
-                            label: const Text('عرض كل المقاطع'),
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 12),
-                      TactileClayCard(
-                        padding: const EdgeInsets.all(14),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Symbols.info,
-                              color: AppColors.primary,
-                              size: 20,
-                              fill: 1,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'يتطلب اتصالاً بالإنترنت. التحكم عبر يوتيوب.',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: AppColors.onSurfaceVariant,
-                                  height: 1.4,
-                                ),
-                              ),
-                            ),
-                          ],
+                          style: theme.textTheme.titleMedium,
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ],
               ),
             ),
-          ],
-        ),
-      ),
+          );
+        }
+
+        return Scaffold(
+          backgroundColor: hubTheme.scaffoldBackground,
+          body: SafeArea(
+            child: Column(
+              children: [
+                _HubHeader(
+                  onBack: () => context.pop(),
+                  onOpenYoutube: _openInYoutube,
+                ),
+                Expanded(
+                  child: Stack(
+                    children: [
+                      if (category.id == LibraryMediaCategoryId.natureSounds) ...[
+                        Positioned(
+                          left: -20,
+                          top: 80,
+                          child: Opacity(
+                            opacity: 0.35,
+                            child: FloatingDecoration(
+                              child: Icon(
+                                Symbols.park,
+                                size: 72,
+                                color: AppColors.primary.withValues(alpha: 0.5),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          right: -10,
+                          top: 280,
+                          child: Opacity(
+                            opacity: 0.35,
+                            child: FloatingDecoration(
+                              delay: const Duration(milliseconds: 800),
+                              child: Icon(
+                                Symbols.eco,
+                                size: 56,
+                                color: AppColors.tertiary.withValues(alpha: 0.6),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                      if (category.id == LibraryMediaCategoryId.calmMusic)
+                        Positioned(
+                          top: 40,
+                          left: 0,
+                          right: 0,
+                          child: Center(
+                            child: Container(
+                              width: 220,
+                              height: 220,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: AppColors.primary.withValues(alpha: 0.08),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ListView(
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                        children: [
+                          _TitleSection(
+                            title: category.title,
+                            subtitle: hubTheme.heroSubtitle,
+                            titleColor: hubTheme.titleColor,
+                            icon: category.icon,
+                            showBedtimeBadge:
+                                category.id == LibraryMediaCategoryId.lullabies,
+                          ),
+                          const SizedBox(height: 16),
+                          _PlayerSection(
+                            videoId: current?.videoId,
+                            playlistId: current?.playlistId,
+                            playing: _playing,
+                            onPlayPause: _togglePlayPause,
+                            onOpenYoutube: _openInYoutube,
+                            accentColor: hubTheme.accentColor,
+                          ),
+                          const SizedBox(height: 16),
+                          TactileClayProgress(value: progress, height: 16),
+                          const SizedBox(height: 8),
+                          if (current != null)
+                            Text(
+                              current.title,
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          const SizedBox(height: 16),
+                          _PlaybackControls(
+                            onPrevious: _previous,
+                            onNext: _next,
+                            playing: _playing,
+                            onPlayPause: _togglePlayPause,
+                            showShuffle:
+                                category.id == LibraryMediaCategoryId.lullabies,
+                            canPrevious: _itemIndex > 0,
+                            canNext: _itemIndex < items.length - 1,
+                          ),
+                          if (hubTheme.showNatureChips) ...[
+                            const SizedBox(height: 20),
+                            _NatureChipsRow(
+                              selected: _natureChip,
+                              onSelected: _onNatureChip,
+                            ),
+                          ],
+                          if (hubTheme.listStyle != LibraryHubListStyle.hidden) ...[
+                            const SizedBox(height: 24),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  hubTheme.listSectionTitle,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: hubTheme.titleColor,
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: _openFullList,
+                                  child: Text(
+                                    'عرض الكل',
+                                    style: TextStyle(
+                                      color: hubTheme.titleColor,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            ...List.generate(items.length, (i) {
+                              final item = items[i];
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: LibraryTrackTile(
+                                  item: item,
+                                  isActive: i == _itemIndex,
+                                  listStyle: hubTheme.listStyle,
+                                  showFavorite: category.id ==
+                                      LibraryMediaCategoryId.lullabies,
+                                  onTap: () => _selectItem(i),
+                                ),
+                              );
+                            }),
+                          ] else ...[
+                            const SizedBox(height: 16),
+                            Center(
+                              child: TextButton.icon(
+                                onPressed: _openFullList,
+                                icon: const Icon(Symbols.queue_music),
+                                label: const Text('عرض كل المقاطع'),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 12),
+                          TactileClayCard(
+                            padding: const EdgeInsets.all(14),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Symbols.info,
+                                  color: AppColors.primary,
+                                  size: 20,
+                                  fill: 1,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'يتطلب اتصالاً بالإنترنت. التحكم عبر يوتيوب.',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: AppColors.onSurfaceVariant,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

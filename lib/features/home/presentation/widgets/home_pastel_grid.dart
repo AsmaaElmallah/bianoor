@@ -86,6 +86,7 @@ class _PastelCardState extends State<_PastelCard> {
           ..scale(_pressed ? 0.96 : 1.0),
         transformAlignment: Alignment.center,
         child: Stack(
+          fit: StackFit.expand,
           children: [
             // Clay depth block
             Positioned(

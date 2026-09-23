@@ -1,9 +1,8 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/content/content_providers.dart';
-import '../../auth/application/auth_session_provider.dart';
 import '../../../core/storage/prefs_service.dart';
+import '../../curriculum/data/curriculum_cloud_repository.dart';
+import '../../curriculum/data/progress_sync_service.dart';
 import '../../curriculum/domain/curriculum_day_rules.dart';
 import '../data/visual_manifest.dart';
 import '../data/visual_progress_storage.dart';
@@ -16,10 +15,7 @@ final visualManifestRepositoryProvider = Provider<VisualManifestRepository>((ref
 });
 
 final visualProgressStorageProvider = Provider<VisualProgressStorage>((ref) {
-  return VisualProgressStorage(
-    ref.watch(prefsServiceProvider),
-    ref.watch(userProgressSyncProvider),
-  );
+  return VisualProgressStorage(ref.watch(prefsServiceProvider));
 });
 
 class VisualCurriculumState {
@@ -65,7 +61,7 @@ class VisualCurriculumNotifier extends AsyncNotifier<VisualCurriculumState> {
     final manifestRepo = ref.read(visualManifestRepositoryProvider);
 
     var progress = await storage.ensureProgramStart();
-    final day = storage.effectiveCurriculumDay(progress);
+    final day = storage.curriculumDayFromStart(progress);
     if (progress.curriculumDay != day) {
       progress = progress.copyWith(curriculumDay: day);
       await storage.save(progress);
@@ -82,64 +78,40 @@ class VisualCurriculumNotifier extends AsyncNotifier<VisualCurriculumState> {
     );
   }
 
-  Future<List<VisualRoundStep>> buildRoundSteps({int? lessonNumberOverride}) async {
+  Future<List<VisualRoundStep>> buildRoundSteps() async {
     final state = await future;
-    final manifest = state.manifest;
-    if (manifest == null) return [];
+    final lesson = state.lessonRange.lessonNumber;
 
-    final counts = <String, int>{};
-    for (final id in visualSourcePackageIds) {
-      counts[id] = manifest.packageById(id)?.slideCount ?? 0;
+    // Cloud-first: published slides from admin only (no local as source of truth).
+    final cloud = await ref
+        .read(curriculumCloudRepositoryProvider)
+        .fetchPublished('visual');
+    if (cloud.isNotEmpty) {
+      final forLesson = cloud.where((s) => s.lessonNumber == lesson).toList();
+      final use = forLesson.isNotEmpty ? forLesson : cloud;
+      return [
+        for (var i = 0; i < use.length; i++)
+          VisualRoundStep(
+            slide: VisualSlide(
+              packageId: use[i].packageId ?? 'cloud',
+              slideIndex: use[i].slideIndex,
+              assetFolder: '',
+              durationSec: use[i].durationSec.toDouble(),
+              imageAssets: const [],
+              imageUrls: [
+                if (use[i].imageUrl != null && use[i].imageUrl!.isNotEmpty)
+                  use[i].imageUrl!,
+              ],
+              audioUrl: use[i].audioUrl,
+            ),
+            slideIndexInLesson: i + 1,
+            totalSlidesInLesson: use.length,
+          ),
+      ];
     }
 
-    final sequence = buildVisualGlobalSlideSequence(counts);
-    if (sequence.isEmpty) return [];
-
-    final range = lessonNumberOverride != null
-        ? visualLessonSlideRange(lessonNumberOverride)
-        : state.lessonRange;
-    final start = range.globalStart;
-    final end = range.globalEnd.clamp(start, sequence.length);
-    if (end < start) return [];
-
-    final repo = ref.read(visualManifestRepositoryProvider);
-    final cloudSlides = await ref.read(curriculumSlidesRepositoryProvider).slidesForTrack('visual');
-    if (kDebugMode) {
-      debugPrint('[Visual] cloud slides published: ${cloudSlides.length}');
-    }
-    var cloudUsed = 0;
-    final steps = <VisualRoundStep>[];
-    final totalInLesson = end - start + 1;
-
-    for (var global = start; global <= end; global++) {
-      final cloud = cloudSlides[global];
-      VisualSlide? slide;
-      if (cloud != null && cloud.isPlayable) {
-        slide = cloud.toVisualSlide();
-        cloudUsed += 1;
-      } else {
-        final refSlide = sequence[global - 1];
-        slide = await repo.buildSlide(
-          manifest: manifest,
-          packageId: refSlide.packageId,
-          slideIndex: refSlide.slideIndex,
-        );
-      }
-      if (slide == null) continue;
-
-      steps.add(
-        VisualRoundStep(
-          slide: slide,
-          slideIndexInLesson: steps.length + 1,
-          totalSlidesInLesson: totalInLesson,
-        ),
-      );
-    }
-
-    if (kDebugMode) {
-      debugPrint('[Visual] round uses $cloudUsed/${steps.length} slides from Supabase');
-    }
-    return steps;
+    // No published cloud content yet.
+    return [];
   }
 
   Future<void> completeRound() async {
@@ -156,10 +128,18 @@ class VisualCurriculumNotifier extends AsyncNotifier<VisualCurriculumState> {
         lessonRange: visualLessonSlideRangeForDay(day),
       ),
     );
+
+    await ref.read(progressSyncServiceProvider).pushTrack(
+          trackId: 'visual',
+          curriculumDay: day,
+          lessonNumber: current.lessonRange.lessonNumber,
+          metadata: {
+            'rounds_completed_today': updated.roundsCompletedToday,
+          },
+        );
   }
 
   bool canStartAnotherRoundToday() {
-    if (ref.read(prefsServiceProvider).isDevUnlockAllLessons()) return true;
     final current = state.value;
     if (current == null) return false;
     if (!current.rules.isTrainingDay || current.rules.repetitionsPerDay <= 0) {

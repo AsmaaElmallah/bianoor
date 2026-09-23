@@ -3,19 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
+import '../../../core/analytics/app_analytics.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/storage/prefs_service.dart';
-import '../../auth/application/auth_session_provider.dart';
-import '../../emotional/application/emotional_curriculum_provider.dart';
-import '../../math/application/math_curriculum_provider.dart';
-import '../../quran/application/quran_curriculum_provider.dart';
-import '../../visual/application/visual_curriculum_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../shared/widgets/app_logo_avatar.dart';
 import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../../shared/widgets/primary_button.dart';
+import '../../subscription/data/subscription_cloud_repository.dart';
 import '../application/onboarding_controller.dart';
+import '../data/children_cloud_repository.dart';
+import '../data/onboarding_cloud_repository.dart';
 import '../domain/baby_profile_model.dart';
 import 'sections/baby_info_section.dart';
 import 'sections/nutrition_section.dart';
@@ -33,6 +32,8 @@ class OnboardingQuestionsScreen extends ConsumerStatefulWidget {
 
 class _OnboardingQuestionsScreenState
     extends ConsumerState<OnboardingQuestionsScreen> {
+  bool _saving = false;
+
   Future<void> _onSubmit() async {
     final profile = ref.read(onboardingControllerProvider);
     final prefs = ref.read(prefsServiceProvider);
@@ -44,16 +45,39 @@ class _OnboardingQuestionsScreenState
       return;
     }
 
-    await prefs.setBabyName(profile.name.trim());
-    await prefs.setBabyAgeRangeIndex(BabyAgeRange.values.indexOf(profile.ageRange));
-    await prefs.setOnboardingComplete(true);
-    await ref.read(userProgressSyncProvider).pushIfLoggedIn();
-    ref.invalidate(mathCurriculumProvider);
-    ref.invalidate(visualCurriculumProvider);
-    ref.invalidate(emotionalCurriculumProvider);
-    ref.invalidate(quranCurriculumProvider);
+    setState(() => _saving = true);
 
-    if (mounted) context.go(AppRoutes.home);
+    await prefs.setBabyName(profile.name.trim());
+    await prefs.setBabyAgeRangeIndex(
+      BabyAgeRange.values.indexOf(profile.ageRange),
+    );
+    await prefs.setOnboardingComplete(true);
+    AppAnalytics.onboardingComplete();
+
+    final child = await ref
+        .read(childrenCloudRepositoryProvider)
+        .upsertFromProfile(profile);
+    if (child != null) {
+      await prefs.setActiveChildId(child.id);
+      await ref.read(onboardingCloudRepositoryProvider).saveAnswers(
+            profile: profile,
+            childId: child.id,
+          );
+      ref.invalidate(activeChildProvider);
+    }
+
+    if (!mounted) return;
+    setState(() => _saving = false);
+
+    final sub = await ref
+        .read(subscriptionCloudRepositoryProvider)
+        .fetchMySubscription();
+    if (!mounted) return;
+    if (sub?.isActive == true) {
+      context.go(AppRoutes.home);
+    } else {
+      context.go(AppRoutes.subscription);
+    }
   }
 
   @override
@@ -111,10 +135,10 @@ class _OnboardingQuestionsScreenState
                   const SleepSection(),
                   const SizedBox(height: 32),
                   PrimaryButton(
-                    label: 'إنهاء وإرسال',
+                    label: _saving ? 'جاري الحفظ…' : 'إنهاء وإرسال',
                     icon: Symbols.send,
                     height: 64,
-                    onPressed: _onSubmit,
+                    onPressed: _saving ? null : _onSubmit,
                   ),
                   const SizedBox(height: 12),
                   Center(

@@ -1,24 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/bebo_shell_background.dart';
-import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
 import '../../../shared/widgets/editorial_card.dart';
+import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
+import '../data/cms_cloud_repository.dart';
 import '../domain/parenting_article.dart';
-import '../domain/parenting_articles_social_rules.dart';
 import 'parenting_article_screen.dart';
 
-/// ثقافة هامة للأمهات / ولي الأمر — مقالات عامة.
-class ParentGeneralCultureScreen extends StatelessWidget {
+/// ثقافة هامة للأمهات — مقالات منشورة من CMS فقط.
+class ParentGeneralCultureScreen extends ConsumerWidget {
   const ParentGeneralCultureScreen({super.key});
 
-  static const _articles = <ParentingArticle>[socialRulesArticle];
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final async = ref.watch(cmsArticlesBySectionProvider('parent_culture'));
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -30,25 +30,54 @@ class ParentGeneralCultureScreen extends StatelessWidget {
         children: [
           const BeboShellBackground(showBottomCurve: false),
           SafeArea(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
-              children: [
-                Text(
-                  'مقالات تساعدك تبني أساساً اجتماعياً وثقافياً لطفلك',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.onSurfaceVariant,
-                    height: 1.45,
+            child: async.when(
+              loading: () => const Center(
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              error: (_, __) => const Center(
+                child: Text('تعذّر تحميل المقالات من السحابة'),
+              ),
+              data: (articles) {
+                if (articles.isEmpty) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Text(
+                        'لا توجد مقالات منشورة من الإدارة بعد.',
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  );
+                }
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    ref.invalidate(cmsArticlesBySectionProvider('parent_culture'));
+                    await ref.read(
+                      cmsArticlesBySectionProvider('parent_culture').future,
+                    );
+                  },
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+                    children: [
+                      Text(
+                        'مقالات تساعدك تبني أساساً اجتماعياً وثقافياً لطفلك',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: AppColors.onSurfaceVariant,
+                          height: 1.45,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      ...articles.map(
+                        (article) => Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: _ArticleTile(article: article),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 18),
-                ..._articles.map(
-                  (article) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _ArticleTile(article: article),
-                  ),
-                ),
-              ],
+                );
+              },
             ),
           ),
         ],

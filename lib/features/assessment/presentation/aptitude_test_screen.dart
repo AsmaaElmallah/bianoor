@@ -15,6 +15,7 @@ import '../../../shared/widgets/tactile/tactile_clay_button.dart';
 import '../../../shared/widgets/tactile/tactile_clay_card.dart';
 import '../../../shared/widgets/tactile/tactile_clay_progress.dart';
 import '../../../shared/widgets/tactile/tactile_clay_toggle.dart';
+import '../data/assessments_cloud_repository.dart';
 import '../domain/aptitude_test_0_2_data.dart';
 
 class AptitudeTestScreen extends ConsumerStatefulWidget {
@@ -28,15 +29,8 @@ class _AptitudeTestScreenState extends ConsumerState<AptitudeTestScreen> {
   final Map<String, bool?> _answers = {};
   final PageController _pageController = PageController();
   int _currentStep = 0;
-  bool _loaded = false;
-
-  static const _stepCount = 4;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadAnswers();
-  }
+  bool _prefsLoaded = false;
+  List<AptitudeTestCategory> _categories = const [];
 
   @override
   void dispose() {
@@ -44,14 +38,15 @@ class _AptitudeTestScreenState extends ConsumerState<AptitudeTestScreen> {
     super.dispose();
   }
 
-  void _loadAnswers() {
+  void _ensurePrefsLoaded() {
+    if (_prefsLoaded) return;
+    _prefsLoaded = true;
     final stored = ref.read(prefsServiceProvider).getAptitudeTestAnswers();
     if (stored != null) {
       for (final entry in stored.entries) {
         _answers[entry.key] = entry.value;
       }
     }
-    setState(() => _loaded = true);
   }
 
   Future<void> _setAnswer(String questionId, bool value) async {
@@ -59,7 +54,7 @@ class _AptitudeTestScreenState extends ConsumerState<AptitudeTestScreen> {
     await ref.read(prefsServiceProvider).setAptitudeTestAnswers(_answers);
   }
 
-  AptitudeTestCategory get _category => aptitudeTest0to2Categories[_currentStep];
+  AptitudeTestCategory get _category => _categories[_currentStep];
 
   int _answeredInCategory(AptitudeTestCategory category) {
     var count = 0;
@@ -69,13 +64,17 @@ class _AptitudeTestScreenState extends ConsumerState<AptitudeTestScreen> {
     return count;
   }
 
-  bool get _currentStepComplete =>
-      _answeredInCategory(_category) == _category.questions.length;
+  bool get _currentStepComplete {
+    if (_categories.isEmpty) return false;
+    final cat = _category;
+    if (cat.questions.isEmpty) return true;
+    return _answeredInCategory(cat) == cat.questions.length;
+  }
 
   int get _totalYesCount => _answers.values.where((v) => v == true).length;
 
   void _goNext() {
-    if (_currentStep < _stepCount - 1) {
+    if (_currentStep < _categories.length - 1) {
       setState(() => _currentStep++);
       _pageController.nextPage(
         duration: const Duration(milliseconds: 320),
@@ -97,6 +96,7 @@ class _AptitudeTestScreenState extends ConsumerState<AptitudeTestScreen> {
 
   void _showCompletionDialog() {
     final theme = Theme.of(context);
+    final total = aptitudeQuestionCount(_categories);
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -106,7 +106,7 @@ class _AptitudeTestScreenState extends ConsumerState<AptitudeTestScreen> {
           style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
         ),
         content: Text(
-          'تم حفظ إجاباتك. إجابات «نعم»: $_totalYesCount من $aptitudeTest0to2QuestionCount.\n\nاستشيري طبيب الأطفال إذا كان لديكِ قلق.',
+          'تم حفظ إجاباتك. إجابات «نعم»: $_totalYesCount من $total.\n\nاستشيري طبيب الأطفال إذا كان لديكِ قلق.',
           style: theme.textTheme.bodyMedium?.copyWith(height: 1.45),
         ),
         actions: [
@@ -125,6 +125,7 @@ class _AptitudeTestScreenState extends ConsumerState<AptitudeTestScreen> {
   @override
   Widget build(BuildContext context) {
     final babyName = ref.watch(prefsServiceProvider).getBabyName() ?? 'طفلك';
+    final asyncCloud = ref.watch(cloudAssessmentProvider('aptitude_0_2'));
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -132,46 +133,104 @@ class _AptitudeTestScreenState extends ConsumerState<AptitudeTestScreen> {
         preferredSize: const Size.fromHeight(72),
         child: _AptitudeTactileHeader(onBack: () => context.pop()),
       ),
-      body: !_loaded
-          ? const Stack(children: [
+      body: asyncCloud.when(
+        loading: () => const Stack(children: [
+          BeboShellBackground(showBottomCurve: false),
+          Center(child: CircularProgressIndicator(color: AppColors.primary)),
+        ]),
+        error: (_, __) => const Stack(children: [
+          BeboShellBackground(showBottomCurve: false),
+          Center(child: Text('تعذّر تحميل الاختبار من السحابة')),
+        ]),
+        data: (cloud) {
+          if (cloud == null || cloud.questions.isEmpty) {
+            return const Stack(children: [
               BeboShellBackground(showBottomCurve: false),
-              Center(child: CircularProgressIndicator(color: AppColors.primary)),
-            ])
-          : Stack(
-              children: [
-                const BeboShellBackground(showBottomCurve: false),
-                Column(
-              children: [
-                Expanded(
-                  child: PageView.builder(
-                    controller: _pageController,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _stepCount,
-                    onPageChanged: (i) => setState(() => _currentStep = i),
-                    itemBuilder: (context, index) {
-                      final category = aptitudeTest0to2Categories[index];
-                      return _StepPage(
-                        stepIndex: index,
-                        category: category,
-                        babyName: babyName,
-                        answers: _answers,
-                        onAnswer: _setAnswer,
-                        showInstructions: index == 0,
-                      );
-                    },
+              Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text(
+                    'لا توجد أسئلة منشورة لاختبار القدرات من الإدارة بعد.\nأنشئي assessment بمعرّف aptitude_0_2.',
+                    textAlign: TextAlign.center,
                   ),
                 ),
-                _BottomActions(
-                  currentStep: _currentStep,
-                  stepCount: _stepCount,
-                  canGoNext: _currentStepComplete,
-                  onBack: _goBack,
-                  onNext: _goNext,
+              ),
+            ]);
+          }
+
+          _ensurePrefsLoaded();
+          final categories = aptitudeCategoriesFromCloud(
+            questions: [
+              for (final q in cloud.questions)
+                (
+                  id: q.id,
+                  text: q.prompt,
+                  ageRange: q.options.length > 2 ? q.options[2] : null,
                 ),
-              ],
+            ],
+          ).where((c) => c.questions.isNotEmpty).toList();
+
+          if (categories.isEmpty) {
+            return const Stack(children: [
+              BeboShellBackground(showBottomCurve: false),
+              Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text(
+                    'أسئلة السحابة موجودة لكن بدون بادئة تصنيف صحيحة (مثل physical_1).',
+                    textAlign: TextAlign.center,
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ]);
+          }
+
+          // Keep categories available for next/back handlers.
+          _categories = categories;
+          final stepCount = categories.length;
+          if (_currentStep >= stepCount) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) setState(() => _currentStep = stepCount - 1);
+            });
+          }
+
+          return Stack(
+            children: [
+              const BeboShellBackground(showBottomCurve: false),
+              Column(
+                children: [
+                  Expanded(
+                    child: PageView.builder(
+                      controller: _pageController,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: stepCount,
+                      onPageChanged: (i) => setState(() => _currentStep = i),
+                      itemBuilder: (context, index) {
+                        final category = categories[index];
+                        return _StepPage(
+                          stepIndex: index,
+                          category: category,
+                          babyName: babyName,
+                          answers: _answers,
+                          onAnswer: _setAnswer,
+                          showInstructions: index == 0,
+                        );
+                      },
+                    ),
+                  ),
+                  _BottomActions(
+                    currentStep: _currentStep,
+                    stepCount: stepCount,
+                    canGoNext: _currentStepComplete,
+                    onBack: _goBack,
+                    onNext: _goNext,
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }

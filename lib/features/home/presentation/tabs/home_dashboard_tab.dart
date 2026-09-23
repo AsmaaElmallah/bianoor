@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/content/content_providers.dart';
-import '../../../../core/content/content_sync_notifier.dart';
 import '../../../../core/storage/prefs_service.dart';
 import '../../domain/home_menu_data.dart';
 import '../widgets/home_hero_card.dart';
@@ -14,8 +12,6 @@ class HomeDashboardTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final babyName = ref.watch(prefsServiceProvider).getBabyName() ?? 'طفلك';
-    ref.watch(contentSyncProvider);
-    ref.watch(libraryCatalogProvider);
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 24),

@@ -3,19 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
-import '../../../core/storage/prefs_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../../shared/widgets/tactile/tactile_clay_button.dart';
 import '../../../shared/widgets/tactile/tactile_clay_card.dart';
-import '../../auth/application/auth_session_provider.dart';
 import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
-import '../application/community_providers.dart';
-import '../domain/community_feedback_models.dart';
-export '../domain/community_feedback_models.dart';
-import 'community_feedback_history_screen.dart';
+import '../data/community_cloud_repository.dart';
+
+enum CommunityFeedbackKind { complaint, suggestion }
 
 class CommunityFeedbackScreen extends ConsumerStatefulWidget {
   const CommunityFeedbackScreen({super.key, required this.kind});
@@ -38,9 +35,6 @@ class _CommunityFeedbackScreenState
 
   String get _title => _isComplaint ? 'الشكاوى' : 'الاقتراحات';
 
-  String get _prefsKey =>
-      _isComplaint ? 'community_complaints_log' : 'community_suggestions_log';
-
   @override
   void dispose() {
     _subjectController.dispose();
@@ -52,50 +46,40 @@ class _CommunityFeedbackScreenState
     if (!_formKey.currentState!.validate()) return;
     setState(() => _sending = true);
 
-    final subject = _subjectController.text.trim();
-    final body = _bodyController.text.trim();
-    final prefs = ref.read(prefsServiceProvider);
-    var sentToCloud = false;
-
-    try {
-      final user = ref.read(authSessionProvider).valueOrNull?.user;
-      sentToCloud = await ref.read(communityFeedbackRepositoryProvider).submit(
-            isComplaint: _isComplaint,
-            subject: subject,
-            body: body,
-            userId: user?.id,
-            authorDisplayName: user?.name ?? user?.email.split('@').first,
-          );
-    } catch (_) {
-      sentToCloud = false;
-    }
-
-    if (!sentToCloud) {
-      final entry = {
-        'at': DateTime.now().toIso8601String(),
-        'subject': subject,
-        'body': body,
-      };
-      final existing = prefs.getJsonList(_prefsKey) ?? [];
-      existing.insert(0, entry);
-      await prefs.setJsonList(_prefsKey, existing.take(20).toList());
-    }
+    final ok = await ref.read(communityCloudRepositoryProvider).submitFeedback(
+          kind: _isComplaint ? 'complaint' : 'suggestion',
+          subject: _subjectController.text.trim(),
+          body: _bodyController.text.trim(),
+        );
 
     if (!mounted) return;
     setState(() => _sending = false);
+
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'تعذّر الإرسال — سجّلي الدخول وتأكدي من اتصال السحابة.',
+          ),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: AppRadius.brMd),
+        ),
+      );
+      return;
+    }
+
     _subjectController.clear();
     _bodyController.clear();
+    ref.invalidate(
+      myCommunityFeedbackProvider(_isComplaint ? 'complaint' : 'suggestion'),
+    );
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          sentToCloud
-              ? (_isComplaint
-                  ? 'شكراً — وصلت شكواكِ للفريق وسنعود إليكِ قريباً.'
-                  : 'شكراً — وصل اقتراحكِ للفريق.')
-              : (_isComplaint
-                  ? 'شكراً — تم حفظ الشكوى محلياً (تحققي من الاتصال).'
-                  : 'شكراً — تم حفظ الاقتراح محلياً.'),
+          _isComplaint
+              ? 'شكراً — تم تسجيل شكواكِ وسنعود إليكِ قريباً.'
+              : 'شكراً — اقتراحكِ محفوظ ويُراجع من الفريق.',
         ),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.brMd),
@@ -106,6 +90,8 @@ class _CommunityFeedbackScreenState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final kindKey = _isComplaint ? 'complaint' : 'suggestion';
+    final myItems = ref.watch(myCommunityFeedbackProvider(kindKey));
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -147,33 +133,6 @@ class _CommunityFeedbackScreenState
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton.icon(
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => CommunityFeedbackHistoryScreen(
-                              kind: widget.kind,
-                            ),
-                          ),
-                        );
-                      },
-                      icon: Icon(
-                        Symbols.history,
-                        size: 20,
-                        color: AppColors.primary,
-                      ),
-                      label: Text(
-                        _isComplaint ? 'شكوايَ السابقة وردود الفريق' : 'اقتراحاتي السابقة',
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
                   const SizedBox(height: 16),
                   _ClayField(
                     controller: _subjectController,
@@ -198,6 +157,73 @@ class _CommunityFeedbackScreenState
                     label: _sending ? 'جاري الإرسال...' : 'إرسال',
                     icon: Symbols.send,
                     onPressed: _sending ? null : _submit,
+                  ),
+                  const SizedBox(height: 28),
+                  Text(
+                    'رسائلي السابقة',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  myItems.when(
+                    loading: () => const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: Center(
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                    error: (_, __) => const Text('تعذّر التحميل'),
+                    data: (rows) {
+                      if (rows.isEmpty) {
+                        return Text(
+                          'لا رسائل بعد.',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                        );
+                      }
+                      return Column(
+                        children: [
+                          for (final row in rows)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: TactileClayCard(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    Text(
+                                      row['subject'] as String? ?? '—',
+                                      style: theme.textTheme.titleSmall
+                                          ?.copyWith(fontWeight: FontWeight.w700),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      row['body'] as String? ?? '',
+                                      style: theme.textTheme.bodyMedium?.copyWith(
+                                        color: AppColors.onSurfaceVariant,
+                                      ),
+                                    ),
+                                    if ((row['admin_reply'] as String?)
+                                            ?.isNotEmpty ==
+                                        true) ...[
+                                      const SizedBox(height: 10),
+                                      Text(
+                                        'رد الإدارة: ${row['admin_reply']}',
+                                        style:
+                                            theme.textTheme.bodyMedium?.copyWith(
+                                          color: AppColors.primary,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
                   ),
                 ],
               ),

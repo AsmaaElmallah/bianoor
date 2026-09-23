@@ -181,8 +181,6 @@ const homeMenuSections = <HomeMenuSection>[
     items: [
       HomeMenuItem(id: 'activities', title: 'الأنشطة', icon: Symbols.sports_esports,
           cardColor: AppColors.trackExerciseLight, iconColor: AppColors.trackExerciseGreen),
-      HomeMenuItem(id: 'library_books', title: 'المكتبة', icon: Symbols.folder,
-          cardColor: AppColors.trackLibraryLight, iconColor: AppColors.trackLibraryBlue),
       HomeMenuItem(id: 'nature_sounds', title: 'صوت الطبيعة', icon: Symbols.park,
           cardColor: AppColors.trackExerciseLight, iconColor: AppColors.trackExerciseGreen),
       HomeMenuItem(id: 'calm_music', title: 'موسيقى هادئة', icon: Symbols.music_note,

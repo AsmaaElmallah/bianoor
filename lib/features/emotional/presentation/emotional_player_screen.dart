@@ -12,18 +12,16 @@ import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_shadows.dart';
+import '../../curriculum/presentation/widgets/curriculum_slide_image.dart';
 import '../application/emotional_curriculum_provider.dart';
 import '../domain/emotional_slide.dart';
 import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
-import '../../../shared/widgets/curriculum/curriculum_slide_image.dart';
 import '../../quran/presentation/widgets/tactile/tactile_clay_button.dart';
 import '../../quran/presentation/widgets/tactile/tactile_clay_card.dart';
 import '../../quran/presentation/widgets/tactile/tactile_clay_progress.dart';
 
 class EmotionalPlayerScreen extends ConsumerStatefulWidget {
-  const EmotionalPlayerScreen({super.key, this.lessonNumberOverride});
-
-  final int? lessonNumberOverride;
+  const EmotionalPlayerScreen({super.key});
 
   @override
   ConsumerState<EmotionalPlayerScreen> createState() => _EmotionalPlayerScreenState();
@@ -60,9 +58,7 @@ class _EmotionalPlayerScreenState extends ConsumerState<EmotionalPlayerScreen> {
   }
 
   Future<void> _load() async {
-    final steps = await ref.read(emotionalCurriculumProvider.notifier).buildRoundSteps(
-          lessonNumberOverride: widget.lessonNumberOverride,
-        );
+    final steps = await ref.read(emotionalCurriculumProvider.notifier).buildRoundSteps();
     if (!mounted) return;
     setState(() {
       _steps = steps;
@@ -85,10 +81,22 @@ class _EmotionalPlayerScreenState extends ConsumerState<EmotionalPlayerScreen> {
     if (mounted) setState(() => _audioProgress = 0);
 
     final slide = step.slide;
-    final audio = slide.playableAudio;
+    final networkAudio = slide.audioUrl;
+    if (networkAudio != null && networkAudio.isNotEmpty) {
+      try {
+        await _audio.setUrl(networkAudio);
+        await _audio.play();
+        return;
+      } catch (_) {}
+    }
+
+    final audio = slide.audioAsset;
     if (audio != null) {
-      final played = await playCurriculumSlideAudio(_audio, audio);
-      if (played) return;
+      try {
+        await _audio.setAsset(audio);
+        await _audio.play();
+        return;
+      } catch (_) {}
     }
 
     final sec = slide.durationSec.clamp(2.0, 120.0);
@@ -102,9 +110,22 @@ class _EmotionalPlayerScreenState extends ConsumerState<EmotionalPlayerScreen> {
   }
 
   Future<void> _replayAudio() async {
-    final audio = _current?.slide.playableAudio;
+    final slide = _current?.slide;
+    if (slide == null) return;
+    final networkAudio = slide.audioUrl;
+    if (networkAudio != null && networkAudio.isNotEmpty) {
+      try {
+        await _audio.setUrl(networkAudio);
+        await _audio.play();
+        return;
+      } catch (_) {}
+    }
+    final audio = slide.audioAsset;
     if (audio == null) return;
-    await playCurriculumSlideAudio(_audio, audio);
+    try {
+      await _audio.setAsset(audio);
+      await _audio.play();
+    } catch (_) {}
   }
 
   Future<void> _onSlideFinished() async {
@@ -222,7 +243,8 @@ class _EmotionalPlayerScreenState extends ConsumerState<EmotionalPlayerScreen> {
                                     ),
                                   ),
                                 ),
-                                if (step.slide.playableAudio != null)
+                                if (step.slide.hasNetworkAudio ||
+                                    step.slide.audioAsset != null)
                                   Positioned(
                                     top: 8,
                                     left: 8,
@@ -362,7 +384,7 @@ class _EmptyState extends StatelessWidget {
             const Icon(Symbols.info, color: AppColors.primary, size: 48, fill: 1),
             const SizedBox(height: 16),
             Text(
-              'لا يوجد محتوى لهذا اليوم.\nشغّل tools/export_emotional_slides.ps1 ثم أعد البناء.',
+              'لا توجد شرائح منشورة من الإدارة بعد.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleMedium,
             ),
@@ -386,7 +408,11 @@ class _SlideView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CurriculumSlideImage(sources: slide.displayImageSources);
+    return CurriculumSlideImage(
+      imageUrls: slide.imageUrls,
+      imageAssets: slide.imageAssets,
+    );
   }
 }
+
 

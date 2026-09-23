@@ -12,9 +12,11 @@ import '../../assessment/presentation/mother_quiz_screen.dart';
 import '../../assessment/presentation/our_assessment_screen.dart';
 import '../../community/presentation/community_faq_screen.dart';
 import '../../community/presentation/community_feedback_screen.dart';
+import '../../community/presentation/mothers_club_screen.dart';
 import '../../support/presentation/support_topics_screen.dart';
 import '../../support/domain/support_topics_data.dart';
 import '../../support/presentation/consultations_screen.dart';
+import '../../subscription/presentation/subscription_gate.dart';
 import '../../activities/presentation/activities_age_groups_screen.dart';
 import '../../exercises/presentation/exercises_age_groups_screen.dart';
 
@@ -74,7 +76,9 @@ void openHomeMenuItem(BuildContext context, HomeMenuItem item) {
     return;
   }
   if (item.id == 'mothers_club') {
-    context.push(AppRoutes.mothersClub);
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const MothersClubScreen()),
+    );
     return;
   }
   if (item.id == 'faq') {
@@ -148,7 +152,13 @@ void openHomeMenuItem(BuildContext context, HomeMenuItem item) {
   if (item.id == 'paid_consultations') {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => const ConsultationsScreen(paidOnly: true),
+        builder: (_) => Scaffold(
+          body: const SubscriptionGate(
+            title: 'استشارات مدفوعة للمشتركين',
+            message: 'اشتركي في باقة فعّالة لحجز استشارة فردية.',
+            child: ConsultationsScreen(paidOnly: true),
+          ),
+        ),
       ),
     );
     return;
@@ -165,7 +175,9 @@ void openHomeMenuItem(BuildContext context, HomeMenuItem item) {
     );
     return;
   }
-  if (item.id == 'nature_sounds' || item.id == 'calm_music' || item.id == 'lullabies') {
+  if (item.id == 'nature_sounds' ||
+      item.id == 'calm_music' ||
+      item.id == 'lullabies') {
     context.push(AppRoutes.libraryMediaPath(item.id));
     return;
   }

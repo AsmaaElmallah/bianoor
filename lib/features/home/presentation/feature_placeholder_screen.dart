@@ -87,7 +87,7 @@ class _ComingSoon extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Symbols.construction, color: AppColors.primary, size: 56, fill: 1),
+              const Icon(Symbols.inbox, color: AppColors.primary, size: 56, fill: 1),
               const SizedBox(height: 20),
               Text(
                 title,
@@ -96,7 +96,7 @@ class _ComingSoon extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                'هذا القسم قيد التطوير وسيكون متاحاً قريباً.',
+                'لا يوجد محتوى فرعي هنا حالياً.\nالمحتوى يُدار من لوحة الإدارة ويظهر تلقائياً عند النشر.',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: AppColors.onSurfaceVariant,
@@ -111,7 +111,7 @@ class _ComingSoon extends StatelessWidget {
                   borderRadius: AppRadius.brFull,
                 ),
                 child: Text(
-                  'قيد التطوير',
+                  'لا محتوى منشور بعد',
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: AppColors.onSecondaryContainer,
                     fontWeight: FontWeight.w700,

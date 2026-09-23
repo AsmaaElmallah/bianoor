@@ -8,6 +8,7 @@ enum LibraryMediaCategoryId {
   natureSounds,
   calmMusic,
   lullabies,
+  libraryBooks,
 }
 
 class LibraryMediaItem {
@@ -72,8 +73,7 @@ const _calmVideos = <({String id, String title, String duration, String mood})>[
   (id: 'tDVyPiRnAEw', title: 'نجوم الليل', duration: '07:15', mood: 'مريح'),
 ];
 
-/// كتالوج محلي — fallback عند عدم وجود Supabase أو شبكة.
-final localLibraryMediaCategories = <LibraryMediaCategory>[
+final libraryMediaCategories = <LibraryMediaCategory>[
   LibraryMediaCategory(
     id: LibraryMediaCategoryId.natureSounds,
     title: 'أصوات الطبيعة',
@@ -149,9 +149,6 @@ final localLibraryMediaCategories = <LibraryMediaCategory>[
   ),
 ];
 
-/// Alias للتوافق — يفضّل [localLibraryMediaCategories] أو [libraryCatalogProvider].
-final libraryMediaCategories = localLibraryMediaCategories;
-
 List<LibraryMediaItem> libraryItemsForNatureChip(
   List<LibraryMediaItem> items,
   NatureSoundChip chip,
@@ -167,6 +164,8 @@ LibraryMediaCategoryId? libraryCategoryIdFromMenuId(String menuId) {
       return LibraryMediaCategoryId.calmMusic;
     case 'lullabies':
       return LibraryMediaCategoryId.lullabies;
+    case 'library_books':
+      return LibraryMediaCategoryId.libraryBooks;
     default:
       return null;
   }
@@ -175,7 +174,7 @@ LibraryMediaCategoryId? libraryCategoryIdFromMenuId(String menuId) {
 LibraryMediaCategory? libraryCategoryByMenuId(String menuId) {
   final catId = libraryCategoryIdFromMenuId(menuId);
   if (catId == null) return null;
-  for (final c in localLibraryMediaCategories) {
+  for (final c in libraryMediaCategories) {
     if (c.id == catId) return c;
   }
   return null;

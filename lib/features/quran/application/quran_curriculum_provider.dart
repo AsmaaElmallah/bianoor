@@ -1,9 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/storage/prefs_service.dart';
-import '../../auth/application/auth_session_provider.dart';
+import '../../curriculum/data/progress_sync_service.dart';
 import '../data/quran_progress_storage.dart';
 import '../data/quran_reciters_data.dart';
+import '../data/quran_repository.dart';
 import '../domain/quran_age_schedule.dart';
 import '../domain/quran_khatmah.dart';
 import '../domain/quran_progress.dart';
@@ -17,6 +18,7 @@ class QuranCurriculumState {
     required this.daysPerKhatmah,
     required this.currentKhatmah,
     required this.currentSession,
+    this.cloudReady = false,
   });
 
   final QuranProgress progress;
@@ -25,55 +27,75 @@ class QuranCurriculumState {
   final int daysPerKhatmah;
   final QuranKhatmah currentKhatmah;
   final QuranSession currentSession;
+  final bool cloudReady;
 
   bool get canListenMoreToday {
     final today = DateTime.now().toIso8601String().split('T').first;
     if (progress.lastListenDateIso != today) return true;
     return progress.sessionsCompletedToday < dailyRepetitions;
   }
-}
 
-final quranProgressStorageProvider = Provider<QuranProgressStorage>((ref) {
-  return QuranProgressStorage(
-    ref.watch(prefsServiceProvider),
-    ref.watch(userProgressSyncProvider),
-  );
-});
+  bool get hasPublishedAudio =>
+      currentSession.audioUrl != null && currentSession.audioUrl!.isNotEmpty;
+}
 
 class QuranCurriculumController extends StateNotifier<QuranCurriculumState> {
   QuranCurriculumController(this._ref)
-      : super(_initialState(_ref)) {
-    _storage = _ref.read(quranProgressStorageProvider);
+      : super(_skeletonState(_ref)) {
+    _storage = QuranProgressStorage(_ref.read(prefsServiceProvider));
+    _hydrateFromCloud();
   }
 
   final Ref _ref;
   late final QuranProgressStorage _storage;
 
-  static QuranCurriculumState _initialState(Ref ref) {
+  static QuranCurriculumState _skeletonState(Ref ref) {
     final prefs = ref.read(prefsServiceProvider);
-    final storage = ref.read(quranProgressStorageProvider);
+    final storage = QuranProgressStorage(prefs);
     final progress = storage.load();
     final ageRange = babyAgeRangeFromIndex(prefs.getBabyAgeRangeIndex());
     final months = approximateMonthsFromAgeRange(ageRange);
     final khatmahIndex = progress.currentKhatmahIndex;
     final repetitions = dailySessionsForKhatmah(khatmahIndex);
     final khatmah = khatmahByIndex(khatmahIndex);
-    final session = sessionFor(
-      khatmahIndex: khatmahIndex,
-      sessionIndex: progress.currentSessionIndex,
-    );
     return QuranCurriculumState(
       progress: progress,
       babyAgeMonths: months,
       dailyRepetitions: repetitions,
       daysPerKhatmah: daysPerKhatmahForIndex(khatmahIndex),
       currentKhatmah: khatmah,
+      currentSession: QuranSession(
+        khatmahIndex: khatmahIndex,
+        sessionIndex: progress.currentSessionIndex,
+      ),
+      cloudReady: false,
+    );
+  }
+
+  Future<void> _hydrateFromCloud() async {
+    final progress = _storage.load();
+    final khatmahIndex = progress.currentKhatmahIndex;
+    final session = await _ref.read(quranRepositoryProvider).resolveSession(
+          khatmahIndex: khatmahIndex,
+          sessionIndex: progress.currentSessionIndex,
+        );
+    if (!mounted) return;
+    final ageRange =
+        babyAgeRangeFromIndex(_ref.read(prefsServiceProvider).getBabyAgeRangeIndex());
+    state = QuranCurriculumState(
+      progress: progress,
+      babyAgeMonths: approximateMonthsFromAgeRange(ageRange),
+      dailyRepetitions: dailySessionsForKhatmah(khatmahIndex),
+      daysPerKhatmah: daysPerKhatmahForIndex(khatmahIndex),
+      currentKhatmah: khatmahByIndex(khatmahIndex),
       currentSession: session,
+      cloudReady: true,
     );
   }
 
   Future<void> refresh() async {
-    state = _initialState(_ref);
+    state = _skeletonState(_ref);
+    await _hydrateFromCloud();
   }
 
   Future<void> jumpToKhatmah(int khatmahIndex) async {
@@ -82,7 +104,7 @@ class QuranCurriculumController extends StateNotifier<QuranCurriculumState> {
       currentSessionIndex: 1,
     );
     await _storage.save(progress);
-    state = _initialState(_ref);
+    await refresh();
   }
 
   Future<void> completeCurrentSession() async {
@@ -93,20 +115,30 @@ class QuranCurriculumController extends StateNotifier<QuranCurriculumState> {
       todayIso: today,
     );
     final khatmahIndex = updated.currentKhatmahIndex;
-    final repetitions = dailySessionsForKhatmah(khatmahIndex);
-    final khatmah = khatmahByIndex(khatmahIndex);
-    final session = sessionFor(
-      khatmahIndex: khatmahIndex,
-      sessionIndex: updated.currentSessionIndex,
-    );
+    final session = await _ref.read(quranRepositoryProvider).resolveSession(
+          khatmahIndex: khatmahIndex,
+          sessionIndex: updated.currentSessionIndex,
+        );
+    if (!mounted) return;
     state = QuranCurriculumState(
       progress: updated,
       babyAgeMonths: state.babyAgeMonths,
-      dailyRepetitions: repetitions,
+      dailyRepetitions: dailySessionsForKhatmah(khatmahIndex),
       daysPerKhatmah: daysPerKhatmahForIndex(khatmahIndex),
-      currentKhatmah: khatmah,
+      currentKhatmah: khatmahByIndex(khatmahIndex),
       currentSession: session,
+      cloudReady: true,
     );
+
+    await _ref.read(progressSyncServiceProvider).pushTrack(
+          trackId: 'quran',
+          metadata: {
+            'khatmah_index': updated.currentKhatmahIndex,
+            'session_index': updated.currentSessionIndex,
+            'sessions_completed_today': updated.sessionsCompletedToday,
+            'completed_khatmahs': updated.completedKhatmahsCount,
+          },
+        );
   }
 
   bool canStartAnotherSessionToday() => state.canListenMoreToday;

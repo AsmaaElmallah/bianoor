@@ -1,13 +1,10 @@
 import '../../../core/storage/prefs_service.dart';
-import '../../../core/sync/user_progress_sync_service.dart';
-import '../../curriculum/domain/curriculum_shared_schedule.dart';
 import '../domain/emotional_progress.dart';
 
 class EmotionalProgressStorage {
-  EmotionalProgressStorage(this._prefs, [this._sync]);
+  EmotionalProgressStorage(this._prefs);
 
   final PrefsService _prefs;
-  final UserProgressSyncService? _sync;
 
   EmotionalProgress load() {
     return EmotionalProgress(
@@ -27,7 +24,6 @@ class EmotionalProgressStorage {
     if (progress.programStartDateIso != null) {
       await _prefs.setEmotionalProgramStartDate(progress.programStartDateIso!);
     }
-    await _sync?.pushIfLoggedIn();
   }
 
   Future<EmotionalProgress> ensureProgramStart() async {
@@ -37,13 +33,6 @@ class EmotionalProgressStorage {
     final updated = current.copyWith(programStartDateIso: today);
     await save(updated);
     return updated;
-  }
-
-  int effectiveCurriculumDay(EmotionalProgress progress) {
-    if (_prefs.isDevBypassProgramCalendar()) {
-      return progress.curriculumDay.clamp(1, curriculumProgramTotalDays);
-    }
-    return curriculumDayFromStart(progress);
   }
 
   int curriculumDayFromStart(EmotionalProgress progress) {

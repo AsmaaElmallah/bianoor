@@ -34,8 +34,8 @@ class PrefsService {
   static const _kEmotionalLastSessionDate = 'emotional_last_session_date';
   static const _kEmotionalProgramStartDate = 'emotional_program_start_date';
   static const _kAptitudeTestAnswers = 'aptitude_test_0_2_answers';
-  static const _kDevBypassProgramCalendar = 'dev_bypass_program_calendar';
-  static const _kDevUnlockAllLessons = 'dev_unlock_all_lessons';
+  static const _kActiveChildId = 'active_child_id';
+  static const _kPasswordRecoveryPending = 'password_recovery_pending';
 
   int getVideoIndex() => _prefs.getInt(_kVideoIndex) ?? 0;
   Future<void> setVideoIndex(int value) => _prefs.setInt(_kVideoIndex, value);
@@ -51,12 +51,21 @@ class PrefsService {
   Future<void> setAuthenticated(bool value) =>
       _prefs.setBool(_kIsAuthenticated, value);
 
+  bool isPasswordRecoveryPending() =>
+      _prefs.getBool(_kPasswordRecoveryPending) ?? false;
+  Future<void> setPasswordRecoveryPending(bool value) =>
+      _prefs.setBool(_kPasswordRecoveryPending, value);
+
   String? getBabyName() => _prefs.getString(_kBabyName);
   Future<void> setBabyName(String name) => _prefs.setString(_kBabyName, name);
 
   int getBabyAgeRangeIndex() => _prefs.getInt(_kBabyAgeRangeIndex) ?? 0;
   Future<void> setBabyAgeRangeIndex(int index) =>
       _prefs.setInt(_kBabyAgeRangeIndex, index);
+
+  String? getActiveChildId() => _prefs.getString(_kActiveChildId);
+  Future<void> setActiveChildId(String id) =>
+      _prefs.setString(_kActiveChildId, id);
 
   bool getRulesAccepted() => _prefs.getBool(_kRulesAccepted) ?? false;
   Future<void> setRulesAccepted(bool value) =>
@@ -199,17 +208,6 @@ class PrefsService {
   Future<void> setJsonList(String key, List<Map<String, dynamic>> items) async {
     await _prefs.setString(key, jsonEncode(items));
   }
-
-  bool isDevBypassProgramCalendar() =>
-      _prefs.getBool(_kDevBypassProgramCalendar) ?? false;
-
-  Future<void> setDevBypassProgramCalendar(bool value) =>
-      _prefs.setBool(_kDevBypassProgramCalendar, value);
-
-  bool isDevUnlockAllLessons() => _prefs.getBool(_kDevUnlockAllLessons) ?? false;
-
-  Future<void> setDevUnlockAllLessons(bool value) =>
-      _prefs.setBool(_kDevUnlockAllLessons, value);
 }
 
 /// Provider that must be overridden in main() with an initialized instance.

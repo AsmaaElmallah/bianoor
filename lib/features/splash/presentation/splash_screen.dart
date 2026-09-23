@@ -4,17 +4,16 @@ import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../../../core/constants/app_assets.dart';
-import '../../../core/config/supabase_config.dart';
 import '../../../core/router/app_routes.dart';
-import '../../auth/application/auth_session_provider.dart';
 import '../../../core/storage/prefs_service.dart';
+import '../../../core/supabase/supabase_bootstrap.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_shadows.dart';
 import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../../shared/widgets/floating_decoration.dart';
 import '../../../shared/widgets/floating_widget.dart';
 import '../../../shared/widgets/pebble_progress.dart';
 import '../../../shared/widgets/primary_button.dart';
+import '../../auth/application/auth_session_provider.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -27,21 +26,30 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final prefs = ref.read(prefsServiceProvider);
-      if (prefs.isOnboardingComplete()) {
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (!mounted) return;
-          if (SupabaseConfig.isConfigured) {
-            final loggedIn =
-                ref.read(authSessionProvider).valueOrNull?.isLoggedIn ?? false;
-            context.go(loggedIn ? AppRoutes.home : AppRoutes.login);
-          } else {
-            context.go(AppRoutes.home);
-          }
-        });
-      }
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeAutoEnter());
+  }
+
+  Future<void> _maybeAutoEnter() async {
+    final prefs = ref.read(prefsServiceProvider);
+    if (!prefs.isOnboardingComplete()) return;
+
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+    if (!mounted) return;
+
+    if (!SupabaseBootstrap.isEnabled) {
+      context.go(AppRoutes.home);
+      return;
+    }
+
+    final auth = ref.read(authSessionProvider);
+    if (auth.isLoading) {
+      // Wait briefly for session stream, then re-check.
+      await Future<void>.delayed(const Duration(milliseconds: 800));
+      if (!mounted) return;
+    }
+
+    final loggedIn = ref.read(authSessionProvider).valueOrNull != null;
+    context.go(loggedIn ? AppRoutes.home : AppRoutes.login);
   }
 
   @override

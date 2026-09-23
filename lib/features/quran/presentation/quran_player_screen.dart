@@ -6,12 +6,12 @@ import 'package:go_router/go_router.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
-import '../../../core/content/content_providers.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../../core/theme/app_radius.dart';
 import '../application/quran_curriculum_provider.dart';
+import '../data/quran_repository.dart';
 import '../domain/quran_age_schedule.dart';
 import 'widgets/tactile/quran_floating_hero.dart';
 import 'widgets/tactile/quran_tactile_app_bar.dart';
@@ -44,21 +44,21 @@ class _QuranPlayerScreenState extends ConsumerState<QuranPlayerScreen> {
 
   Future<void> _initAudio() async {
     final curriculum = ref.read(quranCurriculumProvider);
-    final session = await ref.read(quranSessionResolverProvider).resolve(
-          khatmahIndex: curriculum.currentSession.khatmahIndex,
-          sessionIndex: curriculum.currentSession.sessionIndex,
-        );
-
-    final networkUrl = session.audioUrl;
-    final asset = session.localAsset;
-    if (networkUrl == null && asset == null) return;
+    final repo = ref.read(quranRepositoryProvider);
+    final session = await repo.resolveSession(
+      khatmahIndex: curriculum.currentSession.khatmahIndex,
+      sessionIndex: curriculum.currentSession.sessionIndex,
+    );
 
     try {
-      if (networkUrl != null) {
-        await _player.setUrl(networkUrl);
-      } else {
-        await _player.setAsset(asset!);
+      if (session.audioUrl == null || session.audioUrl!.isEmpty) {
+        if (!mounted) return;
+        setState(() => _audioLoaded = false);
+        return;
       }
+
+      await _player.setUrl(session.audioUrl!);
+
       final duration = _player.duration;
       if (duration != null && duration > Duration.zero) {
         if (!mounted) return;
@@ -285,6 +285,16 @@ class _QuranPlayerScreenState extends ConsumerState<QuranPlayerScreen> {
               '${_format(_elapsed)} / ${_format(_total)}',
               style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
             ),
+            if (!_audioLoaded) ...[
+              const SizedBox(height: 12),
+              Text(
+                'لا يوجد صوت منشور لهذه الجلسة من الإدارة بعد.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AppColors.onSurfaceVariant,
+                ),
+              ),
+            ],
             if (_audioLoaded) ...[
               const SizedBox(height: 8),
               SliderTheme(

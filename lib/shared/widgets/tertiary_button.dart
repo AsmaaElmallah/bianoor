@@ -25,9 +25,11 @@ class TertiaryButton extends StatelessWidget {
         onTap: onPressed,
         borderRadius: AppRadius.brMd,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
           child: Text(
             label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
                   color: color ?? AppColors.primary,
                   fontWeight: FontWeight.w700,

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../../../core/router/app_routes.dart';
+import '../../../core/storage/locale_provider.dart';
 import '../../../core/storage/prefs_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
@@ -41,6 +42,8 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
 
   Future<void> _onContinue() async {
     await ref.read(prefsServiceProvider).setLanguage(_selectedCode);
+    // Rebuild MaterialApp with new locale/direction.
+    ref.invalidate(appLocaleProvider);
     if (mounted) context.go(AppRoutes.rules);
   }
 

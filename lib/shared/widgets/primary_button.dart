@@ -66,8 +66,8 @@ class _PrimaryButtonState extends State<PrimaryButton>
     final fg = widget.foregroundColor ?? AppColors.onPrimary;
     final gradient = widget.gradient ?? AppColors.primaryGradient;
 
-    // Depth block color = darker violet
-    const depthColor = Color(0xFF4C1D95); // Violet-900
+    // Darker mocha layer gives the button its tactile depth.
+    const depthColor = AppColors.primaryDim;
 
     return Opacity(
       opacity: isEnabled ? 1.0 : 0.45,
@@ -149,9 +149,7 @@ class _PrimaryButtonState extends State<PrimaryButton>
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             textAlign: TextAlign.center,
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelLarge
+                            style: Theme.of(context).textTheme.labelLarge
                                 ?.copyWith(
                                   color: fg,
                                   fontWeight: FontWeight.w800,

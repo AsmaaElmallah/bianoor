@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/dev/presentation/dev_tools_screen.dart';
+import '../../core/storage/prefs_service.dart';
+import '../../core/supabase/supabase_bootstrap.dart';
+import '../../features/auth/application/auth_session_provider.dart';
 import '../../features/auth/presentation/login_screen.dart';
+import '../../features/auth/presentation/password_recovery_screen.dart';
+import '../../features/auth/presentation/settings_screen.dart';
 import '../../features/auth/presentation/signup_screen.dart';
 import '../../features/home/presentation/feature_placeholder_screen.dart';
 import '../../features/community/presentation/mothers_club_screen.dart';
-import '../../features/community/presentation/mothers_club_post_detail_screen.dart';
-import '../../features/community/presentation/mothers_club_create_post_screen.dart';
 import '../../features/assessment/presentation/mother_quiz_screen.dart';
 import '../../shared/presentation/lesson_celebration_screen.dart';
 import '../../features/home/presentation/home_shell_screen.dart';
@@ -47,21 +49,81 @@ import '../../features/quran/presentation/quran_player_screen.dart';
 import '../../features/rules/presentation/family_rules_screen.dart';
 import '../../features/splash/presentation/splash_screen.dart';
 import '../../features/subscription/presentation/subscription_screen.dart';
-import 'app_redirect.dart';
 import 'app_routes.dart';
-import '../../features/auth/application/auth_session_provider.dart';
 
 /// يعرض شاشات الدروس فوق الرئيسية (مثل القرآن) وليس داخل شجرة /home المخفية.
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final refresh = ref.watch(authRefreshListenableProvider);
+  final prefs = ref.watch(prefsServiceProvider);
+
+  String? redirect(BuildContext context, GoRouterState state) {
+    final path = state.matchedLocation;
+    const publicPaths = {
+      AppRoutes.splash,
+      AppRoutes.videoIntro,
+      AppRoutes.login,
+      AppRoutes.signup,
+      AppRoutes.passwordRecovery,
+    };
+    final isPublic = publicPaths.contains(path);
+
+    // Without dart_defines the cloud is off — still block the app shell so
+    // Mock/empty auth cannot look like a real login.
+    if (!SupabaseBootstrap.isEnabled) {
+      if (!isPublic && path != AppRoutes.login) {
+        return AppRoutes.login;
+      }
+      return null;
+    }
+
+    final auth = ref.read(authSessionProvider);
+    if (auth.isLoading) return null;
+
+    final isLoggedIn = auth.valueOrNull != null;
+    final recoveryPending = ref.read(passwordRecoveryPendingProvider);
+
+    if (recoveryPending) {
+      if (path != AppRoutes.passwordRecovery) {
+        return AppRoutes.passwordRecovery;
+      }
+      return null;
+    }
+
+    final onLoginScreen = path == AppRoutes.login;
+    final hasBaby = prefs.getBabyName()?.trim().isNotEmpty ?? false;
+
+    // Only auto-leave Login when already signed in.
+    // Stay on Signup until the screen navigates (avoids race after signUp).
+    if (isLoggedIn && onLoginScreen) {
+      return prefs.isOnboardingComplete() && hasBaby
+          ? AppRoutes.home
+          : AppRoutes.language;
+    }
+
+    if (!isLoggedIn && !isPublic) {
+      return AppRoutes.login;
+    }
+
+    // Incomplete baby profile must finish onboarding questions.
+    if (isLoggedIn && path == AppRoutes.home) {
+      final hasBaby = prefs.getBabyName()?.trim().isNotEmpty ?? false;
+      if (!prefs.isOnboardingComplete() || !hasBaby) {
+        if (prefs.getLanguage() == null) return AppRoutes.language;
+        if (!prefs.getRulesAccepted()) return AppRoutes.rules;
+        return AppRoutes.onboardingQuestions;
+      }
+    }
+
+    return null;
+  }
 
   final router = GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: AppRoutes.splash,
     refreshListenable: refresh,
-    redirect: (context, state) => resolveAppRedirect(state, ref),
+    redirect: redirect,
     routes: [
       GoRoute(
         path: AppRoutes.splash,
@@ -78,6 +140,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.signup,
         builder: (context, state) => const SignupScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.passwordRecovery,
+        builder: (context, state) => const PasswordRecoveryScreen(),
       ),
       GoRoute(
         path: AppRoutes.language,
@@ -112,13 +178,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const SkillsScreen(),
       ),
       GoRoute(
-        path: AppRoutes.devTools,
-        builder: (context, state) => const DevToolsScreen(),
-      ),
-      GoRoute(
         path: AppRoutes.home,
         builder: (context, state) => const HomeShellScreen(),
         routes: [
+          GoRoute(
+            path: 'settings',
+            parentNavigatorKey: rootNavigatorKey,
+            builder: (context, state) => const SettingsScreen(),
+          ),
           GoRoute(
             path: 'feature/:id',
             parentNavigatorKey: rootNavigatorKey,
@@ -130,20 +197,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: 'mothers-club',
             parentNavigatorKey: rootNavigatorKey,
             builder: (context, state) => const MothersClubScreen(),
-            routes: [
-              GoRoute(
-                path: 'new',
-                parentNavigatorKey: rootNavigatorKey,
-                builder: (context, state) => const MothersClubCreatePostScreen(),
-              ),
-              GoRoute(
-                path: 'post/:postId',
-                parentNavigatorKey: rootNavigatorKey,
-                builder: (context, state) => MothersClubPostDetailScreen(
-                  postId: state.pathParameters['postId']!,
-                ),
-              ),
-            ],
           ),
           GoRoute(
             path: 'quiz/:quizId',
@@ -219,10 +272,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'player',
                 parentNavigatorKey: rootNavigatorKey,
-                builder: (context, state) {
-                  final lesson = int.tryParse(state.uri.queryParameters['lesson'] ?? '');
-                  return MathPlayerScreen(lessonNumberOverride: lesson);
-                },
+                builder: (context, state) => const MathPlayerScreen(),
               ),
               GoRoute(
                 path: 'roadmap',
@@ -250,10 +300,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'player',
                 parentNavigatorKey: rootNavigatorKey,
-                builder: (context, state) {
-                  final lesson = int.tryParse(state.uri.queryParameters['lesson'] ?? '');
-                  return VisualPlayerScreen(lessonNumberOverride: lesson);
-                },
+                builder: (context, state) => const VisualPlayerScreen(),
               ),
               GoRoute(
                 path: 'roadmap',
@@ -281,10 +328,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'player',
                 parentNavigatorKey: rootNavigatorKey,
-                builder: (context, state) {
-                  final lesson = int.tryParse(state.uri.queryParameters['lesson'] ?? '');
-                  return EmotionalPlayerScreen(lessonNumberOverride: lesson);
-                },
+                builder: (context, state) => const EmotionalPlayerScreen(),
               ),
               GoRoute(
                 path: 'roadmap',

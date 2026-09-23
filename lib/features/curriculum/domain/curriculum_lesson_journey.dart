@@ -60,9 +60,7 @@ bool curriculumIsLessonLocked(
   required int lastNewContentDay,
   required int maxLessonNumber,
   required int reviewCycleStartDay,
-  bool unlockAllLessons = false,
 }) {
-  if (unlockAllLessons) return false;
   if (curriculumDay > lastNewContentDay) return false;
   return lessonNumber >
       curriculumCurrentLessonNumber(

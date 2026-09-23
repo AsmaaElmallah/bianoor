@@ -1,21 +1,95 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
+import '../../../core/analytics/app_analytics.dart';
 import '../../../core/constants/app_assets.dart';
 import '../../../core/router/app_routes.dart';
+import '../../../core/storage/prefs_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../../shared/widgets/floating_widget.dart';
+import '../data/subscription_cloud_repository.dart';
+import '../data/subscription_purchase_service.dart';
 import '../domain/subscription_plan_model.dart';
 
-class SubscriptionScreen extends StatelessWidget {
+class SubscriptionScreen extends ConsumerStatefulWidget {
   const SubscriptionScreen({super.key});
+
+  @override
+  ConsumerState<SubscriptionScreen> createState() => _SubscriptionScreenState();
+}
+
+class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
+  String? _busyPlanId;
+
+  Future<void> _subscribe(SubscriptionPlan plan) async {
+    if (_busyPlanId != null) return;
+    setState(() => _busyPlanId = plan.id);
+
+    final result =
+        await ref.read(subscriptionPurchaseServiceProvider).purchase(plan);
+    ref.invalidate(mySubscriptionProvider);
+
+    if (!mounted) return;
+    setState(() => _busyPlanId = null);
+
+    switch (result.outcome) {
+      case PurchaseOutcome.success:
+        AppAnalytics.purchaseSuccess(plan.id);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تم تفعيل ${plan.title} بنجاح'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        final prefs = ref.read(prefsServiceProvider);
+        // After subscribe, always collect baby questions unless already filled.
+        context.go(
+          (prefs.getBabyName()?.trim().isNotEmpty ?? false) &&
+                  prefs.isOnboardingComplete()
+              ? AppRoutes.home
+              : AppRoutes.onboardingQuestions,
+        );
+      case PurchaseOutcome.cancelled:
+        break;
+      case PurchaseOutcome.unavailable:
+      case PurchaseOutcome.failed:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              result.message ?? 'تعذّر تفعيل الاشتراك — سجّلي دخولك أولاً',
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+    }
+  }
+
+  Future<void> _restore() async {
+    final result =
+        await ref.read(subscriptionPurchaseServiceProvider).restore();
+    ref.invalidate(mySubscriptionProvider);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          result.outcome == PurchaseOutcome.success
+              ? 'تم استعادة اشتراكك النشط'
+              : (result.message ?? 'لا يوجد اشتراك نشط مرتبط بالحساب'),
+        ),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final asyncPlans = ref.watch(cloudSubscriptionPlansProvider);
+    final mySub = ref.watch(mySubscriptionProvider).valueOrNull;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -134,15 +208,49 @@ class SubscriptionScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 22),
-                        ...subscriptionPlans.map(
+                        if (mySub?.isActive == true)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: Text(
+                              'اشتراكك الحالي نشط${mySub!.planId != null ? ' (${mySub.planId})' : ''}',
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ...((asyncPlans.valueOrNull?.isNotEmpty == true)
+                                ? asyncPlans.valueOrNull!
+                                : const <SubscriptionPlan>[])
+                            .map(
                           (plan) => Padding(
                             padding: const EdgeInsets.only(bottom: 14),
                             child: _PlanCard(
                               plan: plan,
-                              onSubscribe: () => context.go(AppRoutes.onboardingQuestions),
+                              onSubscribe: _busyPlanId == null
+                                  ? () => _subscribe(plan)
+                                  : null,
                             ),
                           ),
                         ),
+                        TextButton(
+                          onPressed: _restore,
+                          child: const Text('استعادة المشتريات'),
+                        ),
+                        if (asyncPlans.isLoading)
+                          const Padding(
+                            padding: EdgeInsets.all(24),
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        else if ((asyncPlans.valueOrNull ?? []).isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Text(
+                              'لا توجد باقات منشورة من الإدارة بعد.',
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
                         const SizedBox(height: 6),
                         const _PaymentSection(),
                       ],
@@ -161,7 +269,7 @@ class SubscriptionScreen extends StatelessWidget {
 class _PlanCard extends StatelessWidget {
   const _PlanCard({required this.plan, required this.onSubscribe});
   final SubscriptionPlan plan;
-  final VoidCallback onSubscribe;
+  final VoidCallback? onSubscribe;
 
   @override
   Widget build(BuildContext context) {
@@ -349,7 +457,7 @@ class _ClaySubscribeButton extends StatefulWidget {
   });
   final Color color;
   final Color textColor;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   State<_ClaySubscribeButton> createState() => _ClaySubscribeButtonState();
@@ -362,12 +470,17 @@ class _ClaySubscribeButtonState extends State<_ClaySubscribeButton> {
   Widget build(BuildContext context) {
     final depth = Color.lerp(widget.color, Colors.black, 0.2) ?? widget.color;
     return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) {
-        setState(() => _pressed = false);
-        widget.onTap();
-      },
-      onTapCancel: () => setState(() => _pressed = false),
+      onTapDown: widget.onTap == null
+          ? null
+          : (_) => setState(() => _pressed = true),
+      onTapUp: widget.onTap == null
+          ? null
+          : (_) {
+              setState(() => _pressed = false);
+              widget.onTap!();
+            },
+      onTapCancel:
+          widget.onTap == null ? null : () => setState(() => _pressed = false),
       child: AnimatedContainer(
         duration: _pressed
             ? const Duration(milliseconds: 90)

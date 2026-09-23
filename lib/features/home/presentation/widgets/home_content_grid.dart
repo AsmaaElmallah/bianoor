@@ -81,6 +81,7 @@ class _ContentCardState extends State<_ContentCard> {
           ..scale(_pressed ? 0.96 : 1.0),
         transformAlignment: Alignment.center,
         child: Stack(
+          fit: StackFit.expand,
           children: [
             // Depth block
             Positioned(
@@ -119,8 +120,7 @@ class _ContentCardState extends State<_ContentCard> {
               ),
               padding: const EdgeInsets.all(14),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
                     width: 42,
@@ -133,8 +133,10 @@ class _ContentCardState extends State<_ContentCard> {
                     child: Icon(widget.item.icon,
                         color: iconColor, size: 24, fill: 1),
                   ),
+                  const SizedBox(height: 12),
                   Text(
                     widget.item.title,
+                    textAlign: TextAlign.center,
                     style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w800,
                       height: 1.25,

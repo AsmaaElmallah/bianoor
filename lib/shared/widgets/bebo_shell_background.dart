@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
 
-/// Royal BeBo background — violet, amber, teal blobs on violet cream gradient.
+/// Calm BeBo background — mocha, sage, and dusty-rose shapes on sugar beige.
 class BeboShellBackground extends StatelessWidget {
   const BeboShellBackground({
     super.key,
@@ -18,21 +18,18 @@ class BeboShellBackground extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Royal violet cream gradient base
+        // Sugar-beige gradient base.
         Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [
-                Color(0xFFFAF5FF), // Violet-50
-                Color(0xFFF3EEFF), // slightly deeper violet
-              ],
+              colors: [AppColors.background, Color(0xFFF8EDE3)],
             ),
           ),
         ),
 
-        // Top-right — large violet blob
+        // Top-right — warm mocha.
         Positioned(
           top: -55,
           right: -55,
@@ -42,7 +39,7 @@ class BeboShellBackground extends StatelessWidget {
           ),
         ),
 
-        // Top-left — amber gold blob
+        // Top-left — soft sage.
         Positioned(
           top: -20,
           left: -50,
@@ -52,7 +49,7 @@ class BeboShellBackground extends StatelessWidget {
           ),
         ),
 
-        // Mid-left — deep violet accent
+        // Mid-left — warm neutral accent.
         Positioned(
           top: 180,
           left: -65,
@@ -62,7 +59,7 @@ class BeboShellBackground extends StatelessWidget {
           ),
         ),
 
-        // Mid-right — teal ocean blob
+        // Mid-right — dusty rose.
         Positioned(
           top: 300,
           right: -45,
@@ -72,7 +69,7 @@ class BeboShellBackground extends StatelessWidget {
           ),
         ),
 
-        // Lower-right — pink/rose accent (emotional track)
+        // Lower-right — dusty rose accent.
         Positioned(
           bottom: 170,
           right: -25,
@@ -82,7 +79,7 @@ class BeboShellBackground extends StatelessWidget {
           ),
         ),
 
-        // Lower-left — amber glow
+        // Lower-left — sage glow.
         Positioned(
           bottom: 220,
           left: -15,

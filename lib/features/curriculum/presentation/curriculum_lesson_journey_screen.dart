@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -17,14 +16,10 @@ class CurriculumLessonJourneyScreen extends StatelessWidget {
     super.key,
     required this.config,
     required this.curriculumDay,
-    this.unlockAllLessons = false,
-    this.supabaseNote,
   });
 
   final CurriculumJourneyConfig config;
   final int curriculumDay;
-  final bool unlockAllLessons;
-  final String? supabaseNote;
 
   @override
   Widget build(BuildContext context) {
@@ -93,22 +88,7 @@ class CurriculumLessonJourneyScreen extends StatelessWidget {
               ],
             ),
           ),
-          if (supabaseNote != null) ...[
-            TactileClayCard(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              color: AppColors.secondaryContainer.withValues(alpha: 0.45),
-              child: Text(
-                supabaseNote!,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.onSurfaceVariant,
-                      height: 1.35,
-                    ),
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-          const SizedBox(height: 12),
+          const SizedBox(height: 28),
           ..._buildLessonNodes(context, current: current, completedLessons: completedLessons),
           const SizedBox(height: 24),
           TactileClayCard(
@@ -157,18 +137,14 @@ class CurriculumLessonJourneyScreen extends StatelessWidget {
         maxLessonNumber: config.maxLessonNumber,
       );
       final isActive = !isDone && lessonNum == current;
-      final effectiveUnlock =
-          unlockAllLessons || (kDebugMode && curriculumDay >= config.lastNewContentDay);
-      final isLocked = effectiveUnlock
-          ? false
-          : curriculumIsLessonLocked(
-              lessonNum,
-              curriculumDay,
-              lastNewContentDay: config.lastNewContentDay,
-              maxLessonNumber: config.maxLessonNumber,
-              reviewCycleStartDay: config.reviewCycleStartDay,
-            );
-      final canOpen = effectiveUnlock || !isLocked;
+      final isLocked = curriculumIsLessonLocked(
+        lessonNum,
+        curriculumDay,
+        lastNewContentDay: config.lastNewContentDay,
+        maxLessonNumber: config.maxLessonNumber,
+        reviewCycleStartDay: config.reviewCycleStartDay,
+      );
+      final canOpen = !isLocked;
       final span = curriculumLessonDaySpan(
         lessonNum,
         maxLessonNumber: config.maxLessonNumber,
@@ -186,7 +162,7 @@ class CurriculumLessonJourneyScreen extends StatelessWidget {
               isActive: isActive,
               isLocked: isLocked,
               isBonus: lessonNum == config.lessonCount,
-              speechBubble: canOpen ? (isActive ? 'ابدأ الآن' : 'افتح') : null,
+              speechBubble: isActive ? 'ابدأ الآن' : null,
               onTap: canOpen
                   ? () => context.push(config.lessonDaysPath(lessonNum))
                   : null,

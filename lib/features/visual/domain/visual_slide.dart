@@ -6,8 +6,8 @@ class VisualSlide {
     required this.durationSec,
     required this.imageAssets,
     this.audioAsset,
-    this.imageNetworkUrls = const [],
-    this.audioNetworkUrl,
+    this.imageUrls = const [],
+    this.audioUrl,
   });
 
   final String packageId;
@@ -16,15 +16,11 @@ class VisualSlide {
   final double durationSec;
   final List<String> imageAssets;
   final String? audioAsset;
-  final List<String> imageNetworkUrls;
-  final String? audioNetworkUrl;
+  final List<String> imageUrls;
+  final String? audioUrl;
 
-  List<String> get displayImageSources =>
-      imageNetworkUrls.isNotEmpty ? imageNetworkUrls : imageAssets;
-
-  String? get playableAudio => audioNetworkUrl ?? audioAsset;
-
-  bool get usesNetworkImage => imageNetworkUrls.isNotEmpty;
+  bool get hasNetworkImage => imageUrls.isNotEmpty;
+  bool get hasNetworkAudio => audioUrl != null && audioUrl!.isNotEmpty;
 }
 
 class VisualRoundStep {

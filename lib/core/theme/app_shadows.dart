@@ -5,7 +5,7 @@ import 'app_colors.dart';
 class AppShadows {
   AppShadows._();
 
-  /// Royal clay lift — white highlight + violet diffuse depth
+  /// Warm clay lift — white highlight + mocha diffuse depth.
   static List<BoxShadow> clayLift = [
     BoxShadow(
       color: const Color(0xFFFFFFFF).withValues(alpha: 0.9),
@@ -13,28 +13,25 @@ class AppShadows {
       offset: const Offset(-0.5, -1.5),
     ),
     BoxShadow(
-      color: const Color(0xFF4C1D95).withValues(alpha: 0.10), // violet shadow
+      color: AppColors.primaryDim.withValues(alpha: 0.10),
       blurRadius: 20,
       spreadRadius: -2,
       offset: const Offset(0, 6),
     ),
     BoxShadow(
-      color: const Color(0xFF4C1D95).withValues(alpha: 0.06),
+      color: AppColors.primaryDim.withValues(alpha: 0.06),
       blurRadius: 36,
       spreadRadius: -6,
       offset: const Offset(0, 14),
     ),
   ];
 
-  /// Primary CTA: violet clay depth + brand glow
-  static List<BoxShadow> get clayPrimaryButton => [
-        ...clayLift,
-        ...primaryGlow,
-      ];
+  /// Primary CTA: mocha clay depth + brand glow.
+  static List<BoxShadow> get clayPrimaryButton => [...clayLift, ...primaryGlow];
 
   static List<BoxShadow> editorial = [
     BoxShadow(
-      color: const Color(0xFF4C1D95).withValues(alpha: 0.08),
+      color: AppColors.primaryDim.withValues(alpha: 0.08),
       blurRadius: 28,
       spreadRadius: -4,
       offset: const Offset(0, 10),
@@ -43,7 +40,7 @@ class AppShadows {
 
   static List<BoxShadow> soft = [
     BoxShadow(
-      color: const Color(0xFF4C1D95).withValues(alpha: 0.06),
+      color: AppColors.primaryDim.withValues(alpha: 0.06),
       blurRadius: 24,
       offset: const Offset(0, 7),
     ),
@@ -60,22 +57,22 @@ class AppShadows {
 
   static List<BoxShadow> bottomNav = [
     BoxShadow(
-      color: const Color(0xFF4C1D95).withValues(alpha: 0.14),
+      color: AppColors.primaryDim.withValues(alpha: 0.14),
       blurRadius: 32,
       spreadRadius: 0,
       offset: const Offset(0, -6),
     ),
     BoxShadow(
-      color: const Color(0xFF4C1D95).withValues(alpha: 0.06),
+      color: AppColors.primaryDim.withValues(alpha: 0.06),
       blurRadius: 12,
       offset: const Offset(0, -2),
     ),
   ];
 
-  /// Card shadow with violet tint
+  /// Card shadow with a warm mocha tint.
   static List<BoxShadow> card = [
     BoxShadow(
-      color: const Color(0xFF4C1D95).withValues(alpha: 0.09),
+      color: AppColors.primaryDim.withValues(alpha: 0.09),
       blurRadius: 16,
       spreadRadius: -2,
       offset: const Offset(0, 6),

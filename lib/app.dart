@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/router/app_router.dart';
+import 'core/storage/locale_provider.dart';
 import 'core/theme/app_theme.dart';
 
 class BayanourApp extends ConsumerWidget {
@@ -11,13 +12,14 @@ class BayanourApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
+    final locale = ref.watch(appLocaleProvider);
 
     return MaterialApp.router(
       title: 'بيانور',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       routerConfig: router,
-      locale: const Locale('ar'),
+      locale: locale,
       supportedLocales: const [
         Locale('ar'),
         Locale('en'),
@@ -35,7 +37,8 @@ class BayanourApp extends ConsumerWidget {
       ],
       builder: (context, child) {
         return Directionality(
-          textDirection: TextDirection.rtl,
+          textDirection:
+              isRtlLocale(locale) ? TextDirection.rtl : TextDirection.ltr,
           child: child!,
         );
       },

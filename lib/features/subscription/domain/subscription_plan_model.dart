@@ -15,6 +15,9 @@ class SubscriptionPlan {
     required this.buttonColor,
     required this.buttonTextColor,
     this.badge,
+    this.storeProductIdIos,
+    this.storeProductIdAndroid,
+    this.durationDays = 30,
   });
 
   final String id;
@@ -29,6 +32,9 @@ class SubscriptionPlan {
   final Color buttonColor;
   final Color buttonTextColor;
   final String? badge;
+  final String? storeProductIdIos;
+  final String? storeProductIdAndroid;
+  final int durationDays;
 }
 
 const _commonFeatures = [
