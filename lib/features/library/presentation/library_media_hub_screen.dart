@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_assets.dart';
-import '../../../shared/widgets/youtube/youtube_embed_player.dart';
+import '../../../shared/widgets/youtube/youtube_cover_card.dart';
+import '../../../shared/widgets/youtube/youtube_fullscreen_player.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_shadows.dart';
@@ -32,7 +32,6 @@ class LibraryMediaHubScreen extends ConsumerStatefulWidget {
 class _LibraryMediaHubScreenState extends ConsumerState<LibraryMediaHubScreen> {
   NatureSoundChip _natureChip = NatureSoundChip.rain;
   int _itemIndex = 0;
-  bool _playing = true;
   LibraryMediaCategory? _category;
 
   LibraryHubTheme get _theme {
@@ -60,17 +59,13 @@ class _LibraryMediaHubScreenState extends ConsumerState<LibraryMediaHubScreen> {
   }
 
   void _selectItem(int index) {
-    setState(() {
-      _itemIndex = index;
-      _playing = true;
-    });
+    setState(() => _itemIndex = index);
   }
 
   void _onNatureChip(NatureSoundChip chip) {
     setState(() {
       _natureChip = chip;
       _itemIndex = 0;
-      _playing = true;
     });
   }
 
@@ -86,19 +81,21 @@ class _LibraryMediaHubScreenState extends ConsumerState<LibraryMediaHubScreen> {
     }
   }
 
-  void _togglePlayPause() {
-    setState(() => _playing = !_playing);
+  void _playCurrent() {
+    final item = _currentItem;
+    if (item == null) return;
+    openYoutubeFullscreen(
+      context,
+      videoId: item.videoId,
+      playlistId: item.playlistId,
+      videoUrl: item.videoUrl,
+    );
   }
 
   Future<void> _openInYoutube() async {
     final item = _currentItem;
     if (item == null) return;
-    final uri = item.isPlaylist
-        ? Uri.parse('https://www.youtube.com/playlist?list=${item.playlistId}')
-        : Uri.parse('https://www.youtube.com/watch?v=${item.videoId}');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
+    await launchYoutubeExternal(videoId: item.videoId, playlistId: item.playlistId);
   }
 
   void _openFullList() {
@@ -239,11 +236,8 @@ class _LibraryMediaHubScreenState extends ConsumerState<LibraryMediaHubScreen> {
                           ),
                           const SizedBox(height: 16),
                           _PlayerSection(
-                            videoId: current?.videoId,
-                            playlistId: current?.playlistId,
-                            playing: _playing,
-                            onPlayPause: _togglePlayPause,
-                            onOpenYoutube: _openInYoutube,
+                            item: current,
+                            onPlay: _playCurrent,
                             accentColor: hubTheme.accentColor,
                           ),
                           const SizedBox(height: 16),
@@ -261,8 +255,8 @@ class _LibraryMediaHubScreenState extends ConsumerState<LibraryMediaHubScreen> {
                           _PlaybackControls(
                             onPrevious: _previous,
                             onNext: _next,
-                            playing: _playing,
-                            onPlayPause: _togglePlayPause,
+                            playing: false,
+                            onPlayPause: _playCurrent,
                             showShuffle:
                                 category.id == LibraryMediaCategoryId.lullabies,
                             canPrevious: _itemIndex > 0,
@@ -338,7 +332,7 @@ class _LibraryMediaHubScreenState extends ConsumerState<LibraryMediaHubScreen> {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    'يتطلب اتصالاً بالإنترنت. التحكم عبر يوتيوب.',
+                                    'اضغطي على الصورة لتشغيل المقطع بملء الشاشة. يتطلب اتصالاً بالإنترنت.',
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       color: AppColors.onSurfaceVariant,
                                       height: 1.4,
@@ -507,68 +501,28 @@ class _TitleSection extends StatelessWidget {
 
 class _PlayerSection extends StatelessWidget {
   const _PlayerSection({
-    required this.videoId,
-    required this.playlistId,
-    required this.playing,
-    required this.onPlayPause,
-    required this.onOpenYoutube,
+    required this.item,
+    required this.onPlay,
     required this.accentColor,
   });
 
-  final String? videoId;
-  final String? playlistId;
-  final bool playing;
-  final VoidCallback onPlayPause;
-  final Future<void> Function() onOpenYoutube;
+  final LibraryMediaItem? item;
+  final VoidCallback onPlay;
   final Color accentColor;
 
   @override
   Widget build(BuildContext context) {
+    final current = item;
     return TactileClayCard(
       padding: const EdgeInsets.all(10),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          YoutubeEmbedPlayer(
-            key: ValueKey('hub_${videoId}_${playlistId}_$playing'),
-            videoId: videoId,
-            playlistId: playlistId,
-            playing: playing,
-            onOpenExternal: onOpenYoutube,
-            placeholderIcon: Symbols.music_note,
-            placeholderIconColor: accentColor,
-          ),
-          if (!playing)
-            Positioned.fill(
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: onPlayPause,
-                  borderRadius: AppRadius.brLg,
-                  child: Container(
-                    alignment: Alignment.center,
-                    color: AppColors.primary.withValues(alpha: 0.12),
-                    child: Container(
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        color: AppColors.secondaryContainer,
-                        shape: BoxShape.circle,
-                        boxShadow: AppShadows.clayLift,
-                      ),
-                      child: const Icon(
-                        Symbols.play_arrow,
-                        size: 40,
-                        color: AppColors.onSecondaryContainer,
-                        fill: 1,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+      child: current == null
+          ? const AspectRatio(aspectRatio: 16 / 9, child: SizedBox.shrink())
+          : YoutubeCoverCard(
+              item: current,
+              onPlay: onPlay,
+              accentColor: accentColor,
+              placeholderIcon: Symbols.music_note,
             ),
-        ],
-      ),
     );
   }
 }

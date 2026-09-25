@@ -272,7 +272,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'player',
                 parentNavigatorKey: rootNavigatorKey,
-                builder: (context, state) => const MathPlayerScreen(),
+                builder: (context, state) => MathPlayerScreen(
+                  reviewLesson: int.tryParse(state.uri.queryParameters['review_lesson'] ?? ''),
+                ),
               ),
               GoRoute(
                 path: 'roadmap',
@@ -300,7 +302,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'player',
                 parentNavigatorKey: rootNavigatorKey,
-                builder: (context, state) => const VisualPlayerScreen(),
+                builder: (context, state) => VisualPlayerScreen(
+                  reviewLesson: int.tryParse(state.uri.queryParameters['review_lesson'] ?? ''),
+                ),
               ),
               GoRoute(
                 path: 'roadmap',
@@ -328,7 +332,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'player',
                 parentNavigatorKey: rootNavigatorKey,
-                builder: (context, state) => const EmotionalPlayerScreen(),
+                builder: (context, state) => EmotionalPlayerScreen(
+                  reviewLesson: int.tryParse(state.uri.queryParameters['review_lesson'] ?? ''),
+                ),
               ),
               GoRoute(
                 path: 'roadmap',
@@ -356,7 +362,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'player',
                 parentNavigatorKey: rootNavigatorKey,
-                builder: (context, state) => const QuranPlayerScreen(),
+                builder: (context, state) => QuranPlayerScreen(
+                  reviewKhatmah: int.tryParse(state.uri.queryParameters['review_khatmah'] ?? ''),
+                  reviewDay: int.tryParse(state.uri.queryParameters['review_day'] ?? ''),
+                ),
               ),
               GoRoute(
                 path: 'celebration/:khatmahIndex',

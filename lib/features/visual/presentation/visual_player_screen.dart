@@ -21,7 +21,10 @@ import '../../quran/presentation/widgets/tactile/tactile_clay_card.dart';
 import '../../quran/presentation/widgets/tactile/tactile_clay_progress.dart';
 
 class VisualPlayerScreen extends ConsumerStatefulWidget {
-  const VisualPlayerScreen({super.key});
+  const VisualPlayerScreen({super.key, this.reviewLesson});
+
+  /// When set, replays this lesson without recording progress.
+  final int? reviewLesson;
 
   @override
   ConsumerState<VisualPlayerScreen> createState() => _VisualPlayerScreenState();
@@ -58,7 +61,7 @@ class _VisualPlayerScreenState extends ConsumerState<VisualPlayerScreen> {
   }
 
   Future<void> _load() async {
-    final steps = await ref.read(visualCurriculumProvider.notifier).buildRoundSteps();
+    final steps = await ref.read(visualCurriculumProvider.notifier).buildRoundSteps(lessonNumber: widget.reviewLesson);
     if (!mounted) return;
     setState(() {
       _steps = steps;
@@ -141,6 +144,16 @@ class _VisualPlayerScreenState extends ConsumerState<VisualPlayerScreen> {
         _advancing = false;
       });
       await _playCurrent();
+      return;
+    }
+
+    if (widget.reviewLesson != null) {
+      _advancing = false;
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('انتهت المراجعة')),
+      );
+      context.pop();
       return;
     }
 

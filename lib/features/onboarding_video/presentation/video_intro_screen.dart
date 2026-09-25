@@ -11,7 +11,10 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../shared/widgets/pebble_progress.dart';
+import '../../../shared/widgets/youtube/youtube_embed_player.dart';
+import '../../../shared/widgets/youtube/youtube_fullscreen_player.dart';
 import '../data/video_rotation_service.dart';
+import '../domain/onboarding_video_ref.dart';
 
 class VideoIntroScreen extends ConsumerStatefulWidget {
   const VideoIntroScreen({super.key});
@@ -22,7 +25,7 @@ class VideoIntroScreen extends ConsumerStatefulWidget {
 
 class _VideoIntroScreenState extends ConsumerState<VideoIntroScreen> {
   VideoPlayerController? _videoController;
-  List<String> _videos = const [];
+  List<OnboardingVideoRef> _videos = const [];
   bool _initFailed = false;
   bool _isLoading = true;
   int _currentIndex = 0;
@@ -67,10 +70,18 @@ class _VideoIntroScreenState extends ConsumerState<VideoIntroScreen> {
       });
     }
     await _disposeVideoController();
-    final asset = _videos[index];
-    try {
-      await rootBundle.load(asset);
-    } catch (_) {
+    final video = _videos[index];
+    if (video.isYoutube) {
+      if (mounted) {
+        setState(() {
+          _currentIndex = index;
+          _isLoading = false;
+          _initFailed = false;
+        });
+      }
+      return;
+    }
+    if (!video.isNetwork && (video.assetPath == null || video.assetPath!.isEmpty)) {
       if (mounted) {
         setState(() {
           _initFailed = true;
@@ -79,8 +90,23 @@ class _VideoIntroScreenState extends ConsumerState<VideoIntroScreen> {
       }
       return;
     }
+    if (!video.isNetwork) {
+      try {
+        await rootBundle.load(video.assetPath!);
+      } catch (_) {
+        if (mounted) {
+          setState(() {
+            _initFailed = true;
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+    }
 
-    final controller = VideoPlayerController.asset(asset);
+    final controller = video.isNetwork
+        ? VideoPlayerController.networkUrl(Uri.parse(video.networkUrl!.trim()))
+        : VideoPlayerController.asset(video.assetPath!);
     try {
       await controller.initialize();
       await controller.setLooping(false);
@@ -353,6 +379,21 @@ class _VideoIntroScreenState extends ConsumerState<VideoIntroScreen> {
     if (_initFailed || _videos.isEmpty) {
       return _VideoPlaceholder(currentIndex: _currentIndex, total: _totalVideos);
     }
+    final current = _videos[_currentIndex];
+    if (!_isLoading && current.isYoutube) {
+      final id = current.youtubeId!.trim();
+      return ColoredBox(
+        color: Colors.black,
+        child: YoutubeEmbedPlayer(
+          key: ValueKey('onboarding_yt_$id'),
+          videoId: id,
+          playing: true,
+          wrapInAspectRatio: false,
+          borderRadius: BorderRadius.zero,
+          onOpenExternal: () => launchYoutubeExternal(videoId: id),
+        ),
+      );
+    }
     if (_isLoading || _videoController == null || !_videoController!.value.isInitialized) {
       return const ColoredBox(
         color: AppColors.surfaceContainerHigh,
@@ -446,7 +487,9 @@ class _VideoPlaceholder extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'فيديو ${currentIndex + 1} / $total',
+            total == 0
+                ? 'لا توجد فيديوهات تعريف بعد'
+                : 'فيديو ${currentIndex + 1} / $total',
             style: theme.textTheme.bodyMedium,
           ),
         ],

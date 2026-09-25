@@ -37,7 +37,13 @@ class QuranJourneyNode extends StatelessWidget {
         size: 76,
         color: const Color(0xFF4ADE80),
         depth: const Color(0xFF16A34A),
-        child: const Icon(Symbols.check_circle, color: Colors.white, size: 40, fill: 1),
+        onTap: onTap,
+        child: Icon(
+          onTap != null ? Symbols.replay : Symbols.check_circle,
+          color: Colors.white,
+          size: 40,
+          fill: 1,
+        ),
       );
     } else if (isActive) {
       circle = Stack(
@@ -75,6 +81,7 @@ class QuranJourneyNode extends StatelessWidget {
         size: 88,
         color: AppColors.secondaryContainer,
         depth: AppColors.secondaryDim,
+        onTap: isLocked ? null : onTap,
         child: Icon(
           isLocked ? Symbols.inventory_2 : Symbols.card_giftcard,
           color: AppColors.onSecondaryContainer,
@@ -87,6 +94,7 @@ class QuranJourneyNode extends StatelessWidget {
         size: 76,
         color: AppColors.surfaceContainerHigh,
         depth: AppColors.outlineVariant,
+        onTap: isLocked ? null : onTap,
         child: Icon(
           isLocked ? Symbols.lock : Symbols.star,
           color: AppColors.outline,

@@ -6,21 +6,27 @@ import '../../domain/home_menu_data.dart';
 import '../widgets/home_hero_card.dart';
 import '../widgets/home_section_block.dart';
 
+/// Sections reachable only from the bottom navigation bar.
+const _navOnlySectionIds = {'community'};
+
 class HomeDashboardTab extends ConsumerWidget {
   const HomeDashboardTab({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final babyName = ref.watch(prefsServiceProvider).getBabyName() ?? 'طفلك';
+    final sections = homeMenuSections
+        .where((s) => !_navOnlySectionIds.contains(s.id))
+        .toList();
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 24),
       children: [
         HomeHeroCard(babyName: babyName),
         const SizedBox(height: 24),
-        for (var i = 0; i < homeMenuSections.length; i++) ...[
-          HomeSectionBlock(section: homeMenuSections[i]),
-          if (i < homeMenuSections.length - 1) const SizedBox(height: 24),
+        for (var i = 0; i < sections.length; i++) ...[
+          HomeSectionBlock(section: sections[i]),
+          if (i < sections.length - 1) const SizedBox(height: 24),
         ],
       ],
     );

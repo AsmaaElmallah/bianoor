@@ -169,7 +169,7 @@ void openHomeMenuItem(BuildContext context, HomeMenuItem item) {
     );
     return;
   }
-  if (item.id == 'activities' || item.id == 'apply_activities') {
+  if (item.id == 'activities') {
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => const ActivitiesAgeGroupsScreen()),
     );

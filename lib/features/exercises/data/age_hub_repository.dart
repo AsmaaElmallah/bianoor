@@ -101,6 +101,8 @@ class AgeHubRepository {
               videoId: row['video_id'] as String?,
               playlistId: row['playlist_id'] as String?,
               moodTag: row['mood_tag'] as String?,
+              coverUrl: row['cover_url'] as String?,
+              videoUrl: row['video_url'] as String?,
             ),
           );
     }
@@ -118,7 +120,7 @@ class AgeHubRepository {
   }
 
   IconData _iconFor(String id) {
-    final localEx = exerciseAgeGroupById(id);
+    final localEx = exerciseAgeGroupById(id.startsWith('ex_') ? id.substring(3) : id);
     if (localEx != null) return localEx.icon;
     final localAct = activityAgeGroupById(id);
     if (localAct != null) return localAct.icon;

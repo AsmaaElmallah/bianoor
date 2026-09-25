@@ -162,7 +162,11 @@ class QuranKhatmahDaysScreen extends ConsumerWidget {
                 speechBubble: isActive ? 'ابدأ الآن' : null,
                 onTap: isActive
                     ? () => context.push(AppRoutes.quranPlayer)
-                    : null,
+                    : isDone
+                        ? () => context.push(
+                              '${AppRoutes.quranPlayer}?review_khatmah=$khatmahIndex&review_day=$day',
+                            )
+                        : null,
               ),
             ),
           );

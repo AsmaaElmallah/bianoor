@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
-import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../shared/widgets/youtube/youtube_fullscreen_player.dart';
 import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
 import '../../quran/presentation/widgets/tactile/tactile_clay_card.dart';
 import '../data/library_content_repository.dart';
@@ -108,13 +108,11 @@ class LibraryMediaListScreen extends ConsumerWidget {
 
             final item = category.items[index - 1];
             return TactileClayCard(
-              onTap: () => context.push(
-                AppRoutes.libraryMediaWatchPath(
-                  categoryId,
-                  videoId: item.videoId,
-                  playlistId: item.playlistId,
-                  title: item.title,
-                ),
+              onTap: () => openYoutubeFullscreen(
+                context,
+                videoId: item.videoId,
+                playlistId: item.playlistId,
+                videoUrl: item.videoUrl,
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Row(

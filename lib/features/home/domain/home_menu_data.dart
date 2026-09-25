@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -56,25 +55,9 @@ const homeMenuSections = <HomeMenuSection>[
         icon: Symbols.location_on,
       ),
       HomeMenuItem(
-        id: 'apply_activities',
-        title: 'تطبيق الأنشطة',
-        icon: Symbols.extension,
-      ),
-      HomeMenuItem(
         id: 'baby_exercises',
         title: 'الرياضة',
         icon: Symbols.fitness_center,
-      ),
-      HomeMenuItem(
-        id: 'age_levels',
-        title: 'المستويات العمرية',
-        icon: Symbols.face,
-        children: [
-          HomeMenuItem(id: 'lesson_quran', title: 'دروس القرآن الكريم', icon: Symbols.menu_book),
-          HomeMenuItem(id: 'lesson_math', title: 'دروس الحساب النقطي', icon: Symbols.grid_on),
-          HomeMenuItem(id: 'lesson_visual', title: 'دروس التحفيز البصري', icon: Symbols.visibility),
-          HomeMenuItem(id: 'lesson_emotional', title: 'دروس الذكاء العاطفي (المشاعر)', icon: Symbols.favorite),
-        ],
       ),
     ],
   ),

@@ -45,7 +45,7 @@ class LibraryTrackTile extends StatelessWidget {
             ),
             child: Row(
               children: [
-                _Thumbnail(videoId: videoId, size: 64),
+                _Thumbnail(videoId: videoId, imageUrl: item.coverUrl, size: 64),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -93,7 +93,7 @@ class LibraryTrackTile extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                _Thumbnail(videoId: videoId, size: 64),
+                _Thumbnail(videoId: videoId, imageUrl: item.coverUrl, size: 64),
                 if (isActive)
                   Container(
                     decoration: BoxDecoration(
@@ -143,9 +143,10 @@ class LibraryTrackTile extends StatelessWidget {
 }
 
 class _Thumbnail extends StatelessWidget {
-  const _Thumbnail({required this.videoId, required this.size});
+  const _Thumbnail({required this.videoId, required this.size, this.imageUrl});
 
   final String? videoId;
+  final String? imageUrl;
   final double size;
 
   @override
@@ -157,6 +158,7 @@ class _Thumbnail extends StatelessWidget {
         height: size,
         child: YoutubeThumbnail(
           videoId: videoId,
+          imageUrl: imageUrl,
           icon: Symbols.music_note,
         ),
       ),

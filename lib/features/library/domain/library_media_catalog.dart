@@ -20,6 +20,8 @@ class LibraryMediaItem {
     this.durationLabel,
     this.moodTag,
     this.natureChip,
+    this.coverUrl,
+    this.videoUrl,
   });
 
   final String id;
@@ -30,13 +32,30 @@ class LibraryMediaItem {
   final String? moodTag;
   final NatureSoundChip? natureChip;
 
+  /// صورة خلفية يرفعها الأدمن؛ عند غيابها تُستخدم صورة YouTube.
+  final String? coverUrl;
+
+  /// فيديو مرفوع من الداشبورد (بديل لرابط YouTube).
+  final String? videoUrl;
+
   bool get isPlaylist => playlistId != null && playlistId!.isNotEmpty;
+
+  bool get hasUploadedVideo {
+    final url = videoUrl?.trim();
+    return url != null && url.isNotEmpty;
+  }
 
   String? get youtubeThumbnailUrl {
     if (videoId != null && videoId!.isNotEmpty) {
       return 'https://img.youtube.com/vi/$videoId/hqdefault.jpg';
     }
     return null;
+  }
+
+  String? get coverImageUrl {
+    final c = coverUrl?.trim();
+    if (c != null && c.isNotEmpty) return c;
+    return youtubeThumbnailUrl;
   }
 }
 

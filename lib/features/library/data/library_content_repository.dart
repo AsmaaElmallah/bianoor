@@ -80,6 +80,8 @@ class LibraryContentRepository {
       durationLabel: row['duration_label'] as String?,
       moodTag: row['mood_tag'] as String?,
       natureChip: chip,
+      coverUrl: row['cover_url'] as String?,
+      videoUrl: row['video_url'] as String?,
     );
   }
 }

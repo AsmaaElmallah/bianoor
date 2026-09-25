@@ -2,11 +2,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../features/library/domain/library_media_catalog.dart';
-import '../youtube/youtube_embed_player.dart';
+import '../youtube/youtube_cover_card.dart';
+import '../youtube/youtube_fullscreen_player.dart';
 import '../tactile/tactile_clay_card.dart';
 import 'media_age_hub_config.dart';
 import 'media_age_list_tile.dart';
@@ -38,7 +38,6 @@ class MediaAgeHubScreen extends StatefulWidget {
 
 class _MediaAgeHubScreenState extends State<MediaAgeHubScreen> {
   int _itemIndex = 0;
-  bool _playing = true;
 
   List<LibraryMediaItem> get _items => widget.items;
 
@@ -48,14 +47,18 @@ class _MediaAgeHubScreenState extends State<MediaAgeHubScreen> {
   }
 
   void _selectItem(int index) {
-    setState(() {
-      _itemIndex = index;
-      _playing = true;
-    });
+    setState(() => _itemIndex = index);
   }
 
-  void _togglePlayPause() {
-    setState(() => _playing = !_playing);
+  void _playCurrent() {
+    final item = _currentItem;
+    if (item == null) return;
+    openYoutubeFullscreen(
+      context,
+      videoId: item.videoId,
+      playlistId: item.playlistId,
+      videoUrl: item.videoUrl,
+    );
   }
 
   Future<void> _openExternal() async {
@@ -65,12 +68,7 @@ class _MediaAgeHubScreenState extends State<MediaAgeHubScreen> {
     }
     final item = _currentItem;
     if (item == null) return;
-    final uri = item.isPlaylist
-        ? Uri.parse('https://www.youtube.com/playlist?list=${item.playlistId}')
-        : Uri.parse('https://www.youtube.com/watch?v=${item.videoId}');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
+    await launchYoutubeExternal(videoId: item.videoId, playlistId: item.playlistId);
   }
 
   int get _remainingCount {
@@ -89,18 +87,16 @@ class _MediaAgeHubScreenState extends State<MediaAgeHubScreen> {
 
     final videoArea = current == null
         ? const SizedBox.shrink()
-        : YoutubeEmbedPlayer(
-            key: ValueKey('age_${current.videoId}_${current.playlistId}_$_playing'),
-            videoId: current.videoId,
-            playlistId: current.playlistId,
-            playing: _playing,
+        : YoutubeCoverCard(
+            item: current,
+            onPlay: _playCurrent,
+            showPlayButton: false,
             wrapInAspectRatio: false,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-            onOpenExternal: _openExternal,
             placeholderIcon: cfg.kindLabel == 'تمارين'
                 ? Symbols.fitness_center
                 : Symbols.toys,
-            placeholderIconColor: cfg.accentColor,
+            accentColor: cfg.accentColor,
           );
 
     return Scaffold(
@@ -131,8 +127,8 @@ class _MediaAgeHubScreenState extends State<MediaAgeHubScreen> {
                     subtitle: current.moodTag ?? widget.ageSubtitle,
                     durationLabel: current.durationLabel,
                     videoArea: videoArea,
-                    playing: _playing,
-                    onPlayPause: _togglePlayPause,
+                    playing: false,
+                    onPlayPause: _playCurrent,
                     accentColor: cfg.accentColor,
                   ),
                   if (widget.parentNote != null) ...[

@@ -178,7 +178,11 @@ class CurriculumLessonDaysScreen extends StatelessWidget {
                 isActive: isActive,
                 isLocked: isLocked,
                 speechBubble: isActive ? 'ابدأ الآن' : null,
-                onTap: isActive ? () => context.push(config.playerPath) : null,
+                onTap: isActive
+                    ? () => context.push(config.playerPath)
+                    : isDone
+                        ? () => context.push('${config.playerPath}?review_lesson=$lessonNumber')
+                        : null,
               ),
             ),
           );

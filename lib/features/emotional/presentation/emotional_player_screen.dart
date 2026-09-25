@@ -21,7 +21,10 @@ import '../../quran/presentation/widgets/tactile/tactile_clay_card.dart';
 import '../../quran/presentation/widgets/tactile/tactile_clay_progress.dart';
 
 class EmotionalPlayerScreen extends ConsumerStatefulWidget {
-  const EmotionalPlayerScreen({super.key});
+  const EmotionalPlayerScreen({super.key, this.reviewLesson});
+
+  /// When set, replays this lesson without recording progress.
+  final int? reviewLesson;
 
   @override
   ConsumerState<EmotionalPlayerScreen> createState() => _EmotionalPlayerScreenState();
@@ -58,7 +61,7 @@ class _EmotionalPlayerScreenState extends ConsumerState<EmotionalPlayerScreen> {
   }
 
   Future<void> _load() async {
-    final steps = await ref.read(emotionalCurriculumProvider.notifier).buildRoundSteps();
+    final steps = await ref.read(emotionalCurriculumProvider.notifier).buildRoundSteps(lessonNumber: widget.reviewLesson);
     if (!mounted) return;
     setState(() {
       _steps = steps;
@@ -141,6 +144,16 @@ class _EmotionalPlayerScreenState extends ConsumerState<EmotionalPlayerScreen> {
         _advancing = false;
       });
       await _playCurrent();
+      return;
+    }
+
+    if (widget.reviewLesson != null) {
+      _advancing = false;
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('انتهت المراجعة')),
+      );
+      context.pop();
       return;
     }
 

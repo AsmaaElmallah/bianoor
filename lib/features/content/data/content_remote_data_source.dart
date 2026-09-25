@@ -110,6 +110,25 @@ class ContentRemoteDataSource {
     }
   }
 
+  Future<List<Map<String, dynamic>>> fetchPublishedOnboardingVideos() async {
+    if (!await _ready()) return [];
+
+    try {
+      final rows = await SupabaseBootstrap.client
+          .from('onboarding_videos')
+          .select()
+          .eq('publish_status', 'published')
+          .order('slot');
+
+      return List<Map<String, dynamic>>.from(rows as List);
+    } catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('[Content] onboarding videos fetch failed: $e\n$st');
+      }
+      return [];
+    }
+  }
+
   Future<String?> signedQuranAudioUrl(String storagePath) async {
     if (!await _ready() || storagePath.isEmpty) return null;
 

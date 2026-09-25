@@ -87,9 +87,10 @@ class MathCurriculumNotifier extends AsyncNotifier<MathCurriculumState> {
     );
   }
 
-  Future<List<MathRoundStep>> buildRoundSteps() async {
+  /// [lessonNumber] overrides the current lesson (used when reviewing a completed day).
+  Future<List<MathRoundStep>> buildRoundSteps({int? lessonNumber}) async {
     final state = await future;
-    final lesson = state.lessonRange.lessonNumber;
+    final lesson = lessonNumber ?? state.lessonRange.lessonNumber;
 
     // Cloud-first: published slides from admin only (no local as source of truth).
     final cloud = await ref

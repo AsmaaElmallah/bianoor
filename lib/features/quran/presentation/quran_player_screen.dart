@@ -19,7 +19,11 @@ import 'widgets/tactile/tactile_clay_card.dart';
 import 'widgets/tactile/tactile_clay_progress.dart';
 
 class QuranPlayerScreen extends ConsumerStatefulWidget {
-  const QuranPlayerScreen({super.key});
+  const QuranPlayerScreen({super.key, this.reviewKhatmah, this.reviewDay});
+
+  /// When both are set, replays that completed day's sessions without recording progress.
+  final int? reviewKhatmah;
+  final int? reviewDay;
 
   @override
   ConsumerState<QuranPlayerScreen> createState() => _QuranPlayerScreenState();
@@ -36,19 +40,46 @@ class _QuranPlayerScreenState extends ConsumerState<QuranPlayerScreen> {
   bool _audioLoaded = false;
   bool _completed = false;
 
+  List<int> _reviewSessions = const [];
+  int _reviewPos = 0;
+  String? _reviewTitle;
+
+  bool get _isReview => widget.reviewKhatmah != null && widget.reviewDay != null;
+
   @override
   void initState() {
     super.initState();
+    if (_isReview) {
+      final daily = dailySessionsForKhatmah(widget.reviewKhatmah!);
+      final first = (widget.reviewDay! - 1) * daily + 1;
+      final last = (first + daily - 1).clamp(first, quranSessionsPerKhatmah);
+      _reviewSessions = [for (var s = first; s <= last; s++) s];
+    }
     _initAudio();
   }
 
   Future<void> _initAudio() async {
     final curriculum = ref.read(quranCurriculumProvider);
-    final repo = ref.read(quranRepositoryProvider);
-    final session = await repo.resolveSession(
-      khatmahIndex: curriculum.currentSession.khatmahIndex,
-      sessionIndex: curriculum.currentSession.sessionIndex,
-    );
+    final khatmahIndex =
+        _isReview ? widget.reviewKhatmah! : curriculum.currentSession.khatmahIndex;
+    final sessionIndex =
+        _isReview ? _reviewSessions[_reviewPos] : curriculum.currentSession.sessionIndex;
+
+    await _positionSub?.cancel();
+    await _playerStateSub?.cancel();
+    if (mounted) {
+      setState(() {
+        _elapsed = Duration.zero;
+        _playing = false;
+        _completed = false;
+      });
+    }
+
+    final session = await ref.read(quranRepositoryProvider).resolveSession(
+          khatmahIndex: khatmahIndex,
+          sessionIndex: sessionIndex,
+        );
+    if (mounted && _isReview) setState(() => _reviewTitle = session.title);
 
     try {
       if (session.audioUrl == null || session.audioUrl!.isEmpty) {
@@ -58,6 +89,7 @@ class _QuranPlayerScreenState extends ConsumerState<QuranPlayerScreen> {
       }
 
       await _player.setUrl(session.audioUrl!);
+      if (_isReview) unawaited(_player.play());
 
       final duration = _player.duration;
       if (duration != null && duration > Duration.zero) {
@@ -135,6 +167,20 @@ class _QuranPlayerScreenState extends ConsumerState<QuranPlayerScreen> {
     _fallbackTimer?.cancel();
     await _player.stop();
 
+    if (_isReview) {
+      if (_reviewPos + 1 < _reviewSessions.length) {
+        _reviewPos += 1;
+        await _initAudio();
+        return;
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('انتهت مراجعة اليوم')),
+      );
+      context.pop();
+      return;
+    }
+
     final before = ref.read(quranCurriculumProvider).progress;
     final wasLastSession = before.currentSessionIndex >= quranSessionsPerKhatmah;
     final finishedKhatmah = before.currentKhatmahIndex;
@@ -194,7 +240,7 @@ class _QuranPlayerScreenState extends ConsumerState<QuranPlayerScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: QuranTactileAppBar(
-        title: state.currentSession.title,
+        title: _isReview ? (_reviewTitle ?? 'مراجعة') : state.currentSession.title,
         onBack: () => context.pop(),
       ),
       body: Stack(
@@ -209,7 +255,9 @@ class _QuranPlayerScreenState extends ConsumerState<QuranPlayerScreen> {
               child: Column(
                 children: [
                   Text(
-                    'الجلسة ${state.progress.sessionsCompletedToday + 1} من $daily اليوم',
+                    _isReview
+                        ? 'مراجعة · الجلسة ${_reviewPos + 1} من ${_reviewSessions.length}'
+                        : 'الجلسة ${state.progress.sessionsCompletedToday + 1} من $daily اليوم',
                     style: theme.textTheme.labelLarge?.copyWith(
                       color: AppColors.primary,
                       fontWeight: FontWeight.w800,
@@ -217,7 +265,7 @@ class _QuranPlayerScreenState extends ConsumerState<QuranPlayerScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    state.currentSession.title,
+                    _isReview ? (_reviewTitle ?? '') : state.currentSession.title,
                     style: theme.textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),

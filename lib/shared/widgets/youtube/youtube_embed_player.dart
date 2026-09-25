@@ -19,7 +19,11 @@ class YoutubeEmbedPlayer extends StatefulWidget {
     this.placeholderIcon = Symbols.play_circle,
     this.placeholderIconColor,
     this.wrapInAspectRatio = true,
+    this.onEmbedError,
   });
+
+  /// يُستدعى عند فشل تحميل المقطع نفسه (وليس موارد جانبية كالإعلانات).
+  final VoidCallback? onEmbedError;
 
   final String? videoId;
   final String? playlistId;
@@ -94,13 +98,15 @@ class _YoutubeEmbedPlayerState extends State<YoutubeEmbedPlayer> {
     _controller = createYoutubeEmbedController(
       videoId: widget.videoId,
       playlistId: widget.playlistId,
-      onWebResourceError: (_) {
-        if (mounted) {
-          setState(() {
-            _embedError = true;
-            _loading = false;
-          });
-        }
+      onWebResourceError: (error) {
+        final url = error.url ?? '';
+        final fatal = error.isForMainFrame != false || url.contains('/embed/');
+        if (!fatal || !mounted || _embedError) return;
+        setState(() {
+          _embedError = true;
+          _loading = false;
+        });
+        widget.onEmbedError?.call();
       },
     );
 
@@ -214,9 +220,11 @@ class _EmbedErrorOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: const Color(0xFF1A1A2E),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      padding: const EdgeInsets.all(12),
+      alignment: Alignment.center,
+      child: SingleChildScrollView(
+        child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           const Icon(Symbols.error_outline, color: Colors.white70, size: 40, fill: 1),
           const SizedBox(height: 10),
@@ -249,6 +257,7 @@ class _EmbedErrorOverlay extends StatelessWidget {
             ),
           ],
         ],
+        ),
       ),
     );
   }

@@ -66,6 +66,7 @@ class MediaAgeListTile extends StatelessWidget {
               clipBehavior: Clip.antiAlias,
               child: YoutubeThumbnail(
                 videoId: videoId,
+                imageUrl: item.coverUrl,
                 icon: Symbols.play_circle,
                 iconColor: accentColor,
               ),

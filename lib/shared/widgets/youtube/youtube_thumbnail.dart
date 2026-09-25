@@ -8,6 +8,7 @@ class YoutubeThumbnail extends StatelessWidget {
   const YoutubeThumbnail({
     super.key,
     this.videoId,
+    this.imageUrl,
     this.fit = BoxFit.cover,
     this.icon = Symbols.play_circle,
     this.iconColor,
@@ -15,6 +16,9 @@ class YoutubeThumbnail extends StatelessWidget {
   });
 
   final String? videoId;
+
+  /// صورة خلفية مخصّصة من الإدارة — لها الأولوية على صورة YouTube.
+  final String? imageUrl;
   final BoxFit fit;
   final IconData icon;
   final Color? iconColor;
@@ -28,7 +32,8 @@ class YoutubeThumbnail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final url = urlForVideoId(videoId);
+    final custom = imageUrl?.trim();
+    final url = (custom != null && custom.isNotEmpty) ? custom : urlForVideoId(videoId);
     final bg = backgroundColor ?? AppColors.surfaceContainer;
     final ic = iconColor ?? AppColors.primary;
 
