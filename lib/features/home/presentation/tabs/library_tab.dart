@@ -6,9 +6,24 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_logo_avatar.dart';
+import '../../../../shared/widgets/youtube/youtube_fullscreen_player.dart';
+import '../../../../shared/widgets/youtube/youtube_thumbnail.dart';
 import '../../../library/data/library_pdf_repository.dart';
+import '../../../library/data/library_sections_repository.dart';
+import '../../../library/domain/library_age_band.dart';
 import '../../../library/domain/library_pdf.dart';
+import '../../../library/domain/library_section_items.dart';
 import '../../../library/presentation/library_pdf_viewer_screen.dart';
+
+enum _LibrarySection {
+  pdf('كتب PDF', Symbols.picture_as_pdf),
+  paid('كتب مدفوعة', Symbols.shopping_bag),
+  visual('تحفيز بصري', Symbols.visibility);
+
+  const _LibrarySection(this.label, this.icon);
+  final String label;
+  final IconData icon;
+}
 
 const _cardRadius = BorderRadius.all(Radius.circular(32));
 const _innerRadius = BorderRadius.all(Radius.circular(16));
@@ -50,19 +65,56 @@ class LibraryTab extends ConsumerStatefulWidget {
 
 class _LibraryTabState extends ConsumerState<LibraryTab> {
   final _searchFocus = FocusNode();
-  LibraryPdfCategory? _category;
+  LibraryAgeBand _band = LibraryAgeBand.m0to3;
+  _LibrarySection _section = _LibrarySection.pdf;
   String _query = '';
   bool _opening = false;
 
-  List<LibraryPdf> _filter(List<LibraryPdf> all) {
+  bool _matches(String title, String description, [String extra = '']) {
     final q = _query.trim();
-    return all.where((pdf) {
-      if (_category != null && pdf.category != _category) return false;
-      if (q.isEmpty) return true;
-      return pdf.title.contains(q) ||
-          pdf.description.contains(q) ||
-          pdf.tagLabel.contains(q);
-    }).toList();
+    if (q.isEmpty) return true;
+    return title.contains(q) || description.contains(q) || extra.contains(q);
+  }
+
+  List<LibraryPdf> _filter(List<LibraryPdf> all) {
+    return all
+        .where((pdf) =>
+            pdf.ageBand == _band && _matches(pdf.title, pdf.description, pdf.tagLabel))
+        .toList();
+  }
+
+  Future<void> _refreshCurrent() {
+    switch (_section) {
+      case _LibrarySection.pdf:
+        return ref.refresh(libraryPdfsProvider.future);
+      case _LibrarySection.paid:
+        ref.invalidate(libraryWhatsappNumberProvider);
+        return ref.refresh(libraryPaidBooksProvider.future);
+      case _LibrarySection.visual:
+        return ref.refresh(libraryVisualVideosProvider.future);
+    }
+  }
+
+  Future<void> _contactForBook(LibraryPaidBook book) async {
+    final number = await ref.read(libraryWhatsappNumberProvider.future);
+    if (!mounted) return;
+    if (number.isEmpty) {
+      _snack('رقم التواصل غير متاح حالياً، حاولي لاحقاً.');
+      return;
+    }
+    final uri = Uri.https('wa.me', '/$number', {
+      'text': 'مرحباً، أرغب في شراء كتاب: ${book.title}',
+    });
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok && mounted) _snack('تعذّر فتح واتساب، تأكدي أنه مثبت على جهازك.');
+  }
+
+  void _playVisual(LibraryVisualVideo video) {
+    openYoutubeFullscreen(
+      context,
+      videoId: video.youtubeVideoId,
+      videoUrl: video.videoUrl,
+    );
   }
 
   @override
@@ -124,11 +176,9 @@ class _LibraryTabState extends ConsumerState<LibraryTab> {
 
   @override
   Widget build(BuildContext context) {
-    final asyncPdfs = ref.watch(libraryPdfsProvider);
-
     return RefreshIndicator(
       color: AppColors.primary,
-      onRefresh: () => ref.refresh(libraryPdfsProvider.future),
+      onRefresh: _refreshCurrent,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.only(top: 8, bottom: 24),
@@ -140,46 +190,111 @@ class _LibraryTabState extends ConsumerState<LibraryTab> {
             onChanged: (v) => setState(() => _query = v),
           ),
           const SizedBox(height: 20),
-          _FilterChips(
-            selected: _category,
-            onSelected: (c) => setState(() => _category = c),
+          _AgeChips(
+            selected: _band,
+            onSelected: (b) => setState(() => _band = b),
+          ),
+          const SizedBox(height: 14),
+          _SectionTabs(
+            selected: _section,
+            onSelected: (s) => setState(() => _section = s),
           ),
           const SizedBox(height: 20),
-          ...asyncPdfs.when(
-            loading: () => const [
-              Padding(
-                padding: EdgeInsets.symmetric(vertical: 40),
-                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-              ),
-            ],
-            error: (_, __) => [
-              _StateMessage(
-                icon: Symbols.cloud_off,
-                title: 'تعذّر تحميل المكتبة',
-                subtitle: 'تأكدي من الاتصال بالإنترنت ثم اسحبي الصفحة للتحديث.',
-                actionLabel: 'إعادة المحاولة',
-                onAction: () => ref.invalidate(libraryPdfsProvider),
-              ),
-            ],
-            data: (all) => _buildCards(all),
-          ),
-          const SizedBox(height: 8),
-          const _FriendlyNotice(),
+          ..._buildSection(),
         ],
       ),
     );
   }
 
-  List<Widget> _buildCards(List<LibraryPdf> all) {
-    if (all.isEmpty) {
-      return const [
-        _StateMessage(
-          icon: Symbols.auto_stories,
-          title: 'لا توجد ملفات بعد',
-          subtitle: 'سيضيف فريق بيانور الكتيبات والأدلة قريباً.',
-        ),
-      ];
+  List<Widget> _buildSection() {
+    switch (_section) {
+      case _LibrarySection.pdf:
+        return [
+          ..._asyncList(
+            ref.watch(libraryPdfsProvider),
+            onRetry: () => ref.invalidate(libraryPdfsProvider),
+            builder: _buildCards,
+          ),
+          const SizedBox(height: 8),
+          const _FriendlyNotice(),
+        ];
+      case _LibrarySection.paid:
+        return _asyncList(
+          ref.watch(libraryPaidBooksProvider),
+          onRetry: () => ref.invalidate(libraryPaidBooksProvider),
+          builder: _buildPaidBooks,
+        );
+      case _LibrarySection.visual:
+        return _asyncList(
+          ref.watch(libraryVisualVideosProvider),
+          onRetry: () => ref.invalidate(libraryVisualVideosProvider),
+          builder: _buildVisualVideos,
+        );
     }
+  }
+
+  List<Widget> _asyncList<T>(
+    AsyncValue<List<T>> value, {
+    required VoidCallback onRetry,
+    required List<Widget> Function(List<T>) builder,
+  }) {
+    return value.when(
+      loading: () => const [
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: 40),
+          child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        ),
+      ],
+      error: (_, __) => [
+        _StateMessage(
+          icon: Symbols.cloud_off,
+          title: 'تعذّر تحميل المكتبة',
+          subtitle: 'تأكدي من الاتصال بالإنترنت ثم اسحبي الصفحة للتحديث.',
+          actionLabel: 'إعادة المحاولة',
+          onAction: onRetry,
+        ),
+      ],
+      data: builder,
+    );
+  }
+
+  Widget _emptyForBand(IconData icon, String what) {
+    return _StateMessage(
+      icon: icon,
+      title: 'لا توجد $what لعمر ${_band.label} بعد',
+      subtitle: 'سيضيف فريق بيانور المزيد قريباً، أو جرّبي عمراً آخر.',
+    );
+  }
+
+  List<Widget> _buildPaidBooks(List<LibraryPaidBook> all) {
+    final inBand = all.where((b) => b.ageBand == _band).toList();
+    if (inBand.isEmpty) return [_emptyForBand(Symbols.shopping_bag, 'كتب مدفوعة')];
+    final visible = inBand.where((b) => _matches(b.title, b.description)).toList();
+    if (visible.isEmpty) return const [_NoResults()];
+    return [
+      for (final book in visible) ...[
+        _PaidBookCard(book: book, onContact: () => _contactForBook(book)),
+        const SizedBox(height: 16),
+      ],
+    ];
+  }
+
+  List<Widget> _buildVisualVideos(List<LibraryVisualVideo> all) {
+    final inBand = all.where((v) => v.ageBand == _band).toList();
+    if (inBand.isEmpty) return [_emptyForBand(Symbols.visibility, 'فيديوهات تحفيز بصري')];
+    final visible = inBand.where((v) => _matches(v.title, v.description)).toList();
+    if (visible.isEmpty) return const [_NoResults()];
+    return [
+      for (final video in visible) ...[
+        _VisualVideoCard(video: video, onPlay: () => _playVisual(video)),
+        const SizedBox(height: 16),
+      ],
+    ];
+  }
+
+  List<Widget> _buildCards(List<LibraryPdf> all) {
+    final inBand = all.where((p) => p.ageBand == _band).toList();
+    if (inBand.isEmpty) return [_emptyForBand(Symbols.auto_stories, 'كتب PDF')];
     final visible = _filter(all);
     if (visible.isEmpty) return const [_NoResults()];
     return [
@@ -315,10 +430,10 @@ class _IntroBanner extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Symbols.picture_as_pdf, size: 16, fill: 1, color: AppColors.onPrimaryFixed),
+                      const Icon(Symbols.child_care, size: 16, fill: 1, color: AppColors.onPrimaryFixed),
                       const SizedBox(width: 6),
                       Text(
-                        'مستندات رقمية حصرية',
+                        'محتوى حسب عمر طفلك',
                         style: theme.textTheme.labelLarge?.copyWith(
                           fontWeight: FontWeight.w700,
                           color: AppColors.onPrimaryFixed,
@@ -329,7 +444,7 @@ class _IntroBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'مكتبة ملفات الـ PDF',
+                  'مكتبة بيانور',
                   style: theme.textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.w800,
                     color: AppColors.onSurface,
@@ -337,7 +452,7 @@ class _IntroBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'كتيبات، أدلة وأنشطة مخصصة لطفلك بصيغة PDF جاهزة للقراءة السلسة والتحميل الفوري بدون تعقيد.',
+                  'اختاري عمر طفلك لتجدي كتب PDF للقراءة والتحميل، وكتباً مطبوعة للطلب، وفيديوهات تحفيز بصري مناسبة لمرحلته.',
                   style: theme.textTheme.bodyLarge?.copyWith(
                     color: AppColors.onSurfaceVariant,
                     height: 1.6,
@@ -402,7 +517,7 @@ class _InsetSearchField extends StatelessWidget {
         textInputAction: TextInputAction.search,
         style: theme.textTheme.bodyLarge?.copyWith(color: AppColors.onSurface),
         decoration: InputDecoration(
-          hintText: 'ابحثي في عناوين وملفات الـ PDF...',
+          hintText: 'ابحثي في المكتبة...',
           hintStyle: theme.textTheme.bodyMedium?.copyWith(color: AppColors.outline),
           prefixIcon: const Icon(Symbols.search, size: 22, color: AppColors.onSurfaceVariant),
           suffixIcon: Padding(
@@ -436,17 +551,11 @@ class _InsetSearchField extends StatelessWidget {
   }
 }
 
-class _FilterChips extends StatelessWidget {
-  const _FilterChips({required this.selected, required this.onSelected});
+class _AgeChips extends StatelessWidget {
+  const _AgeChips({required this.selected, required this.onSelected});
 
-  final LibraryPdfCategory? selected;
-  final ValueChanged<LibraryPdfCategory?> onSelected;
-
-  static const _icons = {
-    LibraryPdfCategory.guide: Symbols.verified,
-    LibraryPdfCategory.stories: Symbols.auto_stories,
-    LibraryPdfCategory.activities: Symbols.extension,
-  };
+  final LibraryAgeBand selected;
+  final ValueChanged<LibraryAgeBand> onSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -455,22 +564,255 @@ class _FilterChips extends StatelessWidget {
       clipBehavior: Clip.none,
       child: Row(
         children: [
-          _Chip(
-            label: 'الكل (PDF)',
-            icon: Symbols.menu_book,
-            active: selected == null,
-            onTap: () => onSelected(null),
-          ),
-          for (final c in LibraryPdfCategory.values) ...[
-            const SizedBox(width: 8),
+          for (final band in LibraryAgeBand.values) ...[
+            if (band != LibraryAgeBand.values.first) const SizedBox(width: 8),
             _Chip(
-              label: c.label,
-              icon: _icons[c]!,
-              active: selected == c,
-              onTap: () => onSelected(c),
+              label: band.label,
+              icon: Symbols.child_care,
+              active: selected == band,
+              onTap: () => onSelected(band),
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _SectionTabs extends StatelessWidget {
+  const _SectionTabs({required this.selected, required this.onSelected});
+
+  final _LibrarySection selected;
+  final ValueChanged<_LibrarySection> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainer,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          for (final section in _LibrarySection.values)
+            Expanded(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => onSelected(section),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                  decoration: BoxDecoration(
+                    color: selected == section
+                        ? AppColors.surfaceContainerLowest
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: selected == section
+                        ? _clayShadow(AppColors.primary, alpha: 0.08, blur: 10, y: 3)
+                        : null,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        section.icon,
+                        size: 20,
+                        fill: selected == section ? 1 : 0,
+                        color: selected == section
+                            ? AppColors.primary
+                            : AppColors.onSurfaceVariant,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        section.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: selected == section
+                              ? AppColors.primary
+                              : AppColors.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PaidBookCard extends StatelessWidget {
+  const _PaidBookCard({required this.book, required this.onContact});
+
+  final LibraryPaidBook book;
+  final VoidCallback onContact;
+
+  static const _whatsappGreen = Color(0xFF25D366);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cover = book.coverUrl?.trim();
+    final fallback = ColoredBox(
+      color: AppColors.secondaryContainer,
+      child: Center(
+        child: Icon(Symbols.menu_book, size: 48, color: AppColors.secondary, fill: 1),
+      ),
+    );
+
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
+        borderRadius: _cardRadius,
+        boxShadow: _clayShadow(AppColors.primary, alpha: 0.06),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AspectRatio(
+            aspectRatio: 4 / 3,
+            child: cover != null && cover.isNotEmpty
+                ? Image.network(
+                    cover,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => fallback,
+                    loadingBuilder: (context, child, progress) =>
+                        progress == null ? child : fallback,
+                  )
+                : fallback,
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  book.title,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.onSurface,
+                  ),
+                ),
+                if (book.description.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    book.description,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AppColors.onSurfaceVariant,
+                      height: 1.6,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                SizedBox(
+                  height: 50,
+                  child: FilledButton.icon(
+                    onPressed: onContact,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _whatsappGreen,
+                      foregroundColor: Colors.white,
+                      shape: const RoundedRectangleBorder(borderRadius: _innerRadius),
+                    ),
+                    icon: const Icon(Symbols.chat, size: 20, fill: 1),
+                    label: const Text('تواصلي معنا عبر واتساب'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VisualVideoCard extends StatelessWidget {
+  const _VisualVideoCard({required this.video, required this.onPlay});
+
+  final LibraryVisualVideo video;
+  final VoidCallback onPlay;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: AppColors.surfaceContainerLowest,
+      borderRadius: _cardRadius,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onPlay,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  YoutubeThumbnail(
+                    videoId: video.youtubeVideoId,
+                    imageUrl: video.coverUrl,
+                    icon: Symbols.visibility,
+                  ),
+                  Center(
+                    child: Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.92),
+                        shape: BoxShape.circle,
+                        boxShadow: const [
+                          BoxShadow(color: Colors.black26, blurRadius: 12, offset: Offset(0, 4)),
+                        ],
+                      ),
+                      child: const Icon(
+                        Symbols.play_arrow,
+                        size: 40,
+                        color: AppColors.primary,
+                        fill: 1,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    video.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.onSurface,
+                    ),
+                  ),
+                  if (video.description.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      video.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

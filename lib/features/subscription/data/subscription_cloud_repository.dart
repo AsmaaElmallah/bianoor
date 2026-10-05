@@ -6,6 +6,12 @@ import '../../../core/supabase/supabase_bootstrap.dart';
 import '../../../core/theme/app_colors.dart';
 import '../domain/subscription_plan_model.dart';
 
+/// Client demo builds only (`--dart-define=DEMO_SUBSCRIPTIONS=true`):
+/// activates plans without the store. Never enable for Play/App Store builds.
+const bool kDemoSubscriptions = bool.fromEnvironment('DEMO_SUBSCRIPTIONS');
+
+bool get subscriptionSandboxAllowed => kDebugMode || kDemoSubscriptions;
+
 final subscriptionCloudRepositoryProvider =
     Provider<SubscriptionCloudRepository>((ref) {
   return SubscriptionCloudRepository();
@@ -77,7 +83,7 @@ class SubscriptionCloudRepository {
 
   /// Debug-only sandbox activate — never call from release purchase paths.
   Future<bool> activatePlan(String planId, {int durationDays = 30}) async {
-    if (!kDebugMode) {
+    if (!subscriptionSandboxAllowed) {
       debugPrint('[Subscriptions] activatePlan blocked outside debug');
       return false;
     }

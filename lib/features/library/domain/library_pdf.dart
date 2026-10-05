@@ -1,26 +1,10 @@
-/// تصنيف ملف PDF في المكتبة — القيمة `dbValue` هي نفس عمود `category` في Supabase.
-enum LibraryPdfCategory {
-  guide('guide', 'أدلة التربية'),
-  stories('stories', 'قصص مصورة'),
-  activities('activities', 'بطاقات وأنشطة');
-
-  const LibraryPdfCategory(this.dbValue, this.label);
-  final String dbValue;
-  final String label;
-
-  static LibraryPdfCategory fromDb(String? value) {
-    for (final c in values) {
-      if (c.dbValue == value) return c;
-    }
-    return guide;
-  }
-}
+import 'library_age_band.dart';
 
 class LibraryPdf {
   const LibraryPdf({
     required this.id,
     required this.title,
-    required this.category,
+    required this.ageBand,
     required this.tagLabel,
     this.description = '',
     this.pageCount,
@@ -32,7 +16,7 @@ class LibraryPdf {
 
   final String id;
   final String title;
-  final LibraryPdfCategory category;
+  final LibraryAgeBand ageBand;
 
   /// النص الملوّن الصغير فوق العنوان (مثل «دليل إرشادي شامل»).
   final String tagLabel;
@@ -63,7 +47,7 @@ class LibraryPdf {
     return LibraryPdf(
       id: row['id'] as String,
       title: row['title'] as String? ?? 'ملف PDF',
-      category: LibraryPdfCategory.fromDb(row['category'] as String?),
+      ageBand: LibraryAgeBand.fromDb(row['age_band'] as String?),
       tagLabel: row['tag_label'] as String? ?? '',
       description: row['description'] as String? ?? '',
       pageCount: (row['page_count'] as num?)?.toInt(),
