@@ -59,6 +59,11 @@ const homeMenuSections = <HomeMenuSection>[
         title: 'الرياضة',
         icon: Symbols.fitness_center,
       ),
+      HomeMenuItem(
+        id: 'courses',
+        title: 'الدورات',
+        icon: Symbols.school,
+      ),
     ],
   ),
   HomeMenuSection(

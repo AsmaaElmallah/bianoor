@@ -18,6 +18,7 @@ import '../../support/domain/support_topics_data.dart';
 import '../../support/presentation/consultations_screen.dart';
 import '../../subscription/presentation/subscription_gate.dart';
 import '../../activities/presentation/activities_age_groups_screen.dart';
+import '../../courses/presentation/courses_screen.dart';
 import '../../exercises/presentation/exercises_age_groups_screen.dart';
 
 void openHomeMenuItem(BuildContext context, HomeMenuItem item) {
@@ -166,6 +167,12 @@ void openHomeMenuItem(BuildContext context, HomeMenuItem item) {
   if (item.id == 'baby_exercises') {
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => const ExercisesAgeGroupsScreen()),
+    );
+    return;
+  }
+  if (item.id == 'courses') {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const CoursesScreen()),
     );
     return;
   }

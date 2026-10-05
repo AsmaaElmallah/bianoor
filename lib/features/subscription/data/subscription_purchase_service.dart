@@ -33,8 +33,6 @@ class SubscriptionPurchaseService {
   final InAppPurchase _iap = InAppPurchase.instance;
   StreamSubscription<List<PurchaseDetails>>? _sub;
   Completer<PurchaseResult>? _pending;
-  String? _pendingPlanId;
-
   bool get _isMobileStore =>
       !kIsWeb &&
       (defaultTargetPlatform == TargetPlatform.android ||
@@ -58,6 +56,9 @@ class SubscriptionPurchaseService {
   }
 
   Future<PurchaseResult> purchase(SubscriptionPlan plan) async {
+    if (kDemoSubscriptions) {
+      return _sandboxActivate(plan, reason: 'demo_build');
+    }
     await ensureListening();
 
     if (!_isMobileStore || !await _iap.isAvailable()) {
@@ -84,7 +85,6 @@ class SubscriptionPurchaseService {
     }
 
     final product = response.productDetails.first;
-    _pendingPlanId = plan.id;
     _pending = Completer<PurchaseResult>();
 
     final ok = await _iap.buyNonConsumable(
@@ -92,7 +92,6 @@ class SubscriptionPurchaseService {
     );
     if (!ok) {
       _pending = null;
-      _pendingPlanId = null;
       return const PurchaseResult(
         PurchaseOutcome.failed,
         message: 'تعذّر بدء الشراء',
@@ -103,7 +102,6 @@ class SubscriptionPurchaseService {
       const Duration(minutes: 2),
       onTimeout: () {
         _pending = null;
-        _pendingPlanId = null;
         return const PurchaseResult(
           PurchaseOutcome.failed,
           message: 'انتهت مهلة الشراء',
@@ -129,6 +127,9 @@ class SubscriptionPurchaseService {
   Future<void> _onPurchases(List<PurchaseDetails> purchases) async {
     for (final purchase in purchases) {
       if (purchase.status == PurchaseStatus.pending) continue;
+      // Course products share the same purchase stream; CoursePurchaseService owns them.
+      final planForProduct = await _planIdForProduct(purchase.productID);
+      if (planForProduct == null) continue;
 
       if (purchase.status == PurchaseStatus.error) {
         _completePending(
@@ -141,9 +142,7 @@ class SubscriptionPurchaseService {
         _completePending(const PurchaseResult(PurchaseOutcome.cancelled));
       } else if (purchase.status == PurchaseStatus.purchased ||
           purchase.status == PurchaseStatus.restored) {
-        final planId = _pendingPlanId ??
-            await _planIdForProduct(purchase.productID) ??
-            'monthly';
+        final planId = planForProduct;
         final verified = await _verifyViaEdgeOrLocal(
           planId: planId,
           productId: purchase.productID,
@@ -172,7 +171,6 @@ class SubscriptionPurchaseService {
       _pending!.complete(result);
     }
     _pending = null;
-    _pendingPlanId = null;
   }
 
   Future<String?> _planIdForProduct(String productId) async {
@@ -191,7 +189,7 @@ class SubscriptionPurchaseService {
     required String reason,
   }) async {
     // Never grant paid access without the store in release builds.
-    if (!kDebugMode) {
+    if (!subscriptionSandboxAllowed) {
       debugPrint('[IAP] sandbox blocked in release reason=$reason');
       return PurchaseResult(
         PurchaseOutcome.unavailable,
