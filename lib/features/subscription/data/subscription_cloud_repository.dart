@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/supabase/supabase_bootstrap.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../payments/domain/payment_item.dart';
 import '../domain/subscription_plan_model.dart';
 
 /// Client demo builds only (`--dart-define=DEMO_SUBSCRIPTIONS=true`):
@@ -180,6 +181,7 @@ class SubscriptionCloudRepository {
             storeProductIdIos: row['store_product_id_ios'] as String?,
             storeProductIdAndroid: row['store_product_id_android'] as String?,
             durationDays: (row['duration_days'] as int?) ?? 30,
+            priceUsd: parseUsd(row['price_usd']),
           ),
         );
         i++;

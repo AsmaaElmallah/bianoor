@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,6 +12,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../../shared/widgets/floating_widget.dart';
+import '../../payments/domain/payment_item.dart';
+import '../../payments/presentation/payment_options_sheet.dart';
 import '../data/subscription_cloud_repository.dart';
 import '../data/subscription_purchase_service.dart';
 import '../domain/subscription_plan_model.dart';
@@ -25,8 +28,60 @@ class SubscriptionScreen extends ConsumerStatefulWidget {
 class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
   String? _busyPlanId;
 
+  String? _storeLabel(SubscriptionPlan plan) {
+    final productId = defaultTargetPlatform == TargetPlatform.iOS
+        ? plan.storeProductIdIos
+        : plan.storeProductIdAndroid;
+    if (productId != null && productId.isNotEmpty) {
+      return defaultTargetPlatform == TargetPlatform.iOS ? 'App Store' : 'Google Play';
+    }
+    return subscriptionSandboxAllowed ? 'تفعيل تجريبي (نسخة العرض)' : null;
+  }
+
   Future<void> _subscribe(SubscriptionPlan plan) async {
     if (_busyPlanId != null) return;
+    final choice = await showPaymentOptions(
+      context,
+      item: PaymentItem(
+        kind: PaymentKind.subscription,
+        id: plan.id,
+        title: plan.title,
+        priceLabel: plan.price,
+        priceUsd: plan.priceUsd,
+      ),
+      storeLabel: _storeLabel(plan),
+    );
+    if (!mounted) return;
+    switch (choice) {
+      case PaymentChoice.store:
+        await _purchaseFromStore(plan);
+      case PaymentChoice.paidOnline:
+        ref.invalidate(mySubscriptionProvider);
+        _onActivated(plan);
+      case null:
+        break;
+    }
+  }
+
+  void _onActivated(SubscriptionPlan plan) {
+    AppAnalytics.purchaseSuccess(plan.id);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('تم تفعيل ${plan.title} بنجاح'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+    final prefs = ref.read(prefsServiceProvider);
+    // After subscribe, always collect baby questions unless already filled.
+    context.go(
+      (prefs.getBabyName()?.trim().isNotEmpty ?? false) &&
+              prefs.isOnboardingComplete()
+          ? AppRoutes.home
+          : AppRoutes.onboardingQuestions,
+    );
+  }
+
+  Future<void> _purchaseFromStore(SubscriptionPlan plan) async {
     setState(() => _busyPlanId = plan.id);
 
     final result =
@@ -38,21 +93,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
 
     switch (result.outcome) {
       case PurchaseOutcome.success:
-        AppAnalytics.purchaseSuccess(plan.id);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('تم تفعيل ${plan.title} بنجاح'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        final prefs = ref.read(prefsServiceProvider);
-        // After subscribe, always collect baby questions unless already filled.
-        context.go(
-          (prefs.getBabyName()?.trim().isNotEmpty ?? false) &&
-                  prefs.isOnboardingComplete()
-              ? AppRoutes.home
-              : AppRoutes.onboardingQuestions,
-        );
+        _onActivated(plan);
       case PurchaseOutcome.cancelled:
         break;
       case PurchaseOutcome.unavailable:
@@ -395,15 +436,15 @@ class _PaymentSection extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text('طرق الدفع الإلكترونية',
+          Text('طرق الدفع',
               style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 14),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _PayBadge(label: 'APPLE', dark: true, icon: Symbols.phone_iphone),
-              _PayBadge(label: 'GOOGLE', dark: false, icon: Symbols.payments),
+              _PayBadge(label: 'PAYPAL', dark: true, icon: Symbols.account_balance_wallet),
               _PayBadge(label: 'VISA', dark: false, icon: Symbols.credit_card),
+              _PayBadge(label: 'تحويل', dark: false, icon: Symbols.account_balance),
             ],
           ),
           const SizedBox(height: 8),

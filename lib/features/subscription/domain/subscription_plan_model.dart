@@ -18,6 +18,7 @@ class SubscriptionPlan {
     this.storeProductIdIos,
     this.storeProductIdAndroid,
     this.durationDays = 30,
+    this.priceUsd,
   });
 
   final String id;
@@ -35,6 +36,7 @@ class SubscriptionPlan {
   final String? storeProductIdIos;
   final String? storeProductIdAndroid;
   final int durationDays;
+  final double? priceUsd;
 }
 
 const _commonFeatures = [

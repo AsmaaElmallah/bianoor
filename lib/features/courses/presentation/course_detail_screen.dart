@@ -8,6 +8,9 @@ import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/youtube/youtube_fullscreen_player.dart';
 import '../../library/data/library_sections_repository.dart';
+import '../../payments/data/payment_settings_repository.dart';
+import '../../payments/domain/payment_item.dart';
+import '../../payments/presentation/payment_options_sheet.dart';
 import '../data/course_purchase_service.dart';
 import '../data/courses_repository.dart';
 import '../domain/course.dart';
@@ -284,6 +287,33 @@ class _LockedBannerState extends ConsumerState<_LockedBanner> {
     }
   }
 
+  Future<void> _choosePayment(String? storePrice) async {
+    final course = widget.course;
+    final choice = await showPaymentOptions(
+      context,
+      item: PaymentItem(
+        kind: PaymentKind.course,
+        id: course.id,
+        title: course.title,
+        priceLabel: course.priceLabel,
+        priceUsd: course.priceUsd,
+      ),
+      storeLabel: storePrice == null ? null : 'Google Play — $storePrice',
+    );
+    if (!mounted) return;
+    switch (choice) {
+      case PaymentChoice.store:
+        await _buy();
+      case PaymentChoice.paidOnline:
+        ref.invalidate(courseAccessProvider(course.id));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم فتح الدورة 🎉 استمتعي بالدروس')),
+        );
+      case null:
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final course = widget.course;
@@ -291,7 +321,10 @@ class _LockedBannerState extends ConsumerState<_LockedBanner> {
     final onContact = widget.onContact;
     final isSubscription = course.accessType == CourseAccessType.subscription;
     final storePrice = isSubscription ? null : ref.watch(courseStorePriceProvider(course)).valueOrNull;
-    final canBuy = storePrice != null;
+    final settings = ref.watch(paymentSettingsProvider).valueOrNull ?? const PaymentSettings();
+    final canPaypal = settings.paypalEnabled && course.priceUsd != null;
+    final canBuy = storePrice != null || canPaypal || settings.canPayManually;
+    final priceText = storePrice ?? (course.priceLabel.isNotEmpty ? course.priceLabel : formatUsd(course.priceUsd));
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -331,7 +364,7 @@ class _LockedBannerState extends ConsumerState<_LockedBanner> {
                   : isSubscription
                       ? onSubscribe
                       : canBuy
-                          ? _buy
+                          ? () => _choosePayment(storePrice)
                           : onContact,
               icon: _buying
                   ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2))
@@ -343,7 +376,7 @@ class _LockedBannerState extends ConsumerState<_LockedBanner> {
               label: Text(isSubscription
                   ? 'اشتركي الآن'
                   : canBuy
-                      ? 'اشتري الدورة — $storePrice'
+                      ? (priceText != null ? 'اشتري الدورة — $priceText' : 'اشتري الدورة')
                       : 'تواصلي على واتساب'),
             ),
           ),

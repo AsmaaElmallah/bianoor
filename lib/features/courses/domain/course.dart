@@ -1,3 +1,5 @@
+import '../../payments/domain/payment_item.dart';
+
 enum CourseAccessType {
   free,
   subscription,
@@ -28,6 +30,7 @@ class Course {
     this.lessonCount = 0,
     this.storeProductIdAndroid,
     this.storeProductIdIos,
+    this.priceUsd,
   });
 
   final String id;
@@ -41,6 +44,7 @@ class Course {
   final int lessonCount;
   final String? storeProductIdAndroid;
   final String? storeProductIdIos;
+  final double? priceUsd;
 
   String get accessLabel {
     switch (accessType) {
@@ -71,6 +75,7 @@ class Course {
       lessonCount: count,
       storeProductIdAndroid: _nonEmpty(row['store_product_id_android']),
       storeProductIdIos: _nonEmpty(row['store_product_id_ios']),
+      priceUsd: parseUsd(row['price_usd']),
     );
   }
 }
