@@ -31,6 +31,8 @@ dependencies:
   in_app_purchase: ^3.2.3
   google_sign_in: ^7.2.0
   pdfx: ^2.11.0
+  agora_rtc_engine: 6.6.4
+  permission_handler: 13.0.2
 
 dev_dependencies:
   flutter_test:
