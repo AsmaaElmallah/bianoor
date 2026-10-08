@@ -32,10 +32,8 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     final productId = defaultTargetPlatform == TargetPlatform.iOS
         ? plan.storeProductIdIos
         : plan.storeProductIdAndroid;
-    if (productId != null && productId.isNotEmpty) {
-      return defaultTargetPlatform == TargetPlatform.iOS ? 'App Store' : 'Google Play';
-    }
-    return subscriptionSandboxAllowed ? 'تفعيل تجريبي (نسخة العرض)' : null;
+    if (productId == null || productId.isEmpty) return null;
+    return defaultTargetPlatform == TargetPlatform.iOS ? 'App Store' : 'Google Play';
   }
 
   Future<void> _subscribe(SubscriptionPlan plan) async {

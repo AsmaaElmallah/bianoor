@@ -56,9 +56,6 @@ class SubscriptionPurchaseService {
   }
 
   Future<PurchaseResult> purchase(SubscriptionPlan plan) async {
-    if (kDemoSubscriptions) {
-      return _sandboxActivate(plan, reason: 'demo_build');
-    }
     await ensureListening();
 
     if (!_isMobileStore || !await _iap.isAvailable()) {
