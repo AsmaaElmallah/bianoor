@@ -36,6 +36,8 @@ class PrefsService {
   static const _kAptitudeTestAnswers = 'aptitude_test_0_2_answers';
   static const _kActiveChildId = 'active_child_id';
   static const _kPasswordRecoveryPending = 'password_recovery_pending';
+  static const _kFollowedInstructors = 'followed_instructors';
+  static const _kSavedCourses = 'saved_courses';
 
   int getVideoIndex() => _prefs.getInt(_kVideoIndex) ?? 0;
   Future<void> setVideoIndex(int value) => _prefs.setInt(_kVideoIndex, value);
@@ -66,6 +68,22 @@ class PrefsService {
   String? getActiveChildId() => _prefs.getString(_kActiveChildId);
   Future<void> setActiveChildId(String id) =>
       _prefs.setString(_kActiveChildId, id);
+
+  bool isFollowingInstructor(String name) => _inSet(_kFollowedInstructors, name);
+  Future<void> setFollowingInstructor(String name, bool follow) =>
+      _setInSet(_kFollowedInstructors, name, follow);
+
+  bool isCourseSaved(String courseId) => _inSet(_kSavedCourses, courseId);
+  Future<void> setCourseSaved(String courseId, bool saved) =>
+      _setInSet(_kSavedCourses, courseId, saved);
+
+  bool _inSet(String key, String value) =>
+      (_prefs.getStringList(key) ?? const []).contains(value);
+  Future<void> _setInSet(String key, String value, bool on) {
+    final values = {...?_prefs.getStringList(key)};
+    on ? values.add(value) : values.remove(value);
+    return _prefs.setStringList(key, values.toList());
+  }
 
   bool getRulesAccepted() => _prefs.getBool(_kRulesAccepted) ?? false;
   Future<void> setRulesAccepted(bool value) =>

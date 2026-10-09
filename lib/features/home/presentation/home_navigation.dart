@@ -20,8 +20,6 @@ import '../../subscription/presentation/subscription_gate.dart';
 import '../../activities/presentation/activities_age_groups_screen.dart';
 import '../../courses/presentation/courses_screen.dart';
 import '../../exercises/presentation/exercises_age_groups_screen.dart';
-import '../../live/presentation/live_sessions_screen.dart';
-
 void openHomeMenuItem(BuildContext context, HomeMenuItem item) {
   if (item.id == 'lesson_quran') {
     context.push(AppRoutes.quranJourney);
@@ -174,12 +172,6 @@ void openHomeMenuItem(BuildContext context, HomeMenuItem item) {
   if (item.id == 'courses') {
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => const CoursesScreen()),
-    );
-    return;
-  }
-  if (item.id == 'live_sessions') {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const LiveSessionsScreen()),
     );
     return;
   }

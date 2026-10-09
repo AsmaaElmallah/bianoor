@@ -31,6 +31,12 @@ class Course {
     this.storeProductIdAndroid,
     this.storeProductIdIos,
     this.priceUsd,
+    this.categoryLabel = '',
+    this.instructorTitle = '',
+    this.instructorAvatarUrl,
+    this.oldPriceLabel = '',
+    this.promoNote = '',
+    this.guaranteeNote = '',
   });
 
   final String id;
@@ -38,6 +44,12 @@ class Course {
   final String subtitle;
   final String description;
   final String instructorName;
+  final String instructorTitle;
+  final String? instructorAvatarUrl;
+  final String categoryLabel;
+  final String oldPriceLabel;
+  final String promoNote;
+  final String guaranteeNote;
   final String? coverUrl;
   final CourseAccessType accessType;
   final String priceLabel;
@@ -76,6 +88,12 @@ class Course {
       storeProductIdAndroid: _nonEmpty(row['store_product_id_android']),
       storeProductIdIos: _nonEmpty(row['store_product_id_ios']),
       priceUsd: parseUsd(row['price_usd']),
+      categoryLabel: row['category_label'] as String? ?? '',
+      instructorTitle: row['instructor_title'] as String? ?? '',
+      instructorAvatarUrl: _nonEmpty(row['instructor_avatar_url']),
+      oldPriceLabel: row['old_price_label'] as String? ?? '',
+      promoNote: row['promo_note'] as String? ?? '',
+      guaranteeNote: row['guarantee_note'] as String? ?? '',
     );
   }
 }
@@ -95,12 +113,18 @@ class CourseLesson {
     this.videoPath,
     this.youtubeVideoId,
     this.durationSeconds,
+    this.unitTitle = '',
+    this.liveSessionId,
   });
 
   final String id;
   final String courseId;
   final String title;
   final String description;
+  final String unitTitle;
+
+  /// Set when the lesson is a recording of a live session.
+  final String? liveSessionId;
   final String? videoPath;
   final String? youtubeVideoId;
   final int? durationSeconds;
@@ -124,6 +148,35 @@ class CourseLesson {
       videoPath: row['video_path'] as String?,
       youtubeVideoId: row['youtube_video_id'] as String?,
       durationSeconds: row['duration_seconds'] as int?,
+      isPreview: row['is_preview'] as bool? ?? false,
+      unitTitle: (row['unit_title'] as String? ?? '').trim(),
+      liveSessionId: row['live_session_id'] as String?,
+    );
+  }
+}
+
+/// A downloadable course file (PDF) stored in the private «course-files» bucket.
+class CourseResource {
+  const CourseResource({
+    required this.id,
+    required this.title,
+    required this.subtitle,
+    required this.filePath,
+    required this.isPreview,
+  });
+
+  final String id;
+  final String title;
+  final String subtitle;
+  final String filePath;
+  final bool isPreview;
+
+  factory CourseResource.fromRow(Map<String, dynamic> row) {
+    return CourseResource(
+      id: row['id'] as String,
+      title: row['title'] as String? ?? '',
+      subtitle: row['subtitle'] as String? ?? '',
+      filePath: row['file_path'] as String,
       isPreview: row['is_preview'] as bool? ?? false,
     );
   }

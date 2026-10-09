@@ -61,13 +61,8 @@ const homeMenuSections = <HomeMenuSection>[
       ),
       HomeMenuItem(
         id: 'courses',
-        title: 'الدورات',
+        title: 'الدورات واللايف',
         icon: Symbols.school,
-      ),
-      HomeMenuItem(
-        id: 'live_sessions',
-        title: 'اللايف',
-        icon: Symbols.live_tv,
       ),
     ],
   ),

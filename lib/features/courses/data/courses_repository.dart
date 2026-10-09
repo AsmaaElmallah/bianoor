@@ -22,6 +22,10 @@ final courseAccessProvider = FutureProvider.family<bool, String>((ref, courseId)
   return ref.watch(coursesRepositoryProvider).hasAccess(courseId);
 });
 
+final courseResourcesProvider = FutureProvider.family<List<CourseResource>, String>((ref, courseId) {
+  return ref.watch(coursesRepositoryProvider).fetchResources(courseId);
+});
+
 final courseProgressProvider =
     FutureProvider.family<Map<String, LessonProgress>, String>((ref, courseId) {
   return ref.watch(coursesRepositoryProvider).fetchProgress(courseId);
@@ -31,6 +35,7 @@ class CoursesRepository {
   const CoursesRepository();
 
   static const _bucket = 'course-videos';
+  static const _filesBucket = 'course-files';
 
   Future<bool> _ready() async {
     if (!SupabaseBootstrap.isEnabled) return false;
@@ -61,6 +66,33 @@ class CoursesRepository {
         .order('sort_order')
         .order('created_at');
     return List<Map<String, dynamic>>.from(rows as List).map(CourseLesson.fromRow).toList();
+  }
+
+  Future<List<CourseResource>> fetchResources(String courseId) async {
+    if (!await _ready()) return const [];
+    try {
+      final rows = await SupabaseBootstrap.client
+          .from('course_resources')
+          .select()
+          .eq('course_id', courseId)
+          .order('sort_order')
+          .order('created_at');
+      return List<Map<String, dynamic>>.from(rows as List).map(CourseResource.fromRow).toList();
+    } catch (e) {
+      if (kDebugMode) debugPrint('[Courses] resources fetch failed: $e');
+      return const [];
+    }
+  }
+
+  /// Short-lived link; storage policy only signs it for preview files or when the user has access.
+  Future<String?> signedResourceUrl(CourseResource resource) async {
+    if (!await _ready()) return null;
+    try {
+      return await SupabaseBootstrap.client.storage.from(_filesBucket).createSignedUrl(resource.filePath, 3600);
+    } catch (e) {
+      if (kDebugMode) debugPrint('[Courses] signed file url failed: $e');
+      return null;
+    }
   }
 
   Future<bool> hasAccess(String courseId) async {
