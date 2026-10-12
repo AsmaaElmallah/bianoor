@@ -9,10 +9,9 @@ import '../../core/theme/app_colors.dart';
 const double kClayRadiusLg = 32;
 const double kClayRadiusXl = 48;
 
-/// Mauve accent from the project palette, used where the design calls for a
-/// warm secondary highlight (live CTAs, encouragement).
-const Color kClayAccent = AppColors.trackVisualPurple;
-const Color kClayAccentLight = AppColors.trackVisualLight;
+/// Dusty-rose accent — same as the rest of Bayanour (live CTAs, encouragement).
+const Color kClayAccent = AppColors.primary;
+const Color kClayAccentLight = AppColors.primaryContainer;
 
 BoxDecoration clayDecoration({
   Color color = Colors.white,

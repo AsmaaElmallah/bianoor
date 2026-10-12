@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/storage/prefs_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../../shared/widgets/clay_kit.dart';
 import '../../../shared/widgets/youtube/youtube_fullscreen_player.dart';
 import '../../library/data/library_sections_repository.dart';
@@ -24,41 +25,43 @@ import '../domain/course.dart';
 import 'course_lesson_player_screen.dart';
 import 'widgets/course_access_badge.dart';
 
-class CourseDetailScreen extends ConsumerStatefulWidget {
+class CourseDetailScreen extends StatelessWidget {
   const CourseDetailScreen({super.key, required this.course});
 
   final Course course;
 
   @override
-  ConsumerState<CourseDetailScreen> createState() => _CourseDetailScreenState();
+  Widget build(BuildContext context) => CoursesHubScreen(initialCourseId: course.id);
 }
 
-class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
-  int _tab = 0;
-  late bool _saved = ref.read(prefsServiceProvider).isCourseSaved(widget.course.id);
+/// The one «الدورات» page: intro video, then pick a course, then its lessons.
+class CoursesHubScreen extends ConsumerStatefulWidget {
+  const CoursesHubScreen({super.key, this.initialCourseId});
 
-  Course get course => widget.course;
+  final String? initialCourseId;
+
+  @override
+  ConsumerState<CoursesHubScreen> createState() => _CoursesHubScreenState();
+}
+
+class _CoursesHubScreenState extends ConsumerState<CoursesHubScreen> {
+  String? _selectedId;
 
   Future<void> _refresh() async {
-    ref.invalidate(courseAccessProvider(course.id));
-    ref.invalidate(courseProgressProvider(course.id));
-    ref.invalidate(courseLessonsProvider(course.id));
-    ref.invalidate(courseResourcesProvider(course.id));
+    ref.invalidate(coursesHubProvider);
+    ref.invalidate(coursesProvider);
     ref.invalidate(liveSessionsProvider);
-    await ref.read(courseLessonsProvider(course.id).future);
+    final id = _selectedId;
+    if (id != null) {
+      ref.invalidate(courseAccessProvider(id));
+      ref.invalidate(courseProgressProvider(id));
+      ref.invalidate(courseLessonsProvider(id));
+      ref.invalidate(courseResourcesProvider(id));
+    }
+    await ref.read(coursesProvider.future);
   }
 
-  Future<void> _toggleSave() async {
-    final saved = !_saved;
-    setState(() => _saved = saved);
-    await ref.read(prefsServiceProvider).setCourseSaved(course.id, saved);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(saved ? 'اتحفظت الدورة في المحفوظات 🔖' : 'اتشالت الدورة من المحفوظات')),
-    );
-  }
-
-  Future<void> _openLesson(List<CourseLesson> lessons, int index) async {
+  Future<void> _openLesson(Course course, List<CourseLesson> lessons, int index) async {
     final lesson = lessons[index];
     if (lesson.isYoutube) {
       await openYoutubeFullscreen(context, videoId: lesson.youtubeVideoId);
@@ -81,7 +84,21 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
     ref.invalidate(courseProgressProvider(course.id));
   }
 
-  Future<void> _contactForCourse() async {
+  Future<void> _playIntro(CoursesHub hub) async {
+    if (!hub.hasIntro) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('فيديو التعريف هينزل قريب 🌸')),
+      );
+      return;
+    }
+    await openYoutubeFullscreen(
+      context,
+      videoId: hub.introYoutubeId,
+      videoUrl: hub.introVideoUrl,
+    );
+  }
+
+  Future<void> _contactForCourse(Course course) async {
     final number = await ref.read(libraryWhatsappNumberProvider.future);
     if (!mounted) return;
     if (number.isEmpty) {
@@ -98,38 +115,70 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final asyncLessons = ref.watch(courseLessonsProvider(course.id));
-    final asyncAccess = ref.watch(courseAccessProvider(course.id));
-    final hasAccess = asyncAccess.valueOrNull ?? false;
-    final progress = ref.watch(courseProgressProvider(course.id)).valueOrNull ?? const {};
-    final resources = ref.watch(courseResourcesProvider(course.id)).valueOrNull ?? const <CourseResource>[];
-
-    final lessons = asyncLessons.valueOrNull ?? const <CourseLesson>[];
-    final firstOpenIndex = lessons.indexWhere((l) => hasAccess || l.isPreview);
-    final firstOpen = firstOpenIndex < 0 ? null : lessons[firstOpenIndex];
-    final lessonCount = lessons.isEmpty ? course.lessonCount : lessons.length;
+    final hub = ref.watch(coursesHubProvider).valueOrNull ?? const CoursesHub();
+    final courses = ref.watch(coursesProvider).valueOrNull ?? const <Course>[];
+    var selectedId = _selectedId ?? widget.initialCourseId;
+    if (courses.isNotEmpty && (selectedId == null || !courses.any((c) => c.id == selectedId))) {
+      selectedId = courses.first.id;
+    }
+    final selectedIndex = courses.indexWhere((c) => c.id == selectedId);
+    final course = selectedIndex < 0 ? null : courses[selectedIndex];
+    final courseId = course?.id;
+    final asyncLessons = courseId == null ? null : ref.watch(courseLessonsProvider(courseId));
+    final asyncAccess = courseId == null ? null : ref.watch(courseAccessProvider(courseId));
+    final hasAccess = asyncAccess?.valueOrNull ?? false;
+    final progress = courseId == null
+        ? const <String, LessonProgress>{}
+        : ref.watch(courseProgressProvider(courseId)).valueOrNull ?? const {};
+    final resources = courseId == null
+        ? const <CourseResource>[]
+        : ref.watch(courseResourcesProvider(courseId)).valueOrNull ?? const <CourseResource>[];
+    final lessons = asyncLessons?.valueOrNull ?? const <CourseLesson>[];
+    final lessonCount = lessons.isEmpty ? (course?.lessonCount ?? 0) : lessons.length;
+    final pageTitle = hub.title.isNotEmpty ? hub.title : 'الدورات';
+    final pageSubtitle = hub.subtitle.isNotEmpty ? hub.subtitle : (course?.subtitle ?? '');
+    final pageDescription = hub.description.isNotEmpty ? hub.description : (course?.description ?? '');
+    final category = hub.categoryLabel.isNotEmpty ? hub.categoryLabel : (course?.categoryLabel ?? '');
+    final instructorName = hub.instructorName.isNotEmpty ? hub.instructorName : (course?.instructorName ?? '');
+    final instructorTitle = hub.instructorTitle.isNotEmpty ? hub.instructorTitle : (course?.instructorTitle ?? '');
+    final instructorAvatar = hub.instructorAvatarUrl ?? course?.instructorAvatarUrl;
+    final saved = course != null && ref.watch(prefsServiceProvider).isCourseSaved(course.id);
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: ClayHeader(title: 'تفاصيل الدورة', saved: _saved, onToggleSave: _toggleSave),
-      bottomNavigationBar: asyncAccess.valueOrNull == false
+      appBar: ClayHeader(
+        title: 'الدورات',
+        saved: course == null ? null : saved,
+        onToggleSave: course == null
+            ? null
+            : () async {
+                final next = !saved;
+                await ref.read(prefsServiceProvider).setCourseSaved(course.id, next);
+                if (mounted) setState(() {});
+              },
+      ),
+      bottomNavigationBar: course != null && asyncAccess?.valueOrNull == false
           ? _PurchaseBar(
               course: course,
               onSubscribe: () => context.push(AppRoutes.subscription),
-              onContact: _contactForCourse,
+              onContact: () => _contactForCourse(course),
             )
           : null,
-      body: RefreshIndicator(
-        onRefresh: _refresh,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+      body: Stack(
+        children: [
+          const BeboShellBackground(showBottomCurve: false),
+          RefreshIndicator(
+            color: AppColors.primary,
+            backgroundColor: AppColors.surfaceContainerLowest,
+            onRefresh: _refresh,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
           children: [
             _PromoCard(
-              course: course,
-              lesson: firstOpen,
-              label: hasAccess ? 'ابدئي الدورة' : 'معاينة تجريبية مجانية',
-              onPlay: firstOpen == null ? null : () => _openLesson(lessons, firstOpenIndex),
+              coverUrl: hub.introCoverUrl ?? course?.coverUrl,
+              label: 'تعرّفي على الدورات',
+              onPlay: () => _playIntro(hub),
             ),
             const SizedBox(height: 24),
             Wrap(
@@ -137,25 +186,27 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
               spacing: 8,
               runSpacing: 8,
               children: [
-                ClayPill(
-                  icon: Symbols.child_care,
-                  text: course.categoryLabel.isNotEmpty ? course.categoryLabel : course.accessLabel,
-                  background: AppColors.primaryFixed,
-                  foreground: AppColors.onPrimaryFixedVariant,
-                  iconColor: AppColors.primary,
-                ),
-                ClayPill(
-                  icon: Symbols.play_circle,
-                  text: '$lessonCount درس',
-                  background: AppColors.secondaryFixed,
-                  foreground: AppColors.onSecondaryFixed,
-                  iconColor: AppColors.secondary,
-                ),
+                if (category.isNotEmpty)
+                  ClayPill(
+                    icon: Symbols.child_care,
+                    text: category,
+                    background: AppColors.primaryFixed,
+                    foreground: AppColors.onPrimaryFixedVariant,
+                    iconColor: AppColors.primary,
+                  ),
+                if (course != null)
+                  ClayPill(
+                    icon: Symbols.play_circle,
+                    text: '$lessonCount درس',
+                    background: AppColors.secondaryFixed,
+                    foreground: AppColors.onSecondaryFixed,
+                    iconColor: AppColors.secondary,
+                  ),
               ],
             ),
             const SizedBox(height: 12),
             Text(
-              course.title,
+              pageTitle,
               style: const TextStyle(
                 fontSize: 28,
                 height: 1.3,
@@ -163,78 +214,164 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
                 color: AppColors.onSurface,
               ),
             ),
-            if (course.subtitle.isNotEmpty) ...[
+            if (pageSubtitle.isNotEmpty) ...[
               const SizedBox(height: 10),
               Text(
-                course.subtitle,
+                pageSubtitle,
                 style: const TextStyle(fontSize: 16, height: 1.6, color: AppColors.onSurfaceVariant),
               ),
             ],
-            if (course.instructorName.isNotEmpty) ...[
-              const SizedBox(height: 14),
-              _InstructorCard(
-                name: course.instructorName,
-                title: course.instructorTitle,
-                avatarUrl: course.instructorAvatarUrl,
+            if (pageDescription.isNotEmpty && pageDescription != pageSubtitle) ...[
+              const SizedBox(height: 8),
+              Text(
+                pageDescription,
+                style: const TextStyle(fontSize: 15, height: 1.6, color: AppColors.onSurfaceVariant),
               ),
             ],
-            _CourseLiveSection(courseId: course.id),
-            const SizedBox(height: 24),
-            ClaySegmented(
-              labels: ['المنهج ($lessonCount درس)', 'عن الدورة', 'ملفات PDF (${resources.length})'],
-              selected: _tab,
-              onChanged: (i) => setState(() => _tab = i),
-            ),
-            const SizedBox(height: 16),
-            if (_tab == 1)
-              _AboutTab(course: course, lessons: lessons, progress: progress, hasAccess: hasAccess)
-            else if (_tab == 2)
-              _FilesTab(resources: resources, hasAccess: hasAccess)
-            else
-              asyncLessons.when(
-                loading: () => const Padding(
-                  padding: EdgeInsets.all(32),
-                  child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                ),
-                error: (_, __) => const Padding(
-                  padding: EdgeInsets.all(32),
-                  child: Text('تعذّر تحميل الدروس، اسحبي لتحت للمحاولة تاني.', textAlign: TextAlign.center),
-                ),
-                data: (lessons) => lessons.isEmpty
-                    ? const Padding(
-                        padding: EdgeInsets.all(32),
-                        child: Text('الدروس هتنزل قريب 🌸', textAlign: TextAlign.center),
-                      )
-                    : _Curriculum(
-                        lessons: lessons,
-                        hasAccess: hasAccess,
-                        progress: progress,
-                        onOpen: (index) => _openLesson(lessons, index),
-                      ),
+            if (instructorName.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              _InstructorCard(
+                name: instructorName,
+                title: instructorTitle,
+                avatarUrl: instructorAvatar,
+                facebookUrl: hub.facebookUrl,
               ),
+            ],
+            if (course != null) _CourseLiveSection(courseId: course.id),
+            const SizedBox(height: 24),
+            if (courses.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(32),
+                child: Text('الدورات هتنزل قريب، تابعينا 🌸', textAlign: TextAlign.center),
+              )
+            else ...[
+              _CourseStrip(
+                courses: courses,
+                selectedId: selectedId,
+                onSelected: (id) => setState(() => _selectedId = id),
+              ),
+              const SizedBox(height: 16),
+              if (course == null)
+                const SizedBox.shrink()
+              else if (asyncLessons == null)
+                const SizedBox.shrink()
+              else
+                asyncLessons.when(
+                  loading: () => const Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                  ),
+                  error: (_, __) => const Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Text('تعذّر تحميل الدروس، اسحبي لتحت للمحاولة تاني.', textAlign: TextAlign.center),
+                  ),
+                  data: (loaded) => Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (loaded.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.all(32),
+                          child: Text('الدروس هتنزل قريب 🌸', textAlign: TextAlign.center),
+                        )
+                      else
+                        _Curriculum(
+                          lessons: loaded,
+                          hasAccess: hasAccess,
+                          progress: progress,
+                          onOpen: (index) => _openLesson(course, loaded, index),
+                        ),
+                      if (resources.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        _FilesTab(resources: resources, hasAccess: hasAccess),
+                      ],
+                    ],
+                  ),
+                ),
+            ],
           ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CourseStrip extends StatelessWidget {
+  const _CourseStrip({required this.courses, required this.selectedId, required this.onSelected});
+
+  final List<Course> courses;
+  final String? selectedId;
+  final ValueChanged<String> onSelected;
+
+  Widget _chip(Course course, {bool expanded = false}) {
+    final selected = course.id == selectedId;
+    final chip = GestureDetector(
+      onTap: () => onSelected(course.id),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: expanded ? double.infinity : null,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: selected
+            ? BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(999),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              )
+            : null,
+        child: Text(
+          course.title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+            color: selected ? AppColors.primary : AppColors.onSurfaceVariant,
+          ),
         ),
       ),
+    );
+    return expanded ? Expanded(child: chip) : Padding(padding: const EdgeInsetsDirectional.only(end: 6), child: chip);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: courses.length <= 3
+          ? Row(children: [for (final course in courses) _chip(course, expanded: true)])
+          : SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(children: [for (final course in courses) _chip(course)]),
+            ),
     );
   }
 }
 
 class _PromoCard extends StatelessWidget {
   const _PromoCard({
-    required this.course,
-    required this.lesson,
+    required this.coverUrl,
     required this.label,
     required this.onPlay,
   });
 
-  final Course course;
-  final CourseLesson? lesson;
+  final String? coverUrl;
   final String label;
   final VoidCallback? onPlay;
 
   @override
   Widget build(BuildContext context) {
-    final duration = lesson?.durationLabel;
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: clayDecoration(lift: 1.2),
@@ -249,7 +386,7 @@ class _PromoCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  CourseCover(url: course.coverUrl),
+                  CourseCover(url: coverUrl),
                   const DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -270,18 +407,6 @@ class _PromoCard extends StatelessWidget {
                         foreground: Colors.white,
                       ),
                     ),
-                    if (duration != null)
-                      PositionedDirectional(
-                        top: 12,
-                        end: 12,
-                        child: ClayPill(
-                          icon: Symbols.schedule,
-                          text: duration,
-                          background: AppColors.surface.withValues(alpha: 0.85),
-                          foreground: AppColors.onSurface,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        ),
-                      ),
                     Center(
                       child: Container(
                         width: 64,
@@ -313,11 +438,17 @@ class _PromoCard extends StatelessWidget {
 }
 
 class _InstructorCard extends ConsumerStatefulWidget {
-  const _InstructorCard({required this.name, required this.title, this.avatarUrl});
+  const _InstructorCard({
+    required this.name,
+    required this.title,
+    this.avatarUrl,
+    this.facebookUrl,
+  });
 
   final String name;
   final String title;
   final String? avatarUrl;
+  final String? facebookUrl;
 
   @override
   ConsumerState<_InstructorCard> createState() => _InstructorCardState();
@@ -326,14 +457,31 @@ class _InstructorCard extends ConsumerStatefulWidget {
 class _InstructorCardState extends ConsumerState<_InstructorCard> {
   late bool _following = ref.read(prefsServiceProvider).isFollowingInstructor(widget.name);
 
-  Future<void> _toggle() async {
-    final follow = !_following;
-    setState(() => _following = follow);
-    await ref.read(prefsServiceProvider).setFollowingInstructor(widget.name, follow);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(follow ? 'بقيتي متابعة ${widget.name} 🌸' : 'لغيتي متابعة ${widget.name}')),
-    );
+  Uri? _facebookUri() {
+    final raw = widget.facebookUrl?.trim() ?? '';
+    if (raw.isEmpty) return null;
+    return Uri.tryParse(raw.contains('://') ? raw : 'https://$raw');
+  }
+
+  Future<void> _follow() async {
+    final uri = _facebookUri();
+    if (uri == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('لينك صفحة الفيسبوك هينزل قريب 🌸')),
+      );
+      return;
+    }
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تعذّر فتح صفحة الفيسبوك')),
+      );
+      return;
+    }
+    if (_following) return;
+    setState(() => _following = true);
+    await ref.read(prefsServiceProvider).setFollowingInstructor(widget.name, true);
   }
 
   @override
@@ -397,7 +545,7 @@ class _InstructorCardState extends ConsumerState<_InstructorCard> {
             shadowColor: AppColors.primary.withValues(alpha: 0.25),
             child: InkWell(
               borderRadius: BorderRadius.circular(999),
-              onTap: _toggle,
+              onTap: _follow,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Row(
@@ -497,7 +645,7 @@ class _CourseLiveSection extends ConsumerWidget {
             ClayChunkyButton(
               label: isLive ? 'انضمي للقاعة التفاعلية المباشرة' : 'اللايف هيبدأ في الميعاد',
               color: kClayAccent,
-              edgeColor: const Color(0xFF7A5D68),
+              edgeColor: AppColors.primaryDim,
               leadingIcon: Symbols.mic,
               trailingIcon: Symbols.headphones,
               fontSize: 15,
@@ -835,64 +983,6 @@ class _FileTile extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _AboutTab extends StatelessWidget {
-  const _AboutTab({
-    required this.course,
-    required this.lessons,
-    required this.progress,
-    required this.hasAccess,
-  });
-
-  final Course course;
-  final List<CourseLesson> lessons;
-  final Map<String, LessonProgress> progress;
-  final bool hasAccess;
-
-  @override
-  Widget build(BuildContext context) {
-    final done = lessons.where((l) => progress[l.id]?.completed ?? false).length;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (hasAccess && lessons.isNotEmpty) ...[
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: clayDecoration(lift: 0.6),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  done == lessons.length ? 'خلّصتي الدورة كلها 🎉' : 'خلّصتي $done من ${lessons.length} درس',
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.onSurface),
-                ),
-                const SizedBox(height: 10),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(999),
-                  child: LinearProgressIndicator(
-                    value: done / lessons.length,
-                    minHeight: 8,
-                    backgroundColor: AppColors.surfaceContainerHigh,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-        ],
-        Container(
-          padding: const EdgeInsets.all(18),
-          decoration: clayDecoration(lift: 0.6),
-          child: Text(
-            course.description.isNotEmpty ? course.description : 'تفاصيل الدورة هتنزل قريب 🌸',
-            style: const TextStyle(fontSize: 15, height: 1.7, color: AppColors.onSurface),
-          ),
-        ),
-      ],
     );
   }
 }

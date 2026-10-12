@@ -1,5 +1,40 @@
 import '../../payments/domain/payment_item.dart';
 
+/// Copy + intro video for the single «الدورات» page in the app.
+class CoursesHub {
+  const CoursesHub({
+    this.title = '',
+    this.subtitle = '',
+    this.description = '',
+    this.categoryLabel = '',
+    this.instructorName = '',
+    this.instructorTitle = '',
+    this.instructorAvatarUrl,
+    this.introYoutubeId,
+    this.introVideoUrl,
+    this.introCoverUrl,
+    this.facebookUrl,
+  });
+
+  final String title;
+  final String subtitle;
+  final String description;
+  final String categoryLabel;
+  final String instructorName;
+  final String instructorTitle;
+  final String? instructorAvatarUrl;
+  final String? introYoutubeId;
+  final String? introVideoUrl;
+  final String? introCoverUrl;
+  final String? facebookUrl;
+
+  bool get hasUploadedIntro => introVideoUrl != null && introVideoUrl!.isNotEmpty;
+
+  bool get hasYoutubeIntro => introYoutubeId != null && introYoutubeId!.isNotEmpty;
+
+  bool get hasIntro => hasUploadedIntro || hasYoutubeIntro;
+}
+
 enum CourseAccessType {
   free,
   subscription,

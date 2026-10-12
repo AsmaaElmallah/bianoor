@@ -426,7 +426,14 @@ class _LiveRoomScreenState extends ConsumerState<LiveRoomScreen> {
         fit: StackFit.expand,
         children: [
           hostUid == null
-              ? const _Message(icon: Symbols.hourglass_top, text: 'في انتظار المدرّبة…', light: true)
+              ? Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (session.coverUrl != null)
+                      Image.network(session.coverUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+                    const _Message(icon: Symbols.sensors, text: 'المدرّبة بتوصل الكاميرا… استني لحظة', light: true),
+                  ],
+                )
               : AgoraVideoView(
                   controller: VideoViewController.remote(
                     rtcEngine: engine,

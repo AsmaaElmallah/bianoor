@@ -8,6 +8,10 @@ final coursesRepositoryProvider = Provider<CoursesRepository>((ref) {
   return const CoursesRepository();
 });
 
+final coursesHubProvider = FutureProvider<CoursesHub>((ref) {
+  return ref.watch(coursesRepositoryProvider).fetchHub();
+});
+
 /// Published courses only — RLS hides drafts.
 final coursesProvider = FutureProvider<List<Course>>((ref) {
   return ref.watch(coursesRepositoryProvider).fetchCourses();
@@ -44,6 +48,59 @@ class CoursesRepository {
   }
 
   String? get _userId => SupabaseBootstrap.client.auth.currentUser?.id;
+
+  static const _hubKeys = [
+    'courses_intro_source',
+    'courses_intro_youtube',
+    'courses_intro_video_url',
+    'courses_intro_cover',
+    'courses_hub_title',
+    'courses_hub_subtitle',
+    'courses_hub_description',
+    'courses_hub_category',
+    'courses_hub_instructor_name',
+    'courses_hub_instructor_title',
+    'courses_hub_instructor_avatar',
+    'courses_hub_facebook',
+  ];
+
+  Future<CoursesHub> fetchHub() async {
+    if (!await _ready()) return const CoursesHub();
+    try {
+      final rows = await SupabaseBootstrap.client.from('app_settings').select('key, value').inFilter('key', _hubKeys);
+      final map = {
+        for (final row in List<Map<String, dynamic>>.from(rows as List))
+          row['key'] as String: (row['value'] as String? ?? '').trim(),
+      };
+      String? nonempty(String key) {
+        final v = map[key];
+        return v == null || v.isEmpty ? null : v;
+      }
+
+      final source = map['courses_intro_source'] ?? '';
+      final uploadedUrl = nonempty('courses_intro_video_url');
+      final youtubeId = _youtubeId(nonempty('courses_intro_youtube'));
+      final useUpload =
+          source == 'upload' || (source != 'youtube' && uploadedUrl != null && youtubeId == null);
+
+      return CoursesHub(
+        title: map['courses_hub_title'] ?? '',
+        subtitle: map['courses_hub_subtitle'] ?? '',
+        description: map['courses_hub_description'] ?? '',
+        categoryLabel: map['courses_hub_category'] ?? '',
+        instructorName: map['courses_hub_instructor_name'] ?? '',
+        instructorTitle: map['courses_hub_instructor_title'] ?? '',
+        instructorAvatarUrl: nonempty('courses_hub_instructor_avatar'),
+        introYoutubeId: useUpload ? null : youtubeId,
+        introVideoUrl: useUpload ? uploadedUrl : null,
+        introCoverUrl: nonempty('courses_intro_cover'),
+        facebookUrl: nonempty('courses_hub_facebook'),
+      );
+    } catch (e) {
+      if (kDebugMode) debugPrint('[Courses] hub fetch failed: $e');
+      return const CoursesHub();
+    }
+  }
 
   Future<List<Course>> fetchCourses() async {
     if (!await _ready()) return const [];
@@ -157,4 +214,17 @@ class CoursesRepository {
       return null;
     }
   }
+}
+
+String? _youtubeId(String? value) {
+  if (value == null || value.isEmpty) return null;
+  final uri = Uri.tryParse(value);
+  if (uri == null) return value;
+  if (uri.host.contains('youtu.be')) {
+    final id = uri.pathSegments.isEmpty ? null : uri.pathSegments.first;
+    return id == null || id.isEmpty ? value : id;
+  }
+  final v = uri.queryParameters['v'];
+  if (v != null && v.isNotEmpty) return v;
+  return value;
 }

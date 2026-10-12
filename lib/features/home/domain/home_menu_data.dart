@@ -61,7 +61,7 @@ const homeMenuSections = <HomeMenuSection>[
       ),
       HomeMenuItem(
         id: 'courses',
-        title: 'الدورات واللايف',
+        title: 'الدورات',
         icon: Symbols.school,
       ),
     ],

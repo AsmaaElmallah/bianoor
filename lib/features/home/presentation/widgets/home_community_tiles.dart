@@ -78,15 +78,15 @@ class _CommunityTileState extends State<_CommunityTile> {
       onTapDown: _onTapDown,
       onTapUp: _onTapUp,
       onTapCancel: _onTapCancel,
-      child: AnimatedContainer(
+      child: AnimatedScale(
+        scale: _pressed ? 0.97 : 1,
+        duration: Duration(milliseconds: _pressed ? 85 : 180),
+        curve: Curves.easeOutCubic,
+        child: AnimatedContainer(
         duration: _pressed
             ? const Duration(milliseconds: 85)
-            : const Duration(milliseconds: 200),
-        curve: _pressed ? Curves.easeIn : Curves.elasticOut,
-        transform: Matrix4.identity()
-          ..translate(0.0, _pressed ? 3.0 : 0.0)
-          ..scale(_pressed ? 0.97 : 1.0),
-        transformAlignment: Alignment.center,
+            : const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
         decoration: BoxDecoration(
           color: AppColors.surfaceContainerLowest,
           borderRadius: AppRadius.brMd,
@@ -137,6 +137,7 @@ class _CommunityTileState extends State<_CommunityTile> {
             ),
           ],
         ),
+      ),
       ),
     );
   }
