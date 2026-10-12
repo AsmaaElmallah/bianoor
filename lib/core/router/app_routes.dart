@@ -36,6 +36,11 @@ class AppRoutes {
 
   static const homeFeature = '/home/feature/:id';
   static const mothersClub = '/home/mothers-club';
+  static const aiAssistant = '/home/ai-assistant';
+  static const dailyPlan = '/home/daily-plan';
+  static const growth = '/home/growth';
+  static const timeline = '/home/timeline';
+  static const stoolColors = '/home/stool-colors';
   static const motherQuiz = '/home/quiz/:quizId';
   static const lessonCelebration = '/home/celebration/:track';
   static const libraryMedia = '/home/library/:categoryId';

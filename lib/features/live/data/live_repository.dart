@@ -127,4 +127,13 @@ class LiveRepository {
         .eq('id', sessionId)
         .map((rows) => rows.isEmpty ? LiveStatus.ended : LiveStatus.fromDb(rows.first['status'] as String?));
   }
+
+  /// True while the host is sharing slides/an image/a video instead of the camera.
+  Stream<bool> watchScreenSharing(String sessionId) {
+    return _client
+        .from('live_sessions')
+        .stream(primaryKey: ['id'])
+        .eq('id', sessionId)
+        .map((rows) => rows.isNotEmpty && rows.first['screen_sharing'] == true);
+  }
 }

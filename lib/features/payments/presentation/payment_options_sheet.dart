@@ -35,6 +35,16 @@ Future<PaymentChoice?> showPaymentOptions(
   );
 }
 
+/// Opens PayPal checkout and returns true once payment is confirmed.
+Future<bool> showPaypalCheckout(BuildContext context, PaymentItem item) async {
+  final paid = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => _PaypalCheckoutDialog(item: item),
+  );
+  return paid == true;
+}
+
 class _PaymentOptionsSheet extends ConsumerStatefulWidget {
   const _PaymentOptionsSheet({required this.item, this.storeLabel});
 
@@ -61,7 +71,11 @@ class _PaymentOptionsSheetState extends ConsumerState<_PaymentOptionsSheet> {
     final item = widget.item;
     final email = SupabaseBootstrap.isReady ? SupabaseBootstrap.client.auth.currentUser?.email : null;
     final price = item.priceLabel.isNotEmpty ? item.priceLabel : (item.usdLabel ?? '');
-    final what = item.kind == PaymentKind.subscription ? 'الاشتراك في ${item.title}' : 'دورة: ${item.title}';
+    final what = switch (item.kind) {
+      PaymentKind.subscription => 'الاشتراك في ${item.title}',
+      PaymentKind.course => 'دورة: ${item.title}',
+      PaymentKind.book => 'كتاب: ${item.title}',
+    };
     final message = [
       'مرحباً، حوّلت مبلغ $what${price.isNotEmpty ? ' ($price)' : ''}، وهبعت صورة الإيصال.',
       if (email != null && email.isNotEmpty) 'إيميلي في التطبيق: $email',
@@ -134,7 +148,11 @@ class _PaymentOptionsSheetState extends ConsumerState<_PaymentOptionsSheet> {
                   _OptionTile(
                     icon: Symbols.credit_card,
                     title: 'PayPal أو بطاقة بنكية',
-                    subtitle: 'الاشتراك يتفعّل تلقائي بعد الدفع — $usd',
+                    subtitle: switch (item.kind) {
+                      PaymentKind.book => 'الدفع يتأكد تلقائي، وبعدين هنتواصل لتسليم الكتاب — $usd',
+                      PaymentKind.course => 'الدورة تتفتح تلقائي بعد الدفع — $usd',
+                      PaymentKind.subscription => 'الاشتراك يتفعّل تلقائي بعد الدفع — $usd',
+                    },
                     onTap: _payWithPaypal,
                   ),
                 if (showManual)

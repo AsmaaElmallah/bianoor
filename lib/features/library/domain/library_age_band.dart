@@ -11,9 +11,13 @@ enum LibraryAgeBand {
   final String label;
 
   static LibraryAgeBand fromDb(String? value) {
+    return tryFromDb(value) ?? m0to3;
+  }
+
+  static LibraryAgeBand? tryFromDb(String? value) {
     for (final b in values) {
       if (b.dbValue == value) return b;
     }
-    return m0to3;
+    return null;
   }
 }

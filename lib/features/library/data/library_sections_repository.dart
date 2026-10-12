@@ -12,6 +12,10 @@ final libraryPaidBooksProvider = FutureProvider<List<LibraryPaidBook>>((ref) {
   return ref.watch(librarySectionsRepositoryProvider).fetchPaidBooks();
 });
 
+final purchasedBookIdsProvider = FutureProvider<Set<String>>((ref) {
+  return ref.watch(librarySectionsRepositoryProvider).fetchPurchasedBookIds();
+});
+
 final libraryVisualVideosProvider = FutureProvider<List<LibraryVisualVideo>>((ref) {
   return ref.watch(librarySectionsRepositoryProvider).fetchVisualVideos();
 });
@@ -44,6 +48,25 @@ class LibrarySectionsRepository {
   Future<List<LibraryPaidBook>> fetchPaidBooks() async {
     final rows = await _published('library_paid_books');
     return rows.map(LibraryPaidBook.fromRow).toList();
+  }
+
+  Future<Set<String>> fetchPurchasedBookIds() async {
+    if (!await _ready()) return const {};
+    final user = SupabaseBootstrap.client.auth.currentUser;
+    if (user == null) return const {};
+    try {
+      final rows = await SupabaseBootstrap.client
+          .from('library_book_purchases')
+          .select('book_id')
+          .eq('user_id', user.id);
+      return {
+        for (final row in List<Map<String, dynamic>>.from(rows as List))
+          row['book_id'] as String,
+      };
+    } catch (e) {
+      if (kDebugMode) debugPrint('[LibrarySections] purchases fetch failed: $e');
+      return const {};
+    }
   }
 
   Future<List<LibraryVisualVideo>> fetchVisualVideos() async {

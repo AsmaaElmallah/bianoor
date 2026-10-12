@@ -9,7 +9,7 @@ const cors = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-type Kind = "subscription" | "course";
+type Kind = "subscription" | "course" | "book";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
     if (action === "create") {
       const kind = String(body.kind ?? "") as Kind;
       const itemId = String(body.item_id ?? "");
-      if ((kind !== "subscription" && kind !== "course") || !itemId) {
+      if ((kind !== "subscription" && kind !== "course" && kind !== "book") || !itemId) {
         return json({ error: "bad_request" }, 400);
       }
       return await createOrder(admin, user.id, kind, itemId);
@@ -74,12 +74,19 @@ async function createOrder(admin: SupabaseClient, userId: string, kind: Kind, it
       price = plan.price_usd;
       title = plan.name;
     }
-  } else {
+  } else if (kind === "course") {
     const { data: course } = await admin
       .from("courses").select("title, price_usd, access_type, publish_status").eq("id", itemId).maybeSingle();
     if (course?.publish_status === "published" && course.access_type === "paid") {
       price = course.price_usd;
       title = course.title;
+    }
+  } else {
+    const { data: book } = await admin
+      .from("library_paid_books").select("title, price_usd, publish_status").eq("id", itemId).maybeSingle();
+    if (book?.publish_status === "published") {
+      price = book.price_usd;
+      title = book.title;
     }
   }
   if (!price || price <= 0) return json({ error: "no_price" }, 400);
@@ -157,6 +164,14 @@ async function captureOrder(admin: SupabaseClient, orderId: string) {
 
 async function grant(admin: SupabaseClient, userId: string, kind: Kind, itemId: string, orderId: string) {
   const receipt = `paypal:${orderId}`;
+  if (kind === "book") {
+    const { error } = await admin.from("library_book_purchases").upsert(
+      { user_id: userId, book_id: itemId, source: "paypal", store_receipt: receipt },
+      { onConflict: "user_id,book_id" },
+    );
+    if (error) throw error;
+    return;
+  }
   if (kind === "course") {
     const { error } = await admin.from("course_enrollments").upsert(
       { user_id: userId, course_id: itemId, source: "paypal", store_receipt: receipt },
@@ -199,8 +214,13 @@ async function handleReturn(req: Request, admin: SupabaseClient) {
   const orderId = url.searchParams.get("token") ?? "";
   if (!orderId) return text("رابط غير صحيح.", 400);
   const result = await captureOrder(admin, orderId);
+  const done = result.kind === "book"
+    ? "تم الدفع بنجاح ✅\nاقفلي الصفحة دي وارجعي لتطبيق بيانور، وهنتواصل معاكِ لتسليم الكتاب."
+    : result.kind === "course"
+    ? "تم الدفع بنجاح ✅\nاقفلي الصفحة دي وارجعي لتطبيق بيانور، هتلاقي الدورة اتفتحت."
+    : "تم الدفع بنجاح ✅\nاقفلي الصفحة دي وارجعي لتطبيق بيانور، هتلاقي الاشتراك اتفعّل.";
   return result.ok
-    ? text("تم الدفع بنجاح ✅\nاقفلي الصفحة دي وارجعي لتطبيق بيانور، هتلاقي الاشتراك اتفعّل.")
+    ? text(done)
     : text("الدفع لسه ما اكتملش.\nارجعي للتطبيق ودوسي «تحققي من الدفع»، أو تواصلي معانا.", 402);
 }
 

@@ -4,6 +4,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/storage/prefs_service.dart';
 import '../../core/supabase/supabase_bootstrap.dart';
+import '../../features/ai/presentation/ai_assistant_screen.dart';
+import '../../features/ai/presentation/daily_plan_screen.dart';
+import '../../features/growth/presentation/growth_screen.dart';
+import '../../features/timeline/presentation/stool_color_screen.dart';
+import '../../features/timeline/presentation/timeline_screen.dart';
 import '../../features/auth/application/auth_session_provider.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/password_recovery_screen.dart';
@@ -197,6 +202,33 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: 'mothers-club',
             parentNavigatorKey: rootNavigatorKey,
             builder: (context, state) => const MothersClubScreen(),
+          ),
+          GoRoute(
+            path: 'ai-assistant',
+            parentNavigatorKey: rootNavigatorKey,
+            builder: (context, state) => AiAssistantScreen(
+              initialQuestion: state.uri.queryParameters['q'],
+            ),
+          ),
+          GoRoute(
+            path: 'daily-plan',
+            parentNavigatorKey: rootNavigatorKey,
+            builder: (context, state) => const DailyPlanScreen(),
+          ),
+          GoRoute(
+            path: 'growth',
+            parentNavigatorKey: rootNavigatorKey,
+            builder: (context, state) => const GrowthScreen(),
+          ),
+          GoRoute(
+            path: 'timeline',
+            parentNavigatorKey: rootNavigatorKey,
+            builder: (context, state) => const TimelineScreen(),
+          ),
+          GoRoute(
+            path: 'stool-colors',
+            parentNavigatorKey: rootNavigatorKey,
+            builder: (context, state) => const StoolColorScreen(),
           ),
           GoRoute(
             path: 'quiz/:quizId',

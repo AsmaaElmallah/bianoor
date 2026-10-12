@@ -12,11 +12,14 @@ import 'live_room_screen.dart';
 
 Future<void> openLiveSession(BuildContext context, WidgetRef ref, LiveSession session) async {
   if (session.status == LiveStatus.scheduled) {
+    final when = session.scheduleLabel;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(session.scheduleLabel != null
-            ? 'اللايف هيبدأ ${session.scheduleLabel}، ارجعي في الميعاد 🌸'
-            : 'اللايف لسه ما بدأش'),
+        content: Text(session.showAsEnded
+            ? 'اللايف انتهى'
+            : when != null
+                ? 'اللايف هيبدأ $when، ارجعي في الميعاد 🌸'
+                : 'اللايف لسه ما بدأش'),
       ),
     );
     return;

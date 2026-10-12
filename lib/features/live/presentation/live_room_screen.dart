@@ -43,8 +43,11 @@ class _LiveRoomScreenState extends ConsumerState<LiveRoomScreen> {
   bool _alertDismissed = false;
   final GlobalKey<_HeartBurstState> _hearts = GlobalKey();
 
+  bool _hostSharing = false;
+
   StreamSubscription<LiveStatus>? _statusSub;
   StreamSubscription<String?>? _stageSub;
+  StreamSubscription<bool>? _sharingSub;
 
   @override
   void initState() {
@@ -57,6 +60,7 @@ class _LiveRoomScreenState extends ConsumerState<LiveRoomScreen> {
   void dispose() {
     _statusSub?.cancel();
     _stageSub?.cancel();
+    _sharingSub?.cancel();
     if (_stageStatus == 'pending' || _stageStatus == 'approved') {
       _repo.leaveStage(widget.session.id).catchError((_) {});
     }
@@ -129,6 +133,12 @@ class _LiveRoomScreenState extends ConsumerState<LiveRoomScreen> {
         if (status == LiveStatus.ended && mounted && !_ended) _onEnded();
       });
       _stageSub = _repo.watchMyStageStatus(widget.session.id).listen(_onStageStatus);
+      _sharingSub = _repo.watchScreenSharing(widget.session.id).listen(
+        (sharing) {
+          if (mounted && sharing != _hostSharing) setState(() => _hostSharing = sharing);
+        },
+        onError: (_) {},
+      );
     } on LiveException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (e) {
@@ -435,23 +445,28 @@ class _LiveRoomScreenState extends ConsumerState<LiveRoomScreen> {
                   ],
                 )
               : AgoraVideoView(
+                  key: ValueKey('host_${hostUid}_$_hostSharing'),
                   controller: VideoViewController.remote(
                     rtcEngine: engine,
-                    canvas: VideoCanvas(uid: hostUid),
+                    canvas: VideoCanvas(
+                      uid: hostUid,
+                      renderMode: _hostSharing ? RenderModeType.renderModeFit : RenderModeType.renderModeHidden,
+                    ),
                     connection: connection,
                   ),
                 ),
-          const IgnorePointer(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [Color(0xE6493732), Color(0x33493732), Color(0x66493732)],
+          if (!_hostSharing)
+            const IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [Color(0xE6493732), Color(0x33493732), Color(0x66493732)],
+                  ),
                 ),
               ),
             ),
-          ),
           Positioned(
             top: 20,
             left: 20,

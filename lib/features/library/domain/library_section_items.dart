@@ -1,6 +1,7 @@
+import '../../payments/domain/payment_item.dart';
 import 'library_age_band.dart';
 
-/// كتاب مدفوع — صورة ونص من الإدارة، والشراء بالتواصل على واتساب.
+/// كتاب مدفوع — صورة ونص من الإدارة. الشراء بواتساب أو PayPal لو السعر بالدولار مضبوط.
 class LibraryPaidBook {
   const LibraryPaidBook({
     required this.id,
@@ -8,6 +9,7 @@ class LibraryPaidBook {
     required this.title,
     this.description = '',
     this.coverUrl,
+    this.priceUsd,
   });
 
   final String id;
@@ -15,6 +17,7 @@ class LibraryPaidBook {
   final String title;
   final String description;
   final String? coverUrl;
+  final double? priceUsd;
 
   factory LibraryPaidBook.fromRow(Map<String, dynamic> row) {
     return LibraryPaidBook(
@@ -23,6 +26,7 @@ class LibraryPaidBook {
       title: row['title'] as String? ?? '',
       description: row['description'] as String? ?? '',
       coverUrl: row['cover_url'] as String?,
+      priceUsd: parseUsd(row['price_usd']),
     );
   }
 }

@@ -228,10 +228,10 @@ class _CoursesHubScreenState extends ConsumerState<CoursesHubScreen> {
                 style: const TextStyle(fontSize: 15, height: 1.6, color: AppColors.onSurfaceVariant),
               ),
             ],
-            if (instructorName.isNotEmpty) ...[
+            if (instructorName.isNotEmpty || (hub.facebookUrl ?? '').isNotEmpty) ...[
               const SizedBox(height: 14),
               _InstructorCard(
-                name: instructorName,
+                name: instructorName.isNotEmpty ? instructorName : 'بيانور',
                 title: instructorTitle,
                 avatarUrl: instructorAvatar,
                 facebookUrl: hub.facebookUrl,
@@ -437,7 +437,7 @@ class _PromoCard extends StatelessWidget {
   }
 }
 
-class _InstructorCard extends ConsumerStatefulWidget {
+class _InstructorCard extends StatelessWidget {
   const _InstructorCard({
     required this.name,
     required this.title,
@@ -450,38 +450,34 @@ class _InstructorCard extends ConsumerStatefulWidget {
   final String? avatarUrl;
   final String? facebookUrl;
 
-  @override
-  ConsumerState<_InstructorCard> createState() => _InstructorCardState();
-}
-
-class _InstructorCardState extends ConsumerState<_InstructorCard> {
-  late bool _following = ref.read(prefsServiceProvider).isFollowingInstructor(widget.name);
-
   Uri? _facebookUri() {
-    final raw = widget.facebookUrl?.trim() ?? '';
+    final raw = facebookUrl?.trim() ?? '';
     if (raw.isEmpty) return null;
     return Uri.tryParse(raw.contains('://') ? raw : 'https://$raw');
   }
 
-  Future<void> _follow() async {
+  Future<void> _openFacebook(BuildContext context) async {
     final uri = _facebookUri();
     if (uri == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('لينك صفحة الفيسبوك هينزل قريب 🌸')),
+        const SnackBar(content: Text('حطي لينك الفيسبوك من لوحة التحكم أولاً')),
       );
       return;
     }
-    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!opened) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تعذّر فتح صفحة الفيسبوك')),
-      );
-      return;
+    const modes = [
+      LaunchMode.externalApplication,
+      LaunchMode.platformDefault,
+      LaunchMode.inAppBrowserView,
+    ];
+    for (final mode in modes) {
+      try {
+        if (await launchUrl(uri, mode: mode)) return;
+      } catch (_) {}
     }
-    if (_following) return;
-    setState(() => _following = true);
-    await ref.read(prefsServiceProvider).setFollowingInstructor(widget.name, true);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('تعذّر فتح صفحة الفيسبوك')),
+    );
   }
 
   @override
@@ -502,9 +498,9 @@ class _InstructorCardState extends ConsumerState<_InstructorCard> {
               ],
             ),
             clipBehavior: Clip.antiAlias,
-            child: widget.avatarUrl != null
+            child: avatarUrl != null
                 ? Image.network(
-                    widget.avatarUrl!,
+                    avatarUrl!,
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => const Icon(Symbols.person, color: AppColors.primary, fill: 1, size: 28),
                   )
@@ -519,7 +515,7 @@ class _InstructorCardState extends ConsumerState<_InstructorCard> {
                   children: [
                     Flexible(
                       child: Text(
-                        widget.name,
+                        name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.onSurface),
@@ -530,7 +526,7 @@ class _InstructorCardState extends ConsumerState<_InstructorCard> {
                   ],
                 ),
                 Text(
-                  widget.title.isNotEmpty ? widget.title : 'مدرّبة الدورة',
+                  title.isNotEmpty ? title : 'مدرّبة الدورة',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.onSurfaceVariant),
@@ -539,30 +535,26 @@ class _InstructorCardState extends ConsumerState<_InstructorCard> {
             ),
           ),
           Material(
-            color: _following ? AppColors.primary : Colors.white,
+            color: Colors.white,
             borderRadius: BorderRadius.circular(999),
             elevation: 2,
             shadowColor: AppColors.primary.withValues(alpha: 0.25),
             child: InkWell(
               borderRadius: BorderRadius.circular(999),
-              onTap: _follow,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              onTap: () => _openFacebook(context),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      _following ? Symbols.check : Symbols.add,
-                      size: 16,
-                      color: _following ? Colors.white : AppColors.primary,
-                    ),
-                    const SizedBox(width: 4),
+                    Icon(Symbols.add, size: 16, color: AppColors.primary),
+                    SizedBox(width: 4),
                     Text(
-                      _following ? 'متابَعة' : 'متابعة',
+                      'متابعة',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: _following ? Colors.white : AppColors.primary,
+                        color: AppColors.primary,
                       ),
                     ),
                   ],
@@ -576,22 +568,59 @@ class _InstructorCardState extends ConsumerState<_InstructorCard> {
   }
 }
 
-/// The course's own live session (live now, or the next scheduled one), if any.
-class _CourseLiveSection extends ConsumerWidget {
+LiveSession? _pickCourseLive(List<LiveSession> all, String courseId) {
+  final ofCourse = all.where((s) => s.courseId == courseId).toList();
+  if (ofCourse.isEmpty) return null;
+  for (final s in ofCourse) {
+    if (s.status == LiveStatus.live) return s;
+  }
+  final scheduled = ofCourse.where((s) => s.status == LiveStatus.scheduled).toList()
+    ..sort((a, b) {
+      final at = a.scheduledAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bt = b.scheduledAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return at.compareTo(bt);
+    });
+  final now = DateTime.now();
+  for (final s in scheduled) {
+    if (s.scheduledAt == null || !s.scheduledAt!.isBefore(now)) return s;
+  }
+  if (scheduled.isNotEmpty) return scheduled.last;
+  ofCourse.sort((a, b) => (b.scheduledAt ?? DateTime.fromMillisecondsSinceEpoch(0))
+      .compareTo(a.scheduledAt ?? DateTime.fromMillisecondsSinceEpoch(0)));
+  return ofCourse.first;
+}
+
+/// The course's own live session (live now, next scheduled, or the latest ended).
+class _CourseLiveSection extends ConsumerStatefulWidget {
   const _CourseLiveSection({required this.courseId});
 
   final String courseId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final sessions = (ref.watch(liveSessionsProvider).valueOrNull ?? const <LiveSession>[])
-        .where((s) => s.courseId == courseId && s.status != LiveStatus.ended)
-        .toList()
-      ..sort((a, b) => (a.status == LiveStatus.live ? 0 : 1).compareTo(b.status == LiveStatus.live ? 0 : 1));
-    if (sessions.isEmpty) return const SizedBox.shrink();
+  ConsumerState<_CourseLiveSection> createState() => _CourseLiveSectionState();
+}
 
-    final session = sessions.first;
+class _CourseLiveSectionState extends ConsumerState<_CourseLiveSection> {
+  late final Timer _clock = Timer.periodic(const Duration(seconds: 1), (_) {
+    if (mounted) setState(() {});
+  });
+
+  @override
+  void dispose() {
+    _clock.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final session = _pickCourseLive(
+      ref.watch(liveSessionsProvider).valueOrNull ?? const <LiveSession>[],
+      widget.courseId,
+    );
+    if (session == null) return const SizedBox.shrink();
+
     final isLive = session.status == LiveStatus.live;
+    final ended = session.showAsEnded;
     return Padding(
       padding: const EdgeInsets.only(top: 24),
       child: Container(
@@ -617,12 +646,16 @@ class _CourseLiveSection extends ConsumerWidget {
               runSpacing: 8,
               children: [
                 ClayPill(
-                  leading: const ClayPulseDot(),
-                  text: isLive ? 'مباشر الآن' : 'جلسة بث تفاعلية مباشرة',
-                  background: AppColors.errorContainer,
-                  foreground: AppColors.onErrorContainer,
+                  leading: isLive ? const ClayPulseDot() : null,
+                  text: isLive
+                      ? 'مباشر الآن'
+                      : ended
+                          ? 'انتهى'
+                          : 'جلسة بث تفاعلية مباشرة',
+                  background: ended ? AppColors.surfaceContainerHigh : AppColors.errorContainer,
+                  foreground: ended ? AppColors.onSurfaceVariant : AppColors.onErrorContainer,
                 ),
-                if (!isLive && session.scheduledAt != null) _CountdownPill(at: session.scheduledAt!),
+                if (!isLive && !ended) _CountdownPill(at: session.scheduledAt),
               ],
             ),
             const SizedBox(height: 10),
@@ -643,11 +676,15 @@ class _CourseLiveSection extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             ClayChunkyButton(
-              label: isLive ? 'انضمي للقاعة التفاعلية المباشرة' : 'اللايف هيبدأ في الميعاد',
-              color: kClayAccent,
-              edgeColor: AppColors.primaryDim,
-              leadingIcon: Symbols.mic,
-              trailingIcon: Symbols.headphones,
+              label: isLive
+                  ? 'انضمي للقاعة التفاعلية المباشرة'
+                  : ended
+                      ? 'انتهى'
+                      : 'اللايف هيبدأ في الميعاد',
+              color: ended ? AppColors.outline : kClayAccent,
+              edgeColor: ended ? AppColors.outlineVariant : AppColors.primaryDim,
+              leadingIcon: isLive ? Symbols.mic : (ended ? Symbols.check_circle : Symbols.timer),
+              trailingIcon: isLive ? Symbols.headphones : null,
               fontSize: 15,
               onPressed: () => openLiveSession(context, ref, session),
             ),
@@ -658,37 +695,31 @@ class _CourseLiveSection extends ConsumerWidget {
   }
 }
 
-class _CountdownPill extends StatefulWidget {
-  const _CountdownPill({required this.at});
+class _CountdownPill extends StatelessWidget {
+  const _CountdownPill({this.at});
 
-  final DateTime at;
-
-  @override
-  State<_CountdownPill> createState() => _CountdownPillState();
-}
-
-class _CountdownPillState extends State<_CountdownPill> {
-  late final Timer _timer = Timer.periodic(const Duration(seconds: 30), (_) => setState(() {}));
-
-  @override
-  void dispose() {
-    _timer.cancel();
-    super.dispose();
-  }
+  final DateTime? at;
 
   @override
   Widget build(BuildContext context) {
-    final left = widget.at.difference(DateTime.now());
+    final left = at?.difference(DateTime.now());
+    if (left == null || left.inSeconds <= 0) {
+      return const ClayPill(
+        icon: Symbols.check_circle,
+        text: 'انتهى',
+        background: AppColors.surfaceContainerHigh,
+        foreground: AppColors.onSurface,
+        iconColor: AppColors.onSurfaceVariant,
+      );
+    }
     String two(int n) => n.toString().padLeft(2, '0');
-    final text = left.isNegative
-        ? 'هيبدأ دلوقتي'
-        : left.inDays > 0
-            ? 'متبقي: ${left.inDays} يوم'
-            : 'متبقي: ${two(left.inHours)} س : ${two(left.inMinutes.remainder(60))} د';
+    final days = left.inDays;
+    final clock =
+        '${two(left.inHours.remainder(24))}:${two(left.inMinutes.remainder(60))}:${two(left.inSeconds.remainder(60))}';
     return ClayPill(
       icon: Symbols.timer,
-      text: text,
-      background: AppColors.surfaceContainerHigh,
+      text: days > 0 ? 'متبقي $daysي $clock' : 'متبقي $clock',
+      background: AppColors.secondaryContainer,
       foreground: AppColors.onSurface,
       iconColor: kClayAccent,
     );

@@ -1,6 +1,6 @@
-enum PaymentKind { subscription, course }
+enum PaymentKind { subscription, course, book }
 
-/// Something the mother can pay for: a subscription plan or a paid course.
+/// Something the mother can pay for: a subscription, a paid course, or a paid book.
 class PaymentItem {
   const PaymentItem({
     required this.kind,

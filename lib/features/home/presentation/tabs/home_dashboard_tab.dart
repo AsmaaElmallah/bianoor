@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/storage/prefs_service.dart';
+import '../../../ai/presentation/widgets/daily_plan_card.dart';
+import '../../../timeline/presentation/widgets/timeline_home_card.dart';
 import '../../domain/home_menu_data.dart';
 import '../widgets/home_hero_card.dart';
 import '../widgets/home_section_block.dart';
@@ -23,7 +25,11 @@ class HomeDashboardTab extends ConsumerWidget {
       padding: const EdgeInsets.only(bottom: 24),
       children: [
         HomeHeroCard(babyName: babyName),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
+        DailyPlanCard(babyName: babyName),
+        const SizedBox(height: 12),
+        const TimelineHomeCard(),
+        const SizedBox(height: 16),
         for (var i = 0; i < sections.length; i++) ...[
           HomeSectionBlock(section: sections[i]),
           if (i < sections.length - 1) const SizedBox(height: 24),

@@ -14,6 +14,9 @@ import '../../../library/domain/library_age_band.dart';
 import '../../../library/domain/library_pdf.dart';
 import '../../../library/domain/library_section_items.dart';
 import '../../../library/presentation/library_pdf_viewer_screen.dart';
+import '../../../payments/data/payment_settings_repository.dart';
+import '../../../payments/domain/payment_item.dart';
+import '../../../payments/presentation/payment_options_sheet.dart';
 
 enum _LibrarySection {
   pdf('كتب PDF', Symbols.picture_as_pdf),
@@ -89,6 +92,8 @@ class _LibraryTabState extends ConsumerState<LibraryTab> {
         return ref.refresh(libraryPdfsProvider.future);
       case _LibrarySection.paid:
         ref.invalidate(libraryWhatsappNumberProvider);
+        ref.invalidate(paymentSettingsProvider);
+        ref.invalidate(purchasedBookIdsProvider);
         return ref.refresh(libraryPaidBooksProvider.future);
       case _LibrarySection.visual:
         return ref.refresh(libraryVisualVideosProvider.future);
@@ -107,6 +112,24 @@ class _LibraryTabState extends ConsumerState<LibraryTab> {
     });
     final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!ok && mounted) _snack('تعذّر فتح واتساب، تأكدي أنه مثبت على جهازك.');
+  }
+
+  Future<void> _payBookWithPaypal(LibraryPaidBook book) async {
+    final paid = await showPaypalCheckout(
+      context,
+      PaymentItem(
+        kind: PaymentKind.book,
+        id: book.id,
+        title: book.title,
+        priceLabel: formatUsd(book.priceUsd) ?? '',
+        priceUsd: book.priceUsd,
+      ),
+    );
+    if (!mounted) return;
+    if (paid) {
+      ref.invalidate(purchasedBookIdsProvider);
+      _snack('تم الدفع بنجاح. هنتواصل معاكِ لتسليم الكتاب.');
+    }
   }
 
   void _playVisual(LibraryVisualVideo video) {
@@ -219,6 +242,8 @@ class _LibraryTabState extends ConsumerState<LibraryTab> {
           const _FriendlyNotice(),
         ];
       case _LibrarySection.paid:
+        ref.watch(paymentSettingsProvider);
+        ref.watch(purchasedBookIdsProvider);
         return _asyncList(
           ref.watch(libraryPaidBooksProvider),
           onRetry: () => ref.invalidate(libraryPaidBooksProvider),
@@ -271,9 +296,18 @@ class _LibraryTabState extends ConsumerState<LibraryTab> {
     if (inBand.isEmpty) return [_emptyForBand(Symbols.shopping_bag, 'كتب مدفوعة')];
     final visible = inBand.where((b) => _matches(b.title, b.description)).toList();
     if (visible.isEmpty) return const [_NoResults()];
+    final settings = ref.watch(paymentSettingsProvider).valueOrNull ?? const PaymentSettings();
+    final purchased = ref.watch(purchasedBookIdsProvider).valueOrNull ?? const <String>{};
     return [
       for (final book in visible) ...[
-        _PaidBookCard(book: book, onContact: () => _contactForBook(book)),
+        _PaidBookCard(
+          book: book,
+          purchased: purchased.contains(book.id),
+          onContact: () => _contactForBook(book),
+          onPaypal: settings.paypalEnabled && book.priceUsd != null
+              ? () => _payBookWithPaypal(book)
+              : null,
+        ),
         const SizedBox(height: 16),
       ],
     ];
@@ -648,12 +682,20 @@ class _SectionTabs extends StatelessWidget {
 }
 
 class _PaidBookCard extends StatelessWidget {
-  const _PaidBookCard({required this.book, required this.onContact});
+  const _PaidBookCard({
+    required this.book,
+    required this.onContact,
+    required this.purchased,
+    this.onPaypal,
+  });
 
   final LibraryPaidBook book;
   final VoidCallback onContact;
+  final VoidCallback? onPaypal;
+  final bool purchased;
 
   static const _whatsappGreen = Color(0xFF25D366);
+  static const _paypalBlue = Color(0xFF0070BA);
 
   @override
   Widget build(BuildContext context) {
@@ -710,7 +752,35 @@ class _PaidBookCard extends StatelessWidget {
                     ),
                   ),
                 ],
+                if (formatUsd(book.priceUsd) != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'السعر ${formatUsd(book.priceUsd)}',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.onSurface,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 16),
+                if (purchased) ...[
+                  Container(
+                    height: 50,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: AppColors.tertiaryContainer,
+                      borderRadius: _innerRadius,
+                    ),
+                    child: Text(
+                      'تم الشراء ✓ هنتواصل لتسليم الكتاب',
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.onTertiaryContainer,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
                 SizedBox(
                   height: 50,
                   child: FilledButton.icon(
@@ -724,6 +794,22 @@ class _PaidBookCard extends StatelessWidget {
                     label: const Text('تواصلي معنا عبر واتساب'),
                   ),
                 ),
+                if (onPaypal != null && !purchased) ...[
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    height: 50,
+                    child: FilledButton.icon(
+                      onPressed: onPaypal,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: _paypalBlue,
+                        foregroundColor: Colors.white,
+                        shape: const RoundedRectangleBorder(borderRadius: _innerRadius),
+                      ),
+                      icon: const Icon(Symbols.account_balance_wallet, size: 20, fill: 1),
+                      label: const Text('ادفعي عبر PayPal'),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

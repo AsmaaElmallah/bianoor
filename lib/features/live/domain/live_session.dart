@@ -49,6 +49,11 @@ class LiveSession {
 
   bool get hasRecording => recordingYoutubeId?.isNotEmpty ?? false;
 
+  /// Clock time has passed (or admin marked it ended) and the host is not on air.
+  bool get showAsEnded =>
+      status == LiveStatus.ended ||
+      (status != LiveStatus.live && scheduledAt != null && !scheduledAt!.isAfter(DateTime.now()));
+
   String? get scheduleLabel {
     final at = scheduledAt?.toLocal();
     if (at == null) return null;

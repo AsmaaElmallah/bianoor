@@ -38,6 +38,7 @@ class PrefsService {
   static const _kPasswordRecoveryPending = 'password_recovery_pending';
   static const _kFollowedInstructors = 'followed_instructors';
   static const _kSavedCourses = 'saved_courses';
+  static const _kTimelineReminders = 'timeline_reminders_enabled';
 
   int getVideoIndex() => _prefs.getInt(_kVideoIndex) ?? 0;
   Future<void> setVideoIndex(int value) => _prefs.setInt(_kVideoIndex, value);
@@ -58,10 +59,14 @@ class PrefsService {
   Future<void> setPasswordRecoveryPending(bool value) =>
       _prefs.setBool(_kPasswordRecoveryPending, value);
 
+  bool getTimelineReminders() => _prefs.getBool(_kTimelineReminders) ?? true;
+  Future<void> setTimelineReminders(bool value) => _prefs.setBool(_kTimelineReminders, value);
+
   String? getBabyName() => _prefs.getString(_kBabyName);
   Future<void> setBabyName(String name) => _prefs.setString(_kBabyName, name);
 
   int getBabyAgeRangeIndex() => _prefs.getInt(_kBabyAgeRangeIndex) ?? 0;
+  bool hasBabyAgeRange() => _prefs.containsKey(_kBabyAgeRangeIndex);
   Future<void> setBabyAgeRangeIndex(int index) =>
       _prefs.setInt(_kBabyAgeRangeIndex, index);
 

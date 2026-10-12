@@ -5,7 +5,11 @@
 	<key>NSCameraUsageDescription</key>
 	<string>الكاميرا بتستخدم لما تطلعي على المسرح في اللايف.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>المايك بيستخدم لما تطلعي على المسرح في اللايف.</string>
+	<string>المايك بيستخدم لما تطلعي على المسرح في اللايف، ولما تسألي مساعدة بيانور بصوتك.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>عشان نحوّل سؤالك الصوتي لكلام مكتوب لمساعدة بيانور.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>عشان تقدري ترفقي صورة مع سؤالك في نادي الأمهات.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -26,6 +30,14 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>https</string>
+		<string>http</string>
+		<string>fb</string>
+		<string>fbapi</string>
+		<string>facebook</string>
+	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
