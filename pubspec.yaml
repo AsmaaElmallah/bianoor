@@ -28,7 +28,6 @@ dependencies:
   webview_flutter_android: ^4.3.2
   url_launcher: ^6.3.1
   supabase_flutter: ^2.17.2
-  in_app_purchase: ^3.2.3
   google_sign_in: ^7.2.0
   pdfx: ^2.11.0
   agora_rtc_engine: 6.6.4
@@ -38,6 +37,9 @@ dependencies:
   flutter_tts: ^4.2.5
   flutter_local_notifications: ^20.1.0
   timezone: ^0.10.1
+  package_info_plus: ^9.0.1
+  firebase_core: ^4.15.0
+  firebase_messaging: ^16.7.0
 
 dev_dependencies:
   flutter_test:
@@ -61,6 +63,7 @@ flutter:
     - assets/videos/
     - assets/images/
     - assets/icons/
+    - assets/icons3d/
     - assets/audio/
     - assets/math/
     - assets/visual/

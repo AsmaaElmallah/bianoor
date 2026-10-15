@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/constants/app_art.dart';
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_logo_avatar.dart';
@@ -14,7 +15,6 @@ import '../../../library/domain/library_age_band.dart';
 import '../../../library/domain/library_pdf.dart';
 import '../../../library/domain/library_section_items.dart';
 import '../../../library/presentation/library_pdf_viewer_screen.dart';
-import '../../../payments/data/payment_settings_repository.dart';
 import '../../../payments/domain/payment_item.dart';
 import '../../../payments/presentation/payment_options_sheet.dart';
 
@@ -92,7 +92,6 @@ class _LibraryTabState extends ConsumerState<LibraryTab> {
         return ref.refresh(libraryPdfsProvider.future);
       case _LibrarySection.paid:
         ref.invalidate(libraryWhatsappNumberProvider);
-        ref.invalidate(paymentSettingsProvider);
         ref.invalidate(purchasedBookIdsProvider);
         return ref.refresh(libraryPaidBooksProvider.future);
       case _LibrarySection.visual:
@@ -115,15 +114,10 @@ class _LibraryTabState extends ConsumerState<LibraryTab> {
   }
 
   Future<void> _payBookWithPaypal(LibraryPaidBook book) async {
-    final paid = await showPaypalCheckout(
+    final paid = await payWithPaypal(
       context,
-      PaymentItem(
-        kind: PaymentKind.book,
-        id: book.id,
-        title: book.title,
-        priceLabel: formatUsd(book.priceUsd) ?? '',
-        priceUsd: book.priceUsd,
-      ),
+      ref,
+      PaymentItem(kind: PaymentKind.book, id: book.id, title: book.title, priceUsd: book.priceUsd),
     );
     if (!mounted) return;
     if (paid) {
@@ -242,7 +236,6 @@ class _LibraryTabState extends ConsumerState<LibraryTab> {
           const _FriendlyNotice(),
         ];
       case _LibrarySection.paid:
-        ref.watch(paymentSettingsProvider);
         ref.watch(purchasedBookIdsProvider);
         return _asyncList(
           ref.watch(libraryPaidBooksProvider),
@@ -273,9 +266,9 @@ class _LibraryTabState extends ConsumerState<LibraryTab> {
       error: (_, __) => [
         _StateMessage(
           icon: Symbols.cloud_off,
-          title: 'تعذّر تحميل المكتبة',
-          subtitle: 'تأكدي من الاتصال بالإنترنت ثم اسحبي الصفحة للتحديث.',
-          actionLabel: 'إعادة المحاولة',
+          title: 'المكتبة مفتحتش',
+          subtitle: 'اتأكدي من الإنترنت وجربي تاني.',
+          actionLabel: 'جربي تاني',
           onAction: onRetry,
         ),
       ],
@@ -286,8 +279,8 @@ class _LibraryTabState extends ConsumerState<LibraryTab> {
   Widget _emptyForBand(IconData icon, String what) {
     return _StateMessage(
       icon: icon,
-      title: 'لا توجد $what لعمر ${_band.label} بعد',
-      subtitle: 'سيضيف فريق بيانور المزيد قريباً، أو جرّبي عمراً آخر.',
+      title: 'لسه مفيش $what لعمر ${_band.label}',
+      subtitle: 'فريق بيانور بيجهّز محتوى جديد قريب، أو جربي عمر تاني.',
     );
   }
 
@@ -296,7 +289,6 @@ class _LibraryTabState extends ConsumerState<LibraryTab> {
     if (inBand.isEmpty) return [_emptyForBand(Symbols.shopping_bag, 'كتب مدفوعة')];
     final visible = inBand.where((b) => _matches(b.title, b.description)).toList();
     if (visible.isEmpty) return const [_NoResults()];
-    final settings = ref.watch(paymentSettingsProvider).valueOrNull ?? const PaymentSettings();
     final purchased = ref.watch(purchasedBookIdsProvider).valueOrNull ?? const <String>{};
     return [
       for (final book in visible) ...[
@@ -304,9 +296,7 @@ class _LibraryTabState extends ConsumerState<LibraryTab> {
           book: book,
           purchased: purchased.contains(book.id),
           onContact: () => _contactForBook(book),
-          onPaypal: settings.paypalEnabled && book.priceUsd != null
-              ? () => _payBookWithPaypal(book)
-              : null,
+          onPaypal: book.priceUsd != null ? () => _payBookWithPaypal(book) : null,
         ),
         const SizedBox(height: 16),
       ],
@@ -451,48 +441,25 @@ class _IntroBanner extends StatelessWidget {
             child: _SoftOrb(size: 112, color: AppColors.tertiaryFixed),
           ),
           Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryFixed,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Symbols.child_care, size: 16, fill: 1, color: AppColors.onPrimaryFixed),
-                      const SizedBox(width: 6),
-                      Text(
-                        'محتوى حسب عمر طفلك',
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.onPrimaryFixed,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
                 Text(
                   'مكتبة بيانور',
-                  style: theme.textTheme.headlineMedium?.copyWith(
+                  style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w800,
                     color: AppColors.onSurface,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 Text(
-                  'اختاري عمر طفلك لتجدي كتب PDF للقراءة والتحميل، وكتباً مطبوعة للطلب، وفيديوهات تحفيز بصري مناسبة لمرحلته.',
-                  style: theme.textTheme.bodyLarge?.copyWith(
+                  'كتب وفيديوهات مناسبة لعمر طفلك.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
                     color: AppColors.onSurfaceVariant,
-                    height: 1.6,
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 _InsetSearchField(focusNode: focusNode, onChanged: onChanged),
               ],
             ),
@@ -780,22 +747,20 @@ class _PaidBookCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 10),
-                ],
-                SizedBox(
-                  height: 50,
-                  child: FilledButton.icon(
-                    onPressed: onContact,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: _whatsappGreen,
-                      foregroundColor: Colors.white,
-                      shape: const RoundedRectangleBorder(borderRadius: _innerRadius),
+                  SizedBox(
+                    height: 50,
+                    child: FilledButton.icon(
+                      onPressed: onContact,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: _whatsappGreen,
+                        foregroundColor: Colors.white,
+                        shape: const RoundedRectangleBorder(borderRadius: _innerRadius),
+                      ),
+                      icon: const Icon(Symbols.chat, size: 20, fill: 1),
+                      label: const Text('تواصلي معنا لتسليم الكتاب'),
                     ),
-                    icon: const Icon(Symbols.chat, size: 20, fill: 1),
-                    label: const Text('تواصلي معنا عبر واتساب'),
                   ),
-                ),
-                if (onPaypal != null && !purchased) ...[
-                  const SizedBox(height: 10),
+                ] else
                   SizedBox(
                     height: 50,
                     child: FilledButton.icon(
@@ -805,11 +770,10 @@ class _PaidBookCard extends StatelessWidget {
                         foregroundColor: Colors.white,
                         shape: const RoundedRectangleBorder(borderRadius: _innerRadius),
                       ),
-                      icon: const Icon(Symbols.account_balance_wallet, size: 20, fill: 1),
-                      label: const Text('ادفعي عبر PayPal'),
+                      icon: const Icon(Symbols.credit_card, size: 20, fill: 1),
+                      label: Text(onPaypal == null ? 'السعر هيتحدد قريب' : 'ادفعي بـ PayPal'),
                     ),
                   ),
-                ],
               ],
             ),
           ),
@@ -1236,18 +1200,10 @@ class _NoResults extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: const BoxDecoration(
-              color: AppColors.surfaceContainer,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Symbols.search_off, size: 32, color: AppColors.outline),
-          ),
+          Image.asset(AppArt.search, width: 64, height: 64),
           const SizedBox(height: 12),
           Text(
-            'لم نعثر على هذا الـ PDF',
+            'ملقيناش اللي بتدوري عليه',
             textAlign: TextAlign.center,
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w800,
@@ -1256,7 +1212,7 @@ class _NoResults extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'تأكدي من كتابة اسم الكتيب أو اختاري من التصنيفات أعلاه.',
+            'اتأكدي من الاسم أو اختاري من التصنيفات اللي فوق.',
             textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant),
           ),
@@ -1293,14 +1249,11 @@ class _StateMessage extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: const BoxDecoration(
-              color: AppColors.primaryContainer,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, size: 32, color: AppColors.primary),
+          Image.asset(
+            icon == Symbols.cloud_off ? AppAssets.mascotOffline : AppAssets.mascotEmpty,
+            height: 110,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => Icon(icon, size: 32, color: AppColors.primary),
           ),
           const SizedBox(height: 12),
           Text(

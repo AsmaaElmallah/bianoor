@@ -19,6 +19,10 @@ class SupabaseBootstrap {
 
   static bool get isReady => _ready;
 
+  /// For raw HTTP calls the SDK can't make (e.g. streaming edge function responses).
+  static String get url => _url;
+  static String get anonKey => _anonKey;
+
   static SupabaseClient get client {
     if (!_ready) {
       throw StateError('Supabase not initialized — call SupabaseBootstrap.init() first');

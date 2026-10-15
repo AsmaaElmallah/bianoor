@@ -35,7 +35,7 @@ class NutritionScreen extends ConsumerWidget {
                 children: [
                   const Icon(Symbols.menu, color: AppColors.primary),
                   const Spacer(),
-                  Text('المربي اللطيف', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                  Text('بيانور', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                   const Spacer(),
                   const AppLogoAvatar(size: 40),
                 ],

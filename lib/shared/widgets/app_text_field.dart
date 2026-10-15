@@ -19,6 +19,10 @@ class AppTextField extends StatelessWidget {
     this.validator,
     this.textInputAction,
     this.beboPillBorder = false,
+    this.textDirection,
+    this.autofillHints,
+    this.onFieldSubmitted,
+    this.maxLength,
   });
 
   final String label;
@@ -81,6 +85,10 @@ class AppTextField extends StatelessWidget {
             color: AppColors.onSurface,
             fontWeight: FontWeight.w500,
           ),
+          textDirection: textDirection,
+          autofillHints: autofillHints,
+          onFieldSubmitted: onFieldSubmitted,
+          maxLength: maxLength,
           cursorColor: AppColors.primary,
           decoration: beboPillBorder
               ? InputDecoration(

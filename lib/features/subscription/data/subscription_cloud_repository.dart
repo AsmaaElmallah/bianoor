@@ -7,12 +7,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../payments/domain/payment_item.dart';
 import '../domain/subscription_plan_model.dart';
 
-/// Client demo builds only (`--dart-define=DEMO_SUBSCRIPTIONS=true`):
-/// activates plans without the store. Never enable for Play/App Store builds.
-const bool kDemoSubscriptions = bool.fromEnvironment('DEMO_SUBSCRIPTIONS');
-
-bool get subscriptionSandboxAllowed => kDebugMode || kDemoSubscriptions;
-
 final subscriptionCloudRepositoryProvider =
     Provider<SubscriptionCloudRepository>((ref) {
   return SubscriptionCloudRepository();
@@ -37,12 +31,16 @@ class UserSubscription {
     required this.planId,
     required this.status,
     this.expiresAt,
+    this.lessonDays = 0,
   });
 
   final String id;
   final String? planId;
   final String status;
   final DateTime? expiresAt;
+
+  /// Curriculum days unlocked by all paid plans (cumulative, never expire).
+  final int lessonDays;
 
   bool get isActive {
     if (status != 'active' && status != 'trial') return false;
@@ -75,6 +73,7 @@ class SubscriptionCloudRepository {
         planId: row['plan_id'] as String?,
         status: row['status'] as String? ?? 'inactive',
         expiresAt: exp != null ? DateTime.tryParse(exp)?.toUtc() : null,
+        lessonDays: (row['lesson_days'] as int?) ?? 0,
       );
     } catch (e, st) {
       if (kDebugMode) debugPrint('[Subscriptions] mine failed: $e\n$st');
@@ -82,68 +81,17 @@ class SubscriptionCloudRepository {
     }
   }
 
-  /// Debug-only sandbox activate — never call from release purchase paths.
-  Future<bool> activatePlan(String planId, {int durationDays = 30}) async {
-    if (!subscriptionSandboxAllowed) {
-      debugPrint('[Subscriptions] activatePlan blocked outside debug');
-      return false;
-    }
-    if (!await _ready()) {
-      debugPrint('[Subscriptions] activatePlan: supabase not ready');
-      return false;
-    }
-    final userId = SupabaseBootstrap.client.auth.currentUser?.id;
-    if (userId == null) {
-      debugPrint('[Subscriptions] activatePlan: no current user');
-      return false;
-    }
-
+  /// Lesson days the server unlocks for the signed-in user (staff get all); null when unreachable.
+  Future<int?> fetchUnlockedLessonDays() async {
+    if (!await _ready()) return null;
+    if (SupabaseBootstrap.client.auth.currentUser == null) return 0;
     try {
-      final plan = await SupabaseBootstrap.client
-          .from('subscription_plans')
-          .select('duration_days')
-          .eq('id', planId)
-          .maybeSingle();
-      final days = (plan?['duration_days'] as int?) ?? durationDays;
-      final expires = DateTime.now().toUtc().add(Duration(days: days));
-      final payload = {
-        'user_id': userId,
-        'plan_id': planId,
-        'status': 'active',
-        'expires_at': expires.toIso8601String(),
-        'store_receipt':
-            'sandbox:${DateTime.now().toUtc().toIso8601String()}',
-        'updated_at': DateTime.now().toUtc().toIso8601String(),
-      };
-
-      // Prefer update-then-insert so missing UNIQUE migration still works.
-      final existing = await SupabaseBootstrap.client
-          .from('user_subscriptions')
-          .select('id')
-          .eq('user_id', userId)
-          .maybeSingle();
-
-      if (existing != null) {
-        await SupabaseBootstrap.client
-            .from('user_subscriptions')
-            .update(payload)
-            .eq('user_id', userId);
-      } else {
-        await SupabaseBootstrap.client.from('user_subscriptions').insert(payload);
-      }
-
-      if (kDebugMode) {
-        debugPrint('[Subscriptions] activatePlan OK plan=$planId user=$userId');
-      }
-      return true;
+      final days = await SupabaseBootstrap.client.rpc('lesson_days_unlocked');
+      return (days as num?)?.toInt() ?? 0;
     } catch (e, st) {
-      if (kDebugMode) debugPrint('[Subscriptions] activate failed: $e\n$st');
-      return false;
+      if (kDebugMode) debugPrint('[Subscriptions] lesson days failed: $e\n$st');
+      return null;
     }
-  }
-
-  Future<UserSubscription?> restorePurchases() async {
-    return fetchMySubscription();
   }
 
   Future<List<SubscriptionPlan>> fetchActivePlans() async {
@@ -155,36 +103,46 @@ class SubscriptionCloudRepository {
           .eq('active', true)
           .order('sort_order');
 
+      final data = List<Map<String, dynamic>>.from(rows as List);
+      final savings = planSavings([
+        for (final row in data)
+          (days: (row['duration_days'] as int?) ?? 30, usd: parseUsd(row['price_usd'])),
+      ]);
+      var best = -1;
+      for (var i = 0; i < savings.length; i++) {
+        if ((savings[i] ?? 0) > (best < 0 ? 0 : savings[best]!)) best = i;
+      }
+
       final list = <SubscriptionPlan>[];
-      var i = 0;
-      for (final row in List<Map<String, dynamic>>.from(rows as List)) {
+      for (var i = 0; i < data.length; i++) {
+        final row = data[i];
         final featuresRaw = row['features'];
         final features = featuresRaw is List
             ? featuresRaw.map((e) => e.toString()).toList()
             : const <String>[];
         final look = _lookForIndex(i);
-        final priceDisplay = row['price_display'] as String? ?? '';
+        final days = (row['duration_days'] as int?) ?? 30;
+        final usd = parseUsd(row['price_usd']);
+        final duration = planDurationLabel(days);
         list.add(
           SubscriptionPlan(
             id: row['id'] as String,
             title: row['name'] as String? ?? 'باقة',
-            duration: priceDisplay,
-            price: priceDisplay,
-            priceSuffix: '',
+            duration: duration,
+            price: formatUsd(usd) ?? 'السعر قريباً',
+            priceSuffix: usd == null ? '' : '/ $duration',
             features: features,
             gradient: look.gradient,
             titleColor: look.titleColor,
             subtitleColor: look.subtitleColor,
             buttonColor: look.buttonColor,
             buttonTextColor: look.buttonTextColor,
-            badge: i == 3 ? 'الأكثر توفيراً' : null,
-            storeProductIdIos: row['store_product_id_ios'] as String?,
-            storeProductIdAndroid: row['store_product_id_android'] as String?,
-            durationDays: (row['duration_days'] as int?) ?? 30,
-            priceUsd: parseUsd(row['price_usd']),
+            badge: i == best ? 'الأكثر توفيراً' : null,
+            durationDays: days,
+            priceUsd: usd,
+            savingsPercent: savings[i],
           ),
         );
-        i++;
       }
       return list;
     } catch (e, st) {
@@ -192,6 +150,28 @@ class SubscriptionCloudRepository {
       return [];
     }
   }
+}
+
+/// Percent saved by each plan vs. buying the shortest priced plan repeatedly.
+/// Null for the base plan, unpriced plans, or savings under 1%.
+@visibleForTesting
+List<int?> planSavings(List<({int days, double? usd})> plans) {
+  ({int days, double usd})? base;
+  for (final p in plans) {
+    final usd = p.usd;
+    if (usd == null || p.days <= 0) continue;
+    if (base == null || p.days < base.days) base = (days: p.days, usd: usd);
+  }
+  return [
+    for (final p in plans)
+      () {
+        final usd = p.usd;
+        if (base == null || usd == null || p.days <= base.days) return null;
+        final full = base.usd * p.days / base.days;
+        final pct = ((full - usd) / full * 100).round();
+        return pct >= 1 ? pct : null;
+      }(),
+  ];
 }
 
 class _PlanLook {

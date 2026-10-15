@@ -23,6 +23,7 @@ class ConsultationsCloudRepository {
   Future<bool> submitRequest({
     required String topic,
     String? details,
+    bool paid = false,
   }) async {
     if (!await _ready()) return false;
     try {
@@ -31,6 +32,7 @@ class ConsultationsCloudRepository {
         'user_id': userId,
         'topic': topic,
         'details': details,
+        if (paid) 'kind': 'paid',
       });
       return true;
     } catch (e, st) {

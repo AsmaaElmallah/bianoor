@@ -45,6 +45,7 @@ class MothersClubPost {
         authorId: row['author_id'] as String?,
         authorDisplayName: row['author_display_name'] as String?,
         categoryId: row['category_id'] as String?,
+        groupId: row['group_id'] as String?,
         tag: row['tag'] as String?,
         publishStatus: row['publish_status'] as String? ?? 'published',
         likesCount: (row['likes_count'] as num?)?.toInt() ?? 0,
@@ -84,6 +85,8 @@ class MothersClubPost {
   final String? authorDisplayName;
   final String? categoryId;
   final String? tag;
+  final String? groupId;
+  final String? tag;
   final String publishStatus;
   final int likesCount;
   final int commentsCount;
@@ -93,6 +96,40 @@ class MothersClubPost {
   bool get isInReview => publishStatus == 'review' || publishStatus == 'draft';
   bool get isRejected => publishStatus == 'archived';
 }
+
+/// A group the admin made (e.g. one per course). Open to every mother;
+/// joining only means getting the admin's announcements as push.
+class MothersClubGroup {
+  const MothersClubGroup({
+    required this.id,
+    required this.title,
+    this.description = '',
+    this.iconKey = 'people',
+    this.courseId,
+    this.infoNote = '',
+    this.postsCount = 0,
+    this.membersCount = 0,
+  });
+
+  factory MothersClubGroup.fromRow(Map<String, dynamic> row) => MothersClubGroup(
+        id: row['id'] as String,
+        title: row['title'] as String? ?? '',
+        description: row['description'] as String? ?? '',
+        iconKey: row['icon_key'] as String? ?? 'people',
+        courseId: row['course_id'] as String?,
+        infoNote: row['info_note'] as String? ?? '',
+        postsCount: (row['posts_count'] as num?)?.toInt() ?? 0,
+        membersCount: (row['members_count'] as num?)?.toInt() ?? 0,
+      );
+
+  final String id;
+  final String title;
+  final String description;
+  final String iconKey;
+  final String? courseId;
+  final String infoNote;
+  final int postsCount;
+  final int membersCount;
 
 class MothersClubComment {
   const MothersClubComment({
@@ -159,6 +196,43 @@ final mothersClubCommentsProvider =
 final mothersClubNotificationsProvider = FutureProvider.autoDispose<List<MothersClubNotification>>((ref) {
   return ref.watch(communityCloudRepositoryProvider).fetchMyNotifications();
 });
+
+/// Posts I liked, updated optimistically so the heart reacts instantly.
+final clubGroupsProvider = FutureProvider.autoDispose<List<MothersClubGroup>>((ref) {
+  return ref.watch(communityCloudRepositoryProvider).fetchGroups();
+});
+
+final clubGroupProvider = FutureProvider.autoDispose.family<MothersClubGroup?, String>((ref, groupId) {
+  return ref.watch(communityCloudRepositoryProvider).fetchGroup(groupId);
+});
+
+final clubGroupPostsProvider =
+    FutureProvider.autoDispose.family<List<MothersClubPost>, String>((ref, groupId) {
+  return ref.watch(communityCloudRepositoryProvider).fetchGroupPosts(groupId);
+});
+
+/// Groups I joined (get the admin's announcements as push), updated optimistically.
+final myClubGroupsProvider =
+    AsyncNotifierProvider<MyClubGroupsNotifier, Set<String>>(MyClubGroupsNotifier.new);
+
+class MyClubGroupsNotifier extends AsyncNotifier<Set<String>> {
+  @override
+  Future<Set<String>> build() => ref.watch(communityCloudRepositoryProvider).fetchMyGroupIds();
+
+  bool isMember(String groupId) => state.valueOrNull?.contains(groupId) ?? false;
+
+  Future<void> toggle(String groupId) async {
+    final current = {...?state.valueOrNull};
+    final join = !current.contains(groupId);
+    state = AsyncData(join ? ({...current, groupId}) : ({...current}..remove(groupId)));
+    try {
+      await ref.read(communityCloudRepositoryProvider).setGroupMember(groupId, join);
+    } catch (_) {
+      state = AsyncData(current);
+      rethrow;
+    }
+  }
+}
 
 /// Posts I liked, updated optimistically so the heart reacts instantly.
 final mothersClubLikesProvider =
@@ -300,7 +374,8 @@ class CommunityCloudRepository {
     final term = search.trim().replaceAll(RegExp(r'[,()%*\\]'), ' ').trim();
 
     var q = SupabaseBootstrap.client.from('mothers_club_posts').select();
-    if (term.isNotEmpty) {
+    // Group posts stay inside their groups; «المحفوظة» shows saved ones from anywhere.
+    if (onlyIds == null) q = q.isFilter('group_id', null);
       // PostgREST takes one top-level `or`, so search shows published posts only.
       q = q.eq('publish_status', 'published').or('title.ilike.*$term*,body.ilike.*$term*');
     } else if (userId == null) {
@@ -321,6 +396,64 @@ class CommunityCloudRepository {
   }
 
   /// Uploads a picked photo to the mother's own folder and returns its storage path.
+  Future<List<MothersClubGroup>> fetchGroups() async {
+    if (!await _ready()) return [];
+    final rows = await SupabaseBootstrap.client
+        .from('mothers_club_groups')
+        .select()
+        .eq('publish_status', 'published')
+        .order('sort_order')
+        .order('created_at');
+    return [for (final row in List<Map<String, dynamic>>.from(rows as List)) MothersClubGroup.fromRow(row)];
+  }
+
+  Future<MothersClubGroup?> fetchGroup(String groupId) async {
+    if (!await _ready()) return null;
+    final row = await SupabaseBootstrap.client.from('mothers_club_groups').select().eq('id', groupId).maybeSingle();
+    return row == null ? null : MothersClubGroup.fromRow(row);
+  }
+
+  /// Newest first, pinned on top (admin's info/announcements).
+  Future<List<MothersClubPost>> fetchGroupPosts(String groupId) async {
+    if (!await _ready()) return [];
+    final rows = await SupabaseBootstrap.client
+        .from('mothers_club_posts')
+        .select()
+        .eq('group_id', groupId)
+        .eq('publish_status', 'published')
+        .order('is_pinned', ascending: false)
+        .order('created_at', ascending: false)
+        .limit(60);
+    return [for (final row in List<Map<String, dynamic>>.from(rows as List)) MothersClubPost.fromRow(row)];
+  }
+
+  Future<Set<String>> fetchMyGroupIds() async {
+    if (!await _ready()) return {};
+    final userId = currentUserId;
+    if (userId == null) return {};
+    try {
+      final rows = await SupabaseBootstrap.client
+          .from('mothers_club_group_members')
+          .select('group_id')
+          .eq('user_id', userId);
+      return {for (final r in List<Map<String, dynamic>>.from(rows as List)) r['group_id'] as String};
+    } catch (e) {
+      if (kDebugMode) debugPrint('[Community] my groups failed: $e');
+      return {};
+    }
+  }
+
+  Future<void> setGroupMember(String groupId, bool join) async {
+    if (!await _ready()) throw const ClubActionException('مفيش اتصال بالإنترنت');
+    final userId = _requireUser();
+    final table = SupabaseBootstrap.client.from('mothers_club_group_members');
+    if (join) {
+      await table.upsert({'group_id': groupId, 'user_id': userId}, onConflict: 'group_id,user_id', ignoreDuplicates: true);
+    } else {
+      await table.delete().eq('group_id', groupId).eq('user_id', userId);
+    }
+  }
+
   Future<String> uploadClubImage(Uint8List bytes, {required String extension}) async {
     if (!await _ready()) throw const ClubActionException('مفيش اتصال بالإنترنت');
     final userId = _requireUser();
@@ -393,10 +526,12 @@ class CommunityCloudRepository {
   }
 
   /// Sends a question for admin review (it shows to others after approval).
+  /// General-feed questions go to admin review; group posts publish right away.
   Future<void> createPost({
     required String title,
     required String body,
-    required String categoryId,
+    String? categoryId,
+    String? groupId,
     bool anonymous = false,
     String? imagePath,
   }) async {
@@ -409,11 +544,11 @@ class CommunityCloudRepository {
         'author_display_name': anonymous ? MothersClubPost.anonymousName : await _myDisplayName(),
         if (anonymous) 'is_anonymous': true,
         if (imagePath != null) 'image_storage_path': imagePath,
-        'category_id': categoryId,
+        if (groupId == null) 'category_id': categoryId,
+        if (groupId != null) 'group_id': groupId,
         'title': title.trim(),
         'body': body.trim(),
-        'publish_status': 'review',
-      });
+        'publish_status': groupId == null ? 'review' : 'published',
     } on PostgrestException catch (e) {
       if (kDebugMode) debugPrint('[Community] create post failed: ${e.message}');
       throw ClubActionException(

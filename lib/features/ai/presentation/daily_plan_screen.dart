@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
-import '../../../core/router/app_routes.dart';
 import '../../../core/storage/prefs_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
@@ -11,6 +9,7 @@ import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
 import '../application/ai_providers.dart';
 import '../data/ai_models.dart';
+import 'widgets/ai_launcher.dart';
 import 'widgets/ai_shared.dart';
 
 /// تفاصيل «خطة النهارده» الذكية.
@@ -38,7 +37,7 @@ class DailyPlanScreen extends ConsumerWidget {
                 final plan = result.plan;
                 if (plan == null) {
                   return _Retry(
-                    message: aiStatusMessage(result.status),
+                    message: aiStatusText(result.status, result.detail),
                     onRetry: () => ref.invalidate(aiDailyPlanProvider),
                   );
                 }
@@ -87,7 +86,7 @@ class DailyPlanScreen extends ConsumerWidget {
                     const AiDisclaimer(),
                     const SizedBox(height: 16),
                     FilledButton.icon(
-                      onPressed: () => context.push(AppRoutes.aiAssistant),
+                      onPressed: () => showAiChatPopup(context),
                       icon: const Icon(Symbols.chat),
                       label: const Text('عندك سؤال؟ اسألي مساعدة بيانور'),
                       style: FilledButton.styleFrom(

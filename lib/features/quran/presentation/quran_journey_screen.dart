@@ -7,6 +7,7 @@ import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../shared/widgets/bebo_shell_background.dart';
+import '../../subscription/application/premium_access.dart';
 import '../application/quran_curriculum_provider.dart';
 import '../domain/quran_age_schedule.dart';
 import 'widgets/tactile/quran_journey_node.dart';
@@ -76,7 +77,12 @@ class QuranJourneyScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 28),
-          ..._buildPathNodes(context, completed: completed, current: current),
+          ..._buildPathNodes(
+            context,
+            completed: completed,
+            current: current,
+            unlocked: ref.watch(unlockedLessonDaysProvider).valueOrNull,
+          ),
           const SizedBox(height: 24),
           TactileClayCard(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
@@ -122,7 +128,8 @@ class QuranJourneyScreen extends ConsumerWidget {
       final dx = quranJourneyPathOffsets[i % quranJourneyPathOffsets.length];
       final isDone = khatmahNum <= completed;
       final isActive = !isDone && khatmahNum == current;
-      final isLocked = khatmahNum > current;
+      final paid = unlocked != null && quranCumulativeDay(khatmahNum, 1) <= unlocked;
+      final isLocked = khatmahNum > current && !paid;
       final canOpen = !isLocked;
 
       nodes.add(

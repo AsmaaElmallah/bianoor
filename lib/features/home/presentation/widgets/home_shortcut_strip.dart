@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
+import '../../../../shared/widgets/icon_3d.dart';
 import '../../domain/home_menu_item.dart';
 
 class HomeShortcutStrip extends StatelessWidget {
@@ -99,15 +100,11 @@ class _ShortcutCardState extends State<_ShortcutCard> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: Icon(widget.item.icon, color: iconColor, size: 24, fill: 1),
+            Icon3D(
+              art: widget.item.art,
+              icon: widget.item.icon,
+              color: iconColor,
+              size: 46,
             ),
             const SizedBox(height: 8),
             Text(

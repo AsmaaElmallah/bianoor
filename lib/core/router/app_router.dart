@@ -53,8 +53,17 @@ import '../../features/quran/presentation/quran_khatmah_celebration_screen.dart'
 import '../../features/quran/presentation/quran_player_screen.dart';
 import '../../features/rules/presentation/family_rules_screen.dart';
 import '../../features/splash/presentation/splash_screen.dart';
+import '../../features/subscription/presentation/lesson_day_gate.dart';
 import '../../features/subscription/presentation/subscription_screen.dart';
+import '../../features/curriculum/domain/curriculum_lesson_journey.dart';
+import '../../features/math/application/math_curriculum_provider.dart';
+import '../../features/visual/application/visual_curriculum_provider.dart';
+import '../../features/emotional/application/emotional_curriculum_provider.dart';
+import '../../features/quran/application/quran_curriculum_provider.dart';
 import 'app_routes.dart';
+
+/// First curriculum day of [lesson] (review replays the whole lesson).
+int lessonStartDay(int lesson) => curriculumLessonDaySpan(lesson, maxLessonNumber: 1000).startDay;
 
 /// يعرض شاشات الدروس فوق الرئيسية (مثل القرآن) وليس داخل شجرة /home المخفية.
 final rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -160,7 +169,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.subscription,
-        builder: (context, state) => const SubscriptionScreen(),
+        builder: (context, state) => SubscriptionScreen(reason: state.extra as String?),
       ),
       GoRoute(
         path: AppRoutes.onboardingQuestions,
@@ -304,9 +313,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'player',
                 parentNavigatorKey: rootNavigatorKey,
-                builder: (context, state) => MathPlayerScreen(
-                  reviewLesson: int.tryParse(state.uri.queryParameters['review_lesson'] ?? ''),
-                ),
+                builder: (context, state) {
+                  final review = int.tryParse(state.uri.queryParameters['review_lesson'] ?? '');
+                  return LessonDayGate(
+                    title: 'الحساب',
+                    day: (ref) => review != null
+                        ? AsyncData(lessonStartDay(review))
+                        : ref.watch(mathCurriculumProvider).whenData((s) => s.curriculumDay),
+                    child: MathPlayerScreen(reviewLesson: review),
+                  );
+                },
               ),
               GoRoute(
                 path: 'roadmap',
@@ -334,9 +350,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'player',
                 parentNavigatorKey: rootNavigatorKey,
-                builder: (context, state) => VisualPlayerScreen(
-                  reviewLesson: int.tryParse(state.uri.queryParameters['review_lesson'] ?? ''),
-                ),
+                builder: (context, state) {
+                  final review = int.tryParse(state.uri.queryParameters['review_lesson'] ?? '');
+                  return LessonDayGate(
+                    title: 'التنمية البصرية',
+                    day: (ref) => review != null
+                        ? AsyncData(lessonStartDay(review))
+                        : ref.watch(visualCurriculumProvider).whenData((s) => s.curriculumDay),
+                    child: VisualPlayerScreen(reviewLesson: review),
+                  );
+                },
               ),
               GoRoute(
                 path: 'roadmap',
@@ -364,9 +387,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'player',
                 parentNavigatorKey: rootNavigatorKey,
-                builder: (context, state) => EmotionalPlayerScreen(
-                  reviewLesson: int.tryParse(state.uri.queryParameters['review_lesson'] ?? ''),
-                ),
+                builder: (context, state) {
+                  final review = int.tryParse(state.uri.queryParameters['review_lesson'] ?? '');
+                  return LessonDayGate(
+                    title: 'الذكاء العاطفي',
+                    day: (ref) => review != null
+                        ? AsyncData(lessonStartDay(review))
+                        : ref.watch(emotionalCurriculumProvider).whenData((s) => s.curriculumDay),
+                    child: EmotionalPlayerScreen(reviewLesson: review),
+                  );
+                },
               ),
               GoRoute(
                 path: 'roadmap',
@@ -394,10 +424,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'player',
                 parentNavigatorKey: rootNavigatorKey,
-                builder: (context, state) => QuranPlayerScreen(
-                  reviewKhatmah: int.tryParse(state.uri.queryParameters['review_khatmah'] ?? ''),
-                  reviewDay: int.tryParse(state.uri.queryParameters['review_day'] ?? ''),
-                ),
+                builder: (context, state) {
+                  final khatmah = int.tryParse(state.uri.queryParameters['review_khatmah'] ?? '');
+                  final day = int.tryParse(state.uri.queryParameters['review_day'] ?? '');
+                  return LessonDayGate(
+                    title: 'القرآن',
+                    day: (ref) {
+                      if (khatmah != null && day != null) {
+                        final first = (day - 1) * dailySessionsForKhatmah(khatmah) + 1;
+                        return AsyncData(quranCumulativeDay(khatmah, first));
+                      }
+                      final session = ref.watch(quranCurriculumProvider).currentSession;
+                      return AsyncData(quranCumulativeDay(session.khatmahIndex, session.sessionIndex));
+                    },
+                    child: QuranPlayerScreen(reviewKhatmah: khatmah, reviewDay: day),
+                  );
+                },
               ),
               GoRoute(
                 path: 'celebration/:khatmahIndex',
@@ -425,7 +467,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
     errorBuilder: (context, state) => Scaffold(
       body: Center(
-        child: Text('Route not found: ${state.uri}'),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('الصفحة دي مش موجودة'),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => context.go(AppRoutes.home),
+              child: const Text('الرجوع للرئيسية'),
+            ),
+          ],
+        ),
       ),
     ),
   );

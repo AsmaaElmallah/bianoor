@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/storage/prefs_service.dart';
-import '../../../ai/presentation/widgets/daily_plan_card.dart';
+import '../../../ai/presentation/widgets/ai_launcher.dart';
+import '../../../subscription/presentation/widgets/subscribe_banner.dart';
 import '../../../timeline/presentation/widgets/timeline_home_card.dart';
 import '../../domain/home_menu_data.dart';
 import '../widgets/home_hero_card.dart';
@@ -21,19 +22,24 @@ class HomeDashboardTab extends ConsumerWidget {
         .where((s) => !_navOnlySectionIds.contains(s.id))
         .toList();
 
-    return ListView(
-      padding: const EdgeInsets.only(bottom: 24),
+    return Stack(
       children: [
-        HomeHeroCard(babyName: babyName),
-        const SizedBox(height: 16),
-        DailyPlanCard(babyName: babyName),
-        const SizedBox(height: 12),
-        const TimelineHomeCard(),
-        const SizedBox(height: 16),
-        for (var i = 0; i < sections.length; i++) ...[
-          HomeSectionBlock(section: sections[i]),
-          if (i < sections.length - 1) const SizedBox(height: 24),
-        ],
+        ListView(
+          // Room for the floating assistant button over the last section.
+          padding: const EdgeInsets.only(bottom: 100),
+          children: [
+            HomeHeroCard(babyName: babyName),
+            const SizedBox(height: 16),
+            const SubscribeBanner(),
+            const TimelineHomeCard(),
+            const SizedBox(height: 16),
+            for (var i = 0; i < sections.length; i++) ...[
+              HomeSectionBlock(section: sections[i]),
+              if (i < sections.length - 1) const SizedBox(height: 24),
+            ],
+          ],
+        ),
+        const PositionedDirectional(end: 16, bottom: 16, child: AiLauncherButton()),
       ],
     );
   }

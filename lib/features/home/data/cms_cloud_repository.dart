@@ -36,7 +36,7 @@ class CmsCloudRepository {
           ParentingArticle(
             id: row['id'] as String,
             title: row['title'] as String? ?? '',
-            subtitle: row['slug'] as String? ?? '',
+            subtitle: '',
             body: row['body'] as String? ?? '',
           ),
       ];

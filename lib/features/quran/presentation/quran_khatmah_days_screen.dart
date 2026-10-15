@@ -6,6 +6,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
+import '../../subscription/application/premium_access.dart';
 import '../application/quran_curriculum_provider.dart';
 import '../domain/quran_age_schedule.dart';
 import 'widgets/tactile/quran_journey_node.dart';
@@ -21,6 +22,7 @@ class QuranKhatmahDaysScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(quranCurriculumProvider);
+    final unlocked = ref.watch(unlockedLessonDaysProvider).valueOrNull;
     final progress = state.progress;
     final daily = dailySessionsForKhatmah(khatmahIndex);
     final totalDays = daysPerKhatmahForIndex(khatmahIndex);
@@ -140,10 +142,19 @@ class QuranKhatmahDaysScreen extends ConsumerWidget {
           final dx = quranJourneyPathOffsets[(day - 1) % quranJourneyPathOffsets.length];
           final isDone = day <= completedDays;
           final isActive = isCurrentKhatmah && !khatmahDone && day == currentDay;
-          final isLocked = !isDone && !isActive;
+          final paid = unlocked != null &&
+              quranCumulativeDay(khatmahIndex, (day - 1) * daily + 1) <= unlocked;
+          final isLocked = !isDone && !isActive && !paid;
+          final needsPlan = isActive && unlocked != null && !paid;
+          final reviewPath =
+              '${AppRoutes.quranPlayer}?review_khatmah=$khatmahIndex&review_day=$day';
 
           String? subtitle;
-          if (isActive && partialToday > 0) {
+          if (!isDone && !isActive && paid) {
+            subtitle = 'مفتوح';
+          } else if (needsPlan) {
+            subtitle = 'مقفول — محتاج باقة';
+          } else if (isActive && partialToday > 0) {
             subtitle = 'جلسة $partialToday من $daily';
           } else if (isDone) {
             subtitle = '$daily جلسات مكتملة';
@@ -159,13 +170,14 @@ class QuranKhatmahDaysScreen extends ConsumerWidget {
                 isDone: isDone,
                 isActive: isActive,
                 isLocked: isLocked,
-                speechBubble: isActive ? 'ابدأ الآن' : null,
-                onTap: isActive
+                needsPlan: needsPlan,
+                speechBubble: isActive ? (needsPlan ? 'افتحي بالباقة' : 'ابدأ الآن') : null,
+                onTap: needsPlan
+                    ? () => openPlansForLessons(context, ref)
+                    : isActive
                     ? () => context.push(AppRoutes.quranPlayer)
-                    : isDone
-                        ? () => context.push(
-                              '${AppRoutes.quranPlayer}?review_khatmah=$khatmahIndex&review_day=$day',
-                            )
+                    : !isLocked
+                        ? () => context.push(reviewPath)
                         : null,
               ),
             ),

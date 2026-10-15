@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
+import '../../../core/constants/app_assets.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
@@ -31,7 +32,12 @@ class VisualRoadmapScreen extends StatelessWidget {
             color: AppColors.secondaryContainer.withValues(alpha: 0.35),
             child: Column(
               children: [
-                const Icon(Symbols.visibility, size: 56, color: AppColors.secondary, fill: 1),
+                Image.asset(
+                  AppAssets.heroVisual,
+                  height: 150,
+                  errorBuilder: (_, __, ___) =>
+                      const Icon(Symbols.visibility, size: 56, color: AppColors.secondary, fill: 1),
+                ),
                 const SizedBox(height: 12),
                 Text(
                   'منهج التحفيز البصري',

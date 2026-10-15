@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/constants/app_art.dart';
 import '../../../../core/storage/prefs_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/application/auth_session_provider.dart';
@@ -19,10 +20,7 @@ class HomeHeader extends ConsumerWidget {
     final theme = Theme.of(context);
     final babyName = ref.watch(activeChildProvider).valueOrNull?.name ??
         ref.watch(prefsServiceProvider).getBabyName();
-    final authUser = ref.watch(authSessionProvider).valueOrNull;
-    final greetingName = authUser?.name ??
-        authUser?.email.split('@').first ??
-        'ضيفة';
+    final greetingName = ref.watch(authSessionProvider).valueOrNull?.displayName;
 
     return Row(
       children: [
@@ -33,7 +31,9 @@ class HomeHeader extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'أهلاً، $greetingName',
+                greetingName == null ? 'أهلاً يا ماما' : 'أهلاً، $greetingName',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: AppColors.onSurface,
@@ -60,7 +60,8 @@ class HomeHeader extends ConsumerWidget {
             boxShadow: AppShadows.clayLift,
           ),
           child: IconButton(
-            icon: const Icon(Icons.settings_outlined, color: AppColors.primary, size: 24),
+            icon: Image.asset(AppArt.gear, width: 28, height: 28),
+            tooltip: 'الإعدادات',
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute<void>(
@@ -82,7 +83,8 @@ class HomeHeader extends ConsumerWidget {
             boxShadow: AppShadows.clayLift,
           ),
           child: IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: AppColors.tertiary, size: 24),
+            icon: Image.asset(AppArt.bell, width: 28, height: 28),
+            tooltip: 'الإشعارات',
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute<void>(

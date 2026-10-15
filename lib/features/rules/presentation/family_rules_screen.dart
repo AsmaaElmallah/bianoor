@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
-import 'package:url_launcher/url_launcher.dart';
-
-import '../../../core/constants/app_legal.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/storage/prefs_service.dart';
 import '../../../core/theme/app_colors.dart';
@@ -13,6 +10,7 @@ import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../../shared/widgets/editorial_card.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
+import '../../../shared/widgets/icon_3d.dart';
 
 class _Rule {
   const _Rule({required this.icon, required this.color, required this.text});
@@ -59,7 +57,7 @@ class _FamilyRulesScreenState extends ConsumerState<FamilyRulesScreen> {
 
   Future<void> _onContinue() async {
     await ref.read(prefsServiceProvider).setRulesAccepted(true);
-    if (mounted) context.go(AppRoutes.subscription);
+    if (mounted) context.go(AppRoutes.onboardingQuestions);
   }
 
   @override
@@ -124,7 +122,7 @@ class _FamilyRulesScreenState extends ConsumerState<FamilyRulesScreen> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(rule.icon, color: rule.color, size: 24, fill: 1),
+                        Icon3D(art: null, icon: rule.icon, color: rule.color, size: 34),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
@@ -141,29 +139,7 @@ class _FamilyRulesScreenState extends ConsumerState<FamilyRulesScreen> {
                 ),
               ),
 
-              const SizedBox(height: 8),
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 16,
-                children: [
-                  TextButton(
-                    onPressed: () => launchUrl(
-                      Uri.parse(AppLegal.privacyPolicyUrl),
-                      mode: LaunchMode.externalApplication,
-                    ),
-                    child: const Text('سياسة الخصوصية'),
-                  ),
-                  TextButton(
-                    onPressed: () => launchUrl(
-                      Uri.parse(AppLegal.termsUrl),
-                      mode: LaunchMode.externalApplication,
-                    ),
-                    child: const Text('الشروط والأحكام'),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 4),
+              const SizedBox(height: 12),
               Center(
                 child: Text(
                   'نسأل الله لنا ولكم كل التوفيق والنجاح',

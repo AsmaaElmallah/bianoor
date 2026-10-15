@@ -5,7 +5,6 @@ import 'package:material_symbols_icons/symbols.dart';
 
 import '../../../../../core/constants/app_assets.dart';
 import '../../../../../core/theme/app_colors.dart';
-import '../../../../../core/theme/app_shadows.dart';
 
 /// Floating Quran + mascot cluster for the tactile player (_1q).
 class QuranFloatingHero extends StatefulWidget {
@@ -70,45 +69,15 @@ class _QuranFloatingHeroState extends State<QuranFloatingHero>
                 ],
               ),
             ),
-            Container(
-              width: 140,
-              height: 140,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceContainerLowest,
-                borderRadius: BorderRadius.circular(36),
-                border: Border.all(color: AppColors.primaryContainer, width: 4),
-                boxShadow: AppShadows.clayLift,
-              ),
-              child: const Icon(
+            Image.asset(
+              AppAssets.heroQuran,
+              height: 210,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => const Icon(
                 Symbols.menu_book,
                 size: 72,
                 color: AppColors.primary,
                 fill: 1,
-              ),
-            ),
-            Positioned(
-              right: 24,
-              bottom: 8,
-              child: Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.secondaryContainer, width: 3),
-                  boxShadow: AppShadows.soft,
-                ),
-                child: ClipOval(
-                  child: Image.asset(
-                    AppAssets.logoBaby,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const Icon(
-                      Symbols.child_care,
-                      size: 40,
-                      color: AppColors.primary,
-                      fill: 1,
-                    ),
-                  ),
-                ),
               ),
             ),
             if (widget.playing)

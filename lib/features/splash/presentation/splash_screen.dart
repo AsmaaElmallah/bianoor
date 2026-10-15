@@ -204,7 +204,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   ),
                   const SizedBox(height: 48),
                   Text(
-                    'المربي اللطيف',
+                    'بيانور',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.displayLarge?.copyWith(
                       fontWeight: FontWeight.w800,
@@ -244,7 +244,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   ),
                   const SizedBox(height: 26),
                   Text(
-                    'LULLABY LEARNING  •  v1.0',
+                    'BAYANOUR',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: AppColors.onSurfaceVariant.withValues(alpha: 0.38),
                       fontWeight: FontWeight.w500,

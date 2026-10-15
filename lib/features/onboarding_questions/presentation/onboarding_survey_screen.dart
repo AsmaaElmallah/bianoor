@@ -114,7 +114,7 @@ class _OnboardingSurveyScreenState extends ConsumerState<OnboardingSurveyScreen>
                   ),
                   Expanded(
                     child: Text(
-                      'المربي اللطيف',
+                      'بيانور',
                       textAlign: TextAlign.center,
                       style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                     ),

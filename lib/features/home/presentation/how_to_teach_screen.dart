@@ -83,13 +83,13 @@ class HowToTeachScreen extends ConsumerWidget {
                       ),
                     ),
                     error: (_, __) => const Text(
-                      'تعذّر تحميل المقالات من السحابة',
+                      'تعذّر تحميل المقالات، اتأكدي من الإنترنت.',
                       textAlign: TextAlign.center,
                     ),
                     data: (articles) {
                       if (articles.isEmpty) {
                         return const Text(
-                          'لا توجد مقالات منشورة من الإدارة بعد.',
+                          'المقالات هتتضاف قريباً.',
                           textAlign: TextAlign.center,
                         );
                       }

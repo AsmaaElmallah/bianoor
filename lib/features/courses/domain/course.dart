@@ -60,11 +60,8 @@ class Course {
     required this.description,
     required this.instructorName,
     required this.accessType,
-    required this.priceLabel,
     this.coverUrl,
     this.lessonCount = 0,
-    this.storeProductIdAndroid,
-    this.storeProductIdIos,
     this.priceUsd,
     this.categoryLabel = '',
     this.instructorTitle = '',
@@ -87,10 +84,7 @@ class Course {
   final String guaranteeNote;
   final String? coverUrl;
   final CourseAccessType accessType;
-  final String priceLabel;
   final int lessonCount;
-  final String? storeProductIdAndroid;
-  final String? storeProductIdIos;
   final double? priceUsd;
 
   String get accessLabel {
@@ -100,7 +94,7 @@ class Course {
       case CourseAccessType.subscription:
         return 'ضمن الباقة';
       case CourseAccessType.paid:
-        return priceLabel.isNotEmpty ? priceLabel : 'مدفوعة';
+        return formatUsd(priceUsd) ?? 'مدفوعة';
     }
   }
 
@@ -118,10 +112,7 @@ class Course {
       instructorName: row['instructor_name'] as String? ?? '',
       coverUrl: row['cover_url'] as String?,
       accessType: CourseAccessType.fromDb(row['access_type'] as String?),
-      priceLabel: row['price_label'] as String? ?? '',
       lessonCount: count,
-      storeProductIdAndroid: _nonEmpty(row['store_product_id_android']),
-      storeProductIdIos: _nonEmpty(row['store_product_id_ios']),
       priceUsd: parseUsd(row['price_usd']),
       categoryLabel: row['category_label'] as String? ?? '',
       instructorTitle: row['instructor_title'] as String? ?? '',

@@ -9,6 +9,7 @@ import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
 import '../../quran/presentation/widgets/tactile/tactile_clay_card.dart';
 import '../data/library_content_repository.dart';
 import '../domain/library_media_catalog.dart';
+import '../../../shared/widgets/icon_3d.dart';
 
 /// قائمة مقاطع YouTube لفئة (طبيعة / موسيقى / تهويدات).
 class LibraryMediaListScreen extends ConsumerWidget {
@@ -30,7 +31,7 @@ class LibraryMediaListScreen extends ConsumerWidget {
       error: (_, __) => Scaffold(
         backgroundColor: AppColors.background,
         appBar: QuranTactileAppBar(title: 'المحتوى', onBack: () => context.pop()),
-        body: const Center(child: Text('تعذّر تحميل المحتوى من السحابة')),
+        body: const Center(child: Text('تعذّر تحميل المحتوى، اتأكدي من الإنترنت.')),
       ),
       data: (category) => _buildBody(context, ref, theme, category),
     );
@@ -60,7 +61,7 @@ class LibraryMediaListScreen extends ConsumerWidget {
           child: Padding(
             padding: EdgeInsets.all(24),
             child: Text(
-              'لا يوجد محتوى منشور من الإدارة بعد.',
+              'المحتوى هيتضاف قريباً.',
               textAlign: TextAlign.center,
             ),
           ),
@@ -90,7 +91,7 @@ class LibraryMediaListScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    Icon(category.icon, color: AppColors.primary, size: 32, fill: 1),
+                    Icon3D(art: null, icon: category.icon, color: AppColors.primary, size: 44),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(

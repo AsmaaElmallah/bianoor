@@ -13,6 +13,7 @@ class QuranJourneyNode extends StatelessWidget {
     required this.isActive,
     required this.isLocked,
     this.isBonus = false,
+    this.needsPlan = false,
     this.subtitle,
     this.speechBubble,
     this.onTap,
@@ -25,6 +26,9 @@ class QuranJourneyNode extends StatelessWidget {
   final bool isActive;
   final bool isLocked;
   final bool isBonus;
+
+  /// The active day is not covered by a paid plan yet; tapping opens the plans.
+  final bool needsPlan;
   final VoidCallback? onTap;
 
   @override
@@ -67,7 +71,12 @@ class QuranJourneyNode extends StatelessWidget {
             color: AppColors.tertiary,
             depth: AppColors.tertiaryDim,
             onTap: onTap,
-            child: const Icon(Symbols.play_arrow, color: Colors.white, size: 44, fill: 1),
+            child: Icon(
+              needsPlan ? Symbols.lock : Symbols.play_arrow,
+              color: Colors.white,
+              size: needsPlan ? 38 : 44,
+              fill: 1,
+            ),
           ),
           if (speechBubble != null)
             Positioned(
@@ -89,16 +98,25 @@ class QuranJourneyNode extends StatelessWidget {
           fill: 1,
         ),
       );
-    } else {
-      circle = QuranJourneyClayCircle(
+    } else if (isLocked) {
+      circle = const QuranJourneyClayCircle(
         size: 76,
         color: AppColors.surfaceContainerHigh,
         depth: AppColors.outlineVariant,
-        onTap: isLocked ? null : onTap,
-        child: Icon(
-          isLocked ? Symbols.lock : Symbols.star,
-          color: AppColors.outline,
-          size: 34,
+        child: Icon(Symbols.lock, color: AppColors.outline, size: 34),
+      );
+    } else {
+      // Paid ahead: open to play any time, not only on its calendar day.
+      circle = QuranJourneyClayCircle(
+        size: 76,
+        color: AppColors.primaryContainer,
+        depth: AppColors.primary.withValues(alpha: 0.45),
+        onTap: onTap,
+        child: const Icon(
+          Symbols.play_arrow,
+          color: AppColors.primary,
+          size: 40,
+          fill: 1,
         ),
       );
     }

@@ -8,13 +8,13 @@ import '../../../core/storage/prefs_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_shadows.dart';
-import '../../../shared/widgets/app_logo_avatar.dart';
 import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../../shared/widgets/floating_decoration.dart';
 import '../../../shared/widgets/tactile/tactile_clay_button.dart';
 import '../../../shared/widgets/tactile/tactile_clay_card.dart';
 import '../../../shared/widgets/tactile/tactile_clay_progress.dart';
 import '../../../shared/widgets/tactile/tactile_clay_toggle.dart';
+import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
 import '../data/assessments_cloud_repository.dart';
 import '../domain/aptitude_test_0_2_data.dart';
 
@@ -129,9 +129,9 @@ class _AptitudeTestScreenState extends ConsumerState<AptitudeTestScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(72),
-        child: _AptitudeTactileHeader(onBack: () => context.pop()),
+      appBar: QuranTactileAppBar(
+        title: aptitudeTest0to2ScreenTitle,
+        onBack: () => context.pop(),
       ),
       body: asyncCloud.when(
         loading: () => const Stack(children: [
@@ -140,7 +140,7 @@ class _AptitudeTestScreenState extends ConsumerState<AptitudeTestScreen> {
         ]),
         error: (_, __) => const Stack(children: [
           BeboShellBackground(showBottomCurve: false),
-          Center(child: Text('تعذّر تحميل الاختبار من السحابة')),
+          Center(child: Text('تعذّر تحميل الاختبار، اتأكدي من الإنترنت.')),
         ]),
         data: (cloud) {
           if (cloud == null || cloud.questions.isEmpty) {
@@ -150,7 +150,7 @@ class _AptitudeTestScreenState extends ConsumerState<AptitudeTestScreen> {
                 child: Padding(
                   padding: EdgeInsets.all(24),
                   child: Text(
-                    'لا توجد أسئلة منشورة لاختبار القدرات من الإدارة بعد.\nأنشئي assessment بمعرّف aptitude_0_2.',
+                    'اختبار القدرات بيتجهز، وهيكون متاح قريباً.',
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -177,7 +177,7 @@ class _AptitudeTestScreenState extends ConsumerState<AptitudeTestScreen> {
                 child: Padding(
                   padding: EdgeInsets.all(24),
                   child: Text(
-                    'أسئلة السحابة موجودة لكن بدون بادئة تصنيف صحيحة (مثل physical_1).',
+                    'الاختبار ده مش متاح دلوقتي، جربي بعدين.',
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -230,58 +230,6 @@ class _AptitudeTestScreenState extends ConsumerState<AptitudeTestScreen> {
             ],
           );
         },
-      ),
-    );
-  }
-}
-
-class _AptitudeTactileHeader extends StatelessWidget {
-  const _AptitudeTactileHeader({required this.onBack});
-
-  final VoidCallback onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Material(
-      color: AppColors.surfaceContainerLow,
-      elevation: 0,
-      child: SafeArea(
-        bottom: false,
-        child: Container(
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLow,
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
-            boxShadow: AppShadows.clayLift,
-          ),
-          padding: const EdgeInsets.fromLTRB(8, 8, 16, 12),
-          child: Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_forward_ios_rounded, size: 18),
-                color: AppColors.primary,
-                onPressed: onBack,
-              ),
-              Expanded(
-                child: Text(
-                  aptitudeTest0to2ScreenTitle,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.primary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 8),
-              AppLogoAvatar(
-                size: 40,
-                imageAsset: AppAssets.logoBaby,
-                backgroundColor: AppColors.primaryContainer,
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

@@ -59,7 +59,7 @@ class _CommunityFeedbackScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text(
-            'تعذّر الإرسال — سجّلي الدخول وتأكدي من اتصال السحابة.',
+            'تعذّر الإرسال، اتأكدي من الإنترنت وجربي تاني.',
           ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: AppRadius.brMd),

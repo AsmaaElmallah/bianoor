@@ -9,6 +9,7 @@ import '../../../shared/widgets/tactile/tactile_clay_card.dart';
 import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
 import '../data/community_cloud_repository.dart';
 import '../domain/community_faq_data.dart';
+import '../../../shared/widgets/mascot_message.dart';
 
 class CommunityFaqScreen extends ConsumerWidget {
   const CommunityFaqScreen({super.key});
@@ -31,16 +32,14 @@ class CommunityFaqScreen extends ConsumerWidget {
               loading: () => const Center(
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
-              error: (_, __) => const Center(
-                child: Text('تعذّر تحميل الأسئلة من السحابة'),
-              ),
+              error: (_, __) => const MascotMessage.error(),
               data: (items) {
                 if (items.isEmpty) {
                   return const Center(
                     child: Padding(
                       padding: EdgeInsets.all(24),
                       child: Text(
-                        'لا توجد أسئلة منشورة من الإدارة بعد.',
+                        'الأسئلة هتتضاف قريباً.',
                         textAlign: TextAlign.center,
                       ),
                     ),

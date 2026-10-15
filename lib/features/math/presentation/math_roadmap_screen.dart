@@ -33,8 +33,8 @@ class MathRoadmapScreen extends StatelessWidget {
                 ClipRRect(
                   borderRadius: AppRadius.brLg,
                   child: Image.asset(
-                    AppAssets.mascotSpoonSitting,
-                    height: 140,
+                    AppAssets.heroMath,
+                    height: 150,
                     fit: BoxFit.contain,
                     errorBuilder: (_, __, ___) => const Icon(
                       Symbols.child_care,

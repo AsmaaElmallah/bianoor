@@ -6,14 +6,12 @@ class PaymentItem {
     required this.kind,
     required this.id,
     required this.title,
-    this.priceLabel = '',
     this.priceUsd,
   });
 
   final PaymentKind kind;
   final String id;
   final String title;
-  final String priceLabel;
   final double? priceUsd;
 
   String? get usdLabel => formatUsd(priceUsd);

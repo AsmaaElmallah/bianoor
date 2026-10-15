@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
+import '../../ai/presentation/widgets/ai_launcher.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/storage/prefs_service.dart';
 import '../../../core/theme/app_colors.dart';
@@ -80,6 +81,17 @@ class TimelineScreen extends ConsumerWidget {
                       style: theme.textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceVariant, height: 1.5),
                     ),
                     const SizedBox(height: 12),
+                    _CountryPicker(country: d.country),
+                    if (!d.hasVaccines)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                          'جدول تطعيمات ${vaccineCountries[d.country]} لسه بيتراجع مع الأخصائية وهيظهر هنا قريب. '
+                          'لحد كده امشي على كارت التطعيم من المركز الصحي.',
+                          style: theme.textTheme.bodySmall?.copyWith(color: AppColors.error, height: 1.5),
+                        ),
+                      ),
+                    const SizedBox(height: 8),
                     OutlinedButton.icon(
                       onPressed: () => context.push(AppRoutes.stoolColors),
                       icon: const Icon(Symbols.palette),
@@ -118,6 +130,34 @@ class TimelineScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _CountryPicker extends ConsumerWidget {
+  const _CountryPicker({required this.country});
+
+  final String country;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return DropdownButtonFormField<String>(
+      initialValue: country,
+      isExpanded: true,
+      decoration: const InputDecoration(
+        labelText: 'جدول التطعيمات حسب بلدك',
+        prefixIcon: Icon(Symbols.public),
+        border: OutlineInputBorder(),
+        isDense: true,
+      ),
+      items: [
+        for (final e in vaccineCountries.entries) DropdownMenuItem(value: e.key, child: Text(e.value)),
+      ],
+      onChanged: (code) async {
+        if (code == null || code == country) return;
+        await ref.read(prefsServiceProvider).setVaccineCountry(code);
+        ref.invalidate(timelineDataProvider);
+      },
     );
   }
 }
@@ -265,7 +305,7 @@ class _ItemCard extends ConsumerWidget {
                   final q = item.kind == TimelineKind.feeding
                       ? 'عايزة أعرف أكتر عن: ${item.title}'
                       : 'إزاي أساعد طفلي في: ${item.title}؟';
-                  context.push('${AppRoutes.aiAssistant}?q=${Uri.encodeComponent(q)}');
+                  showAiChatPopup(context, initialQuestion: q);
                 },
                 icon: const Icon(Symbols.chat, size: 18),
                 label: const Text('اسألي مساعدة بيانور'),

@@ -175,7 +175,7 @@ class _QuranPlayerScreenState extends ConsumerState<QuranPlayerScreen> {
       }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('انتهت مراجعة اليوم')),
+        const SnackBar(content: Text('خلصت جلسات اليوم ده 👏')),
       );
       context.pop();
       return;
@@ -240,7 +240,7 @@ class _QuranPlayerScreenState extends ConsumerState<QuranPlayerScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: QuranTactileAppBar(
-        title: _isReview ? (_reviewTitle ?? 'مراجعة') : state.currentSession.title,
+        title: _isReview ? (_reviewTitle ?? 'القرآن') : state.currentSession.title,
         onBack: () => context.pop(),
       ),
       body: Stack(
@@ -256,7 +256,7 @@ class _QuranPlayerScreenState extends ConsumerState<QuranPlayerScreen> {
                 children: [
                   Text(
                     _isReview
-                        ? 'مراجعة · الجلسة ${_reviewPos + 1} من ${_reviewSessions.length}'
+                        ? 'الجلسة ${_reviewPos + 1} من ${_reviewSessions.length}'
                         : 'الجلسة ${state.progress.sessionsCompletedToday + 1} من $daily اليوم',
                     style: theme.textTheme.labelLarge?.copyWith(
                       color: AppColors.primary,
@@ -336,7 +336,7 @@ class _QuranPlayerScreenState extends ConsumerState<QuranPlayerScreen> {
             if (!_audioLoaded) ...[
               const SizedBox(height: 12),
               Text(
-                'لا يوجد صوت منشور لهذه الجلسة من الإدارة بعد.',
+                'صوت الجلسة دي هيتضاف قريباً.',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: AppColors.onSurfaceVariant,

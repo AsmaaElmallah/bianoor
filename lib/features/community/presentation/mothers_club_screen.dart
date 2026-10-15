@@ -5,12 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
-import '../../../core/constants/app_assets.dart';
 import '../../../core/storage/prefs_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_shadows.dart';
-import '../../../shared/widgets/app_logo_avatar.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../../shared/widgets/tactile/tactile_clay_card.dart';
@@ -18,9 +16,13 @@ import '../../library/domain/library_age_band.dart';
 import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
 import '../application/club_feed_provider.dart';
 import '../data/community_cloud_repository.dart';
+import '../../../core/constants/app_art.dart';
+import 'club_group_screen.dart';
 import 'club_new_post_screen.dart';
 import 'club_post_detail_screen.dart';
+import 'widgets/club_post_card.dart';
 import 'widgets/club_shared.dart';
+import '../../../shared/widgets/icon_3d.dart';
 
 /// نادي الأمهات — المناقشات تتصنّف حسب عمر البيبي.
 class MothersClubScreen extends ConsumerStatefulWidget {
@@ -150,7 +152,7 @@ class _MothersClubScreenState extends ConsumerState<MothersClubScreen> {
     final babyBand = babyAgeBandFromPrefs(ref.read(prefsServiceProvider));
     final chips = _ageChips;
 
-    _ClubPost toCard(MothersClubPost p) => _ClubPost(
+    ClubPostView toCard(MothersClubPost p) => ClubPostView(
           source: p,
           author: p.displayAuthor,
           timeAgo: clubTimeAgo(p.createdAt),
@@ -208,7 +210,7 @@ class _MothersClubScreenState extends ConsumerState<MothersClubScreen> {
               separatorBuilder: (_, __) => const SizedBox(height: 16),
               itemBuilder: (context, i) {
                 final p = feed.posts[i];
-                return _PostCard(
+                return ClubPostCard(
                   post: toCard(p),
                   onTap: () => _openPost(p),
                   onLike: () => _toggleLike(p),
@@ -255,6 +257,8 @@ class _MothersClubScreenState extends ConsumerState<MothersClubScreen> {
           SafeArea(
             child: RefreshIndicator(
               onRefresh: () async {
+                ref.invalidate(clubGroupsProvider);
+                ref.invalidate(myClubGroupsProvider);
                 ref.invalidate(mothersClubPostsProvider);
                 ref.invalidate(mothersClubLikesProvider);
                 ref.invalidate(mothersClubSavesProvider);
@@ -274,6 +278,7 @@ class _MothersClubScreenState extends ConsumerState<MothersClubScreen> {
                       padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
                       sliver: SliverToBoxAdapter(child: _SearchField(onChanged: _onSearchChanged)),
                     ),
+                    const SliverToBoxAdapter(child: _GroupsStrip()),
                     SliverPadding(
                       padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
                       sliver: SliverToBoxAdapter(
@@ -350,6 +355,74 @@ class _MothersClubScreenState extends ConsumerState<MothersClubScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Admin-made groups (e.g. one per course). Hidden when there are none.
+class _GroupsStrip extends ConsumerWidget {
+  const _GroupsStrip();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final groups = ref.watch(clubGroupsProvider).valueOrNull ?? const <MothersClubGroup>[];
+    if (groups.isEmpty) return const SizedBox.shrink();
+    final mine = ref.watch(myClubGroupsProvider).valueOrNull ?? const <String>{};
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+          child: Text('الجروبات', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+        ),
+        SizedBox(
+          height: 178,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+            itemCount: groups.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, i) {
+              final g = groups[i];
+              final joined = mine.contains(g.id);
+              return TactileClayCard(
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => ClubGroupScreen(groupId: g.id, initial: g)),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                color: joined ? AppColors.primaryFixed.withValues(alpha: 0.7) : AppColors.surfaceContainerLowest,
+                borderRadius: AppRadius.brLg,
+                child: SizedBox(
+                  width: 140,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image.asset(AppArt.forKey(g.iconKey), width: 52, height: 52),
+                      const SizedBox(height: 8),
+                      Text(
+                        g.title,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        joined ? 'إنتي عضوة ✓' : '${g.membersCount} عضوة',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: joined ? AppColors.primary : AppColors.outline,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
@@ -561,7 +634,7 @@ class _CategoryCard extends StatelessWidget {
                 ],
               ),
               alignment: Alignment.center,
-              child: Icon(category.icon, size: 32, color: category.iconColor, fill: 1),
+              child: Icon3D(art: null, icon: category.icon, size: 44, color: category.iconColor),
             ),
             const SizedBox(height: 10),
             Text(
@@ -581,214 +654,6 @@ class _CategoryCard extends StatelessWidget {
   }
 }
 
-class _PostCard extends StatelessWidget {
-  const _PostCard({required this.post, required this.onTap, required this.onLike, required this.onSave});
-
-  final _ClubPost post;
-  final VoidCallback onTap;
-  final VoidCallback onLike;
-  final VoidCallback onSave;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final source = post.source;
-
-    return TactileClayCard(
-      onTap: onTap,
-      color: post.muted
-          ? AppColors.surfaceContainerLow
-          : AppColors.surfaceContainerLowest,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: post.avatarTint.withValues(alpha: 0.35),
-                        shape: BoxShape.circle,
-                        boxShadow: AppShadows.soft,
-                      ),
-                      child: source.isAnonymous
-                          ? const Icon(Symbols.visibility_off, color: AppColors.onTertiaryContainer)
-                          : const AppLogoAvatar(size: 44, imageAsset: AppAssets.logoBaby),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            post.author,
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          Text(
-                            post.timeAgo,
-                            style: theme.textTheme.labelMedium?.copyWith(
-                              color: AppColors.outline,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (post.tag.isNotEmpty)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: post.tagBg,
-                    borderRadius: AppRadius.brFull,
-                  ),
-                  child: Text(
-                    post.tag,
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: post.tagFg,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          if (source.isPinned || source.hasExpertReply) ...[
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 6,
-              children: [
-                if (source.isPinned)
-                  const ClubStatusPill(
-                    text: 'مثبّت',
-                    icon: Symbols.push_pin,
-                    background: AppColors.primaryFixed,
-                    foreground: AppColors.primary,
-                  ),
-                if (source.hasExpertReply)
-                  const ClubStatusPill(
-                    text: 'ردّت الأخصائية',
-                    icon: Symbols.verified,
-                    background: Color(0xFFDDF2E3),
-                    foreground: Color(0xFF1E6B3A),
-                  ),
-              ],
-            ),
-          ],
-          if (post.mine && !source.isPublished) ...[
-            const SizedBox(height: 12),
-            Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: source.isRejected
-                  ? const ClubStatusPill(
-                      text: 'ماتنشرش',
-                      icon: Symbols.block,
-                      background: AppColors.errorContainer,
-                      foreground: AppColors.onErrorContainer,
-                    )
-                  : const ClubStatusPill(
-                      text: 'قيد المراجعة',
-                      icon: Symbols.hourglass_top,
-                      background: AppColors.tertiaryContainer,
-                      foreground: AppColors.onTertiaryContainer,
-                    ),
-            ),
-          ],
-          const SizedBox(height: 14),
-          Text(
-            post.title,
-            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            post.body,
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: AppColors.onSurfaceVariant,
-              height: 1.45,
-            ),
-          ),
-          if (source.imageUrl != null) ...[
-            const SizedBox(height: 10),
-            ClubPostImage(url: source.imageUrl!, height: 160),
-          ],
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              InkWell(
-                borderRadius: AppRadius.brFull,
-                onTap: source.isPublished ? onLike : null,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Symbols.favorite,
-                        size: 22,
-                        fill: post.liked ? 1 : 0,
-                        color: post.liked ? AppColors.error : AppColors.outline,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '${post.likes}',
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: post.liked ? AppColors.error : AppColors.outline,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
-              const Icon(Symbols.chat_bubble, size: 22, color: AppColors.outline),
-              const SizedBox(width: 6),
-              Text(
-                '${post.comments}',
-                style: theme.textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.outline,
-                ),
-              ),
-              if (source.isPublished) ...[
-                const SizedBox(width: 6),
-                InkWell(
-                  borderRadius: AppRadius.brFull,
-                  onTap: onSave,
-                  child: Padding(
-                    padding: const EdgeInsets.all(4),
-                    child: Icon(
-                      Symbols.bookmark,
-                      size: 22,
-                      fill: post.saved ? 1 : 0,
-                      color: post.saved ? AppColors.primary : AppColors.outline,
-                    ),
-                  ),
-                ),
-              ],
-              const Spacer(),
-              Text(
-                post.comments == 0 ? 'ردّي على السؤال' : 'اقري الردود',
-                style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800, color: AppColors.primary),
-              ),
-              const Icon(Symbols.chevron_left, size: 20, color: AppColors.primary),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _NewPostFab extends StatefulWidget {
   const _NewPostFab({required this.onPressed});
@@ -857,38 +722,4 @@ class _ClubCategory {
   final Color iconColor;
 }
 
-class _ClubPost {
-  const _ClubPost({
-    required this.source,
-    required this.mine,
-    required this.saved,
-    required this.author,
-    required this.timeAgo,
-    required this.tag,
-    required this.tagBg,
-    required this.tagFg,
-    required this.title,
-    required this.body,
-    required this.likes,
-    required this.comments,
-    required this.liked,
-    required this.avatarTint,
-  });
-
-  final MothersClubPost source;
-  final bool mine;
-  final bool saved;
-  final String author;
-  final String timeAgo;
-  final String tag;
-  final Color tagBg;
-  final Color tagFg;
-  final String title;
-  final String body;
-  final int likes;
-  final int comments;
-  final bool liked;
-  final Color avatarTint;
-  final bool muted = false;
-}
 

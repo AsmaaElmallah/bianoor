@@ -206,7 +206,7 @@ create policy "ai_feedback_delete" on public.ai_feedback
 insert into public.app_settings (key, value) values
   ('ai_enabled', 'true'),
   ('ai_provider', 'gemini'),
-  ('ai_model', 'gemini-2.5-flash'),
+  ('ai_model', 'gemini-3.8-flash'),
   ('ai_daily_limit', '20'),
   ('ai_global_daily_limit', '200'),
   ('ai_emergency_phone', '')

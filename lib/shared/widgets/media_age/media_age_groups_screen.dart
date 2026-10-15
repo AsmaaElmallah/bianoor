@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
+import '../../../core/constants/app_art.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../bebo_shell_background.dart';
 import '../floating_decoration.dart';
+import '../icon_3d.dart';
 import '../tactile/tactile_clay_card.dart';
 import 'media_age_hub_config.dart';
 import 'media_age_tactile_header.dart';
@@ -75,13 +77,12 @@ class MediaAgeGroupsScreen extends StatelessWidget {
                               width: 72,
                               height: 72,
                               child: FloatingDecoration(
-                                child: Icon(
+                                child: Image.asset(
                                   config.kindLabel == 'تمارين'
-                                      ? Symbols.fitness_center
-                                      : Symbols.sports_esports,
-                                  color: config.accentColor,
-                                  size: 40,
-                                  fill: 1,
+                                      ? AppArt.ball
+                                      : AppArt.teddyBear,
+                                  width: 64,
+                                  height: 64,
                                 ),
                               ),
                             ),
@@ -123,7 +124,9 @@ class MediaAgeGroupsScreen extends StatelessWidget {
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 12),
                           child: TactileClayCard(
-                            onTap: () => context.push(hubPathBuilder(group.id)),
+                            onTap: group.hasContent
+                                ? () => context.push(hubPathBuilder(group.id))
+                                : null,
                             padding: const EdgeInsets.all(16),
                             child: Row(
                               children: [
@@ -138,13 +141,14 @@ class MediaAgeGroupsScreen extends StatelessWidget {
                                     boxShadow: AppShadows.clayLift,
                                   ),
                                   alignment: Alignment.center,
-                                  child: Icon(
-                                    group.icon,
-                                    color: group.hasContent
-                                        ? AppColors.primary
-                                        : AppColors.onSurfaceVariant,
-                                    size: 28,
-                                    fill: 1,
+                                  child: Opacity(
+                                    opacity: group.hasContent ? 1 : 0.45,
+                                    child: Icon3D(
+                                      art: null,
+                                      icon: group.icon,
+                                      color: AppColors.primary,
+                                      size: 40,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 14),

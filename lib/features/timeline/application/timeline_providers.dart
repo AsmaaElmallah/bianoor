@@ -11,11 +11,14 @@ import 'timeline_reminders.dart';
 const timelineNowWindowDays = 14;
 
 class TimelineData {
-  const TimelineData({required this.child, required this.items, required this.done});
+  const TimelineData({required this.child, required this.items, required this.done, this.country = 'EG'});
 
   final GrowthChild? child;
   final List<TimelineItem> items;
   final Set<String> done;
+  final String country;
+
+  bool get hasVaccines => items.any((i) => i.kind == TimelineKind.vaccine);
 
   int? get ageDays {
     final birth = child?.birthDate;
@@ -65,11 +68,14 @@ final timelineDataProvider = FutureProvider.autoDispose<TimelineData>((ref) asyn
   final child = await ref.watch(growthRepositoryProvider).fetchActiveChild();
   if (child == null) return const TimelineData(child: null, items: [], done: {});
   final repo = ref.watch(timelineRepositoryProvider);
-  final results = await Future.wait([repo.fetchItems(), repo.fetchDone(child.id)]);
+  final picked = ref.read(prefsServiceProvider).getVaccineCountry();
+  final country = picked != null && vaccineCountries.containsKey(picked) ? picked : await repo.fetchDefaultCountry();
+  final results = await Future.wait([repo.fetchItems(country), repo.fetchDone(child.id)]);
   final data = TimelineData(
     child: child,
     items: results[0] as List<TimelineItem>,
     done: results[1] as Set<String>,
+    country: country,
   );
   if (ref.read(prefsServiceProvider).getTimelineReminders()) {
     unawaited(TimelineReminders.instance.sync(data));

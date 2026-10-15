@@ -25,6 +25,7 @@ class HomeSectionBlock extends StatelessWidget {
         HomeSectionHeading(
           title: section.title,
           accentColor: section.accentColor,
+          art: section.art,
         ),
         _SectionBody(section: section),
       ],

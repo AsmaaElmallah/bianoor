@@ -13,6 +13,7 @@ import '../../../shared/widgets/tactile/tactile_clay_progress.dart';
 import '../../../shared/widgets/tactile/tactile_clay_toggle.dart';
 import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
 import '../data/assessments_cloud_repository.dart';
+import '../../../shared/widgets/icon_3d.dart';
 
 class MotherQuizQuestion {
   const MotherQuizQuestion({required this.id, required this.text});
@@ -130,6 +131,21 @@ class _MotherQuizScreenState extends ConsumerState<MotherQuizScreen> {
     );
   }
 
+  Widget _message(String title, Widget child) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: QuranTactileAppBar(title: title, onBack: () => context.pop()),
+      body: Stack(
+        children: [
+          const BeboShellBackground(showBottomCurve: false),
+          Center(
+            child: Padding(padding: const EdgeInsets.all(24), child: child),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final shell = _shell;
@@ -143,29 +159,16 @@ class _MotherQuizScreenState extends ConsumerState<MotherQuizScreen> {
     final asyncCloud = ref.watch(cloudAssessmentProvider(widget.quizId));
 
     return asyncCloud.when(
-      loading: () => Scaffold(
-        backgroundColor: AppColors.background,
-        appBar: QuranTactileAppBar(title: shell.title, onBack: () => context.pop()),
-        body: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-      ),
-      error: (_, __) => Scaffold(
-        appBar: QuranTactileAppBar(title: shell.title, onBack: () => context.pop()),
-        body: const Center(child: Text('تعذّر تحميل الاختبار من السحابة')),
+      loading: () => _message(shell.title, const CircularProgressIndicator(strokeWidth: 2)),
+      error: (_, __) => _message(
+        shell.title,
+        const Text('تعذّر تحميل الاختبار، اتأكدي من الإنترنت.', textAlign: TextAlign.center),
       ),
       data: (cloud) {
         if (cloud == null || cloud.questions.isEmpty) {
-          return Scaffold(
-            backgroundColor: AppColors.background,
-            appBar: QuranTactileAppBar(title: shell.title, onBack: () => context.pop()),
-            body: const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text(
-                  'لا توجد أسئلة منشورة لهذا الاختبار من الإدارة بعد.',
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
+          return _message(
+            shell.title,
+            const Text('الاختبار ده بيتجهز، وهيكون متاح قريباً.', textAlign: TextAlign.center),
           );
         }
 
@@ -220,7 +223,7 @@ class _MotherQuizScreenState extends ConsumerState<MotherQuizScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Icon(shell.icon, color: AppColors.primary, size: 36, fill: 1),
+                              Icon3D(art: null, icon: shell.icon, color: AppColors.primary, size: 52),
                               const SizedBox(height: 16),
                               Text(
                                 q.text,

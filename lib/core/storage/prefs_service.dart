@@ -39,6 +39,7 @@ class PrefsService {
   static const _kFollowedInstructors = 'followed_instructors';
   static const _kSavedCourses = 'saved_courses';
   static const _kTimelineReminders = 'timeline_reminders_enabled';
+  static const _kVaccineCountry = 'vaccine_country';
 
   int getVideoIndex() => _prefs.getInt(_kVideoIndex) ?? 0;
   Future<void> setVideoIndex(int value) => _prefs.setInt(_kVideoIndex, value);
@@ -61,6 +62,10 @@ class PrefsService {
 
   bool getTimelineReminders() => _prefs.getBool(_kTimelineReminders) ?? true;
   Future<void> setTimelineReminders(bool value) => _prefs.setBool(_kTimelineReminders, value);
+
+  /// The mother's own pick; null means «use the dashboard default».
+  String? getVaccineCountry() => _prefs.getString(_kVaccineCountry);
+  Future<void> setVaccineCountry(String code) => _prefs.setString(_kVaccineCountry, code);
 
   String? getBabyName() => _prefs.getString(_kBabyName);
   Future<void> setBabyName(String name) => _prefs.setString(_kBabyName, name);
@@ -231,6 +236,19 @@ class PrefsService {
   Future<void> setJsonList(String key, List<Map<String, dynamic>> items) async {
     await _prefs.setString(key, jsonEncode(items));
   }
+
+  /// Last lesson days the server reported for [userId], used when offline.
+  int? getCachedLessonDays(String userId) => _prefs.getInt('lesson_days_$userId');
+  Future<void> setCachedLessonDays(String userId, int days) =>
+      _prefs.setInt('lesson_days_$userId', days);
+
+  DateTime? getSubscribeBannerHiddenUntil() {
+    final raw = _prefs.getString('subscribe_banner_hidden_until');
+    return raw == null ? null : DateTime.tryParse(raw);
+  }
+
+  Future<void> setSubscribeBannerHiddenUntil(DateTime until) =>
+      _prefs.setString('subscribe_banner_hidden_until', until.toIso8601String());
 }
 
 /// Provider that must be overridden in main() with an initialized instance.

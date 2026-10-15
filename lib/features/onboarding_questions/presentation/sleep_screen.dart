@@ -62,7 +62,7 @@ class _SleepScreenState extends ConsumerState<SleepScreen> {
                   ),
                   Expanded(
                     child: Text(
-                      'المربي اللطيف',
+                      'بيانور',
                       textAlign: TextAlign.center,
                       style: theme.textTheme.headlineSmall,
                     ),

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:material_symbols_icons/symbols.dart';
-
+import '../../../core/constants/app_art.dart';
+import '../../../core/constants/app_assets.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/bebo_shell_background.dart';
+import '../../../shared/widgets/mascot_message.dart';
 import '../../../shared/widgets/tactile/tactile_clay_card.dart';
 import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
 import '../data/notifications_cloud_repository.dart';
@@ -31,19 +32,15 @@ class NotificationsScreen extends ConsumerWidget {
               loading: () => const Center(
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
-              error: (_, __) => const Center(
-                child: Text('تعذّر تحميل الإشعارات'),
+              error: (_, __) => MascotMessage.error(
+                onAction: () => ref.invalidate(sentNotificationsProvider),
               ),
               data: (items) {
                 if (items.isEmpty) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(24),
-                      child: Text(
-                        'لا توجد إشعارات مرسلة من الإدارة بعد.',
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
+                  return const MascotMessage(
+                    title: 'مفيش إشعارات لسه',
+                    message: 'أول ما ينزل جديد هيوصلك هنا.',
+                    mascot: AppAssets.mascotEmpty,
                   );
                 }
                 return RefreshIndicator(

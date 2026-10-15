@@ -7,6 +7,7 @@ import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../../shared/widgets/tactile/tactile_clay_card.dart';
 import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
 import '../domain/support_topics_data.dart';
+import '../../../shared/widgets/icon_3d.dart';
 
 class SupportTopicsScreen extends StatelessWidget {
   const SupportTopicsScreen({
@@ -70,8 +71,8 @@ class _TopicTileState extends State<_TopicTile> {
         children: [
           Row(
             children: [
-              Icon(widget.topic.icon, color: AppColors.error, size: 22, fill: 1),
-              const SizedBox(width: 10),
+              Icon3D(art: null, icon: widget.topic.icon, color: AppColors.error, size: 34),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   widget.topic.title,

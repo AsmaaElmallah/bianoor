@@ -3,10 +3,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
-import '../../../core/router/app_routes.dart';
+import '../../ai/presentation/widgets/ai_launcher.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../shared/widgets/bebo_shell_background.dart';
@@ -351,7 +350,7 @@ class _GrowthBodyState extends ConsumerState<_GrowthBody> {
         if (weight != null || length != null) ...[
           const SizedBox(height: 8),
           OutlinedButton.icon(
-            onPressed: () => context.push('${AppRoutes.aiAssistant}?q=${Uri.encodeComponent(_askQuestion())}'),
+            onPressed: () => showAiChatPopup(context, initialQuestion: _askQuestion()),
             icon: const Icon(Symbols.chat),
             label: const Text('اسألي مساعدة بيانور عن نموه'),
             style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),

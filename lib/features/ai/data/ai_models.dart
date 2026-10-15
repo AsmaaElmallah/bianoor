@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 /// Replaces the `{{baby}}` placeholder the AI uses instead of the real name.
 String withBabyName(String text, String? babyName) {
   final name = (babyName ?? '').trim();
@@ -55,6 +57,37 @@ class AiMessage {
         createdAt: DateTime.now(),
       );
 
+  /// The answer while it is still being written.
+  factory AiMessage.streaming() => AiMessage(
+        id: '$streamingPrefix${DateTime.now().microsecondsSinceEpoch}',
+        isUser: false,
+        isEmergency: false,
+        content: '',
+        payload: const {'format': 'md'},
+        createdAt: DateTime.now(),
+      );
+
+  static const streamingPrefix = 'stream_';
+
+  /// A partial answer that stopped streaming (stopped or connection lost); kept on screen only.
+  AiMessage asCut() => AiMessage(
+        id: 'local_${DateTime.now().microsecondsSinceEpoch}',
+        isUser: false,
+        isEmergency: false,
+        content: content,
+        payload: {...payload, 'cut': true},
+        createdAt: createdAt,
+      );
+
+  AiMessage copyWith({String? content, Map<String, dynamic>? payload}) => AiMessage(
+        id: id,
+        isUser: isUser,
+        isEmergency: isEmergency,
+        content: content ?? this.content,
+        payload: payload ?? this.payload,
+        createdAt: createdAt,
+      );
+
   final String id;
   final bool isUser;
   final bool isEmergency;
@@ -63,6 +96,15 @@ class AiMessage {
   final DateTime createdAt;
 
   bool get isLocal => id.startsWith('local_');
+
+  bool get isStreaming => id.startsWith(streamingPrefix);
+
+  /// Free-form markdown answer (new style); older answers are structured cards.
+  bool get isMarkdown => payload['format'] == 'md';
+
+  /// Red steps shown above an answer whose question looked like an emergency.
+  Map<String, dynamic>? get emergency =>
+      payload['emergency'] is Map ? Map<String, dynamic>.from(payload['emergency'] as Map) : null;
 
   String get summary => (payload['summary'] as String?)?.trim().isNotEmpty == true
       ? payload['summary'] as String
@@ -155,12 +197,44 @@ String aiStatusMessage(AiStatus status) => switch (status) {
       _ => 'حصلت مشكلة في الاتصال، جربي تاني.',
     };
 
-class AiAskResult {
-  const AiAskResult({required this.status, this.conversationId, this.message});
+/// Status text for the mother; in debug builds the server reason is appended.
+String aiStatusText(AiStatus status, String? detail) {
+  final text = aiStatusMessage(status);
+  return kDebugMode && detail != null && detail.isNotEmpty ? '$text\n($detail)' : text;
+}
 
-  final AiStatus status;
+enum AiStreamEventType { meta, delta, done, failed }
+
+/// One event of a streamed answer: [meta] first, then [delta]s, then [done] or [failed].
+class AiStreamEvent {
+  const AiStreamEvent._(
+    this.type, {
+    this.text = '',
+    this.conversationId,
+    this.emergency,
+    this.message,
+    this.status = AiStatus.ok,
+    this.detail,
+  });
+
+  const AiStreamEvent.meta({String? conversationId, Map<String, dynamic>? emergency})
+      : this._(AiStreamEventType.meta, conversationId: conversationId, emergency: emergency);
+
+  const AiStreamEvent.delta(String text) : this._(AiStreamEventType.delta, text: text);
+
+  const AiStreamEvent.done({String? conversationId, required AiMessage message})
+      : this._(AiStreamEventType.done, conversationId: conversationId, message: message);
+
+  const AiStreamEvent.failed(AiStatus status, {String? conversationId, String? detail})
+      : this._(AiStreamEventType.failed, status: status, conversationId: conversationId, detail: detail);
+
+  final AiStreamEventType type;
+  final String text;
   final String? conversationId;
+  final Map<String, dynamic>? emergency;
   final AiMessage? message;
+  final AiStatus status;
+  final String? detail;
 }
 
 class AiMealRequest {
@@ -171,15 +245,15 @@ class AiMealRequest {
 }
 
 class AiPlanResult {
-  const AiPlanResult({required this.status, this.plan});
+  const AiPlanResult({required this.status, this.plan, this.detail});
 
   final AiStatus status;
   final AiDailyPlan? plan;
+  final String? detail;
 }
 
 class AiSettings {
-  const AiSettings({required this.enabled, required this.emergencyPhone});
+  const AiSettings({required this.enabled});
 
   final bool enabled;
-  final String emergencyPhone;
 }

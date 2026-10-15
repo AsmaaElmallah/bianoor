@@ -117,7 +117,7 @@ class _LibraryMediaHubScreenState extends ConsumerState<LibraryMediaHubScreen> {
       ),
       error: (_, __) => Scaffold(
         appBar: AppBar(title: const Text('المحتوى')),
-        body: const Center(child: Text('تعذّر تحميل المحتوى من السحابة')),
+        body: const Center(child: Text('تعذّر تحميل المحتوى، اتأكدي من الإنترنت.')),
       ),
       data: (loaded) {
         _category = loaded;
@@ -151,7 +151,7 @@ class _LibraryMediaHubScreenState extends ConsumerState<LibraryMediaHubScreen> {
                       child: Padding(
                         padding: const EdgeInsets.all(24),
                         child: Text(
-                          'لا يوجد محتوى منشور من الإدارة بعد.',
+                          'المحتوى هيتضاف قريباً.',
                           textAlign: TextAlign.center,
                           style: theme.textTheme.titleMedium,
                         ),

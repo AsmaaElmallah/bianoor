@@ -8,37 +8,31 @@ class HomeSectionHeading extends StatelessWidget {
     super.key,
     required this.title,
     required this.accentColor,
+    this.art,
   });
 
   final String title;
   final Color accentColor;
+  final String? art;
 
   @override
   Widget build(BuildContext context) {
+    final path = art;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          // Thicker accent pill with glow
-          Container(
-            width: 5,
-            height: 26,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [accentColor, accentColor.withValues(alpha: 0.5)],
+          if (path != null)
+            Image.asset(path, width: 30, height: 30, filterQuality: FilterQuality.medium)
+          else
+            Container(
+              width: 5,
+              height: 26,
+              decoration: BoxDecoration(
+                color: accentColor,
+                borderRadius: AppRadius.brFull,
               ),
-              borderRadius: AppRadius.brFull,
-              boxShadow: [
-                BoxShadow(
-                  color: accentColor.withValues(alpha: 0.3),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
             ),
-          ),
           const SizedBox(width: 10),
           Text(
             title,

@@ -40,12 +40,13 @@ class _ConsultationsScreenState extends ConsumerState<ConsultationsScreen> {
           builder: (ctx) => AlertDialog(
             title: const Text('اشتراك مطلوب'),
             content: const Text(
-              'الاستشارات المدفوعة متاحة للمشتركين فقط.',
+              'الاستشارة الفردية متاحة للمشتركات. اشتركي في أي باقة '
+              'والدفع بيكون عن طريق PayPal.',
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('حسناً'),
+                child: const Text('مش دلوقتي'),
               ),
               TextButton(
                 onPressed: () {
@@ -73,7 +74,7 @@ class _ConsultationsScreenState extends ConsumerState<ConsultationsScreen> {
           builder: (ctx, setLocal) {
             return AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: AppRadius.brLg),
-              title: const Text('طلب استشارة'),
+              title: Text(_paidOnly ? 'حجز استشارة فردية' : 'طلب استشارة'),
               content: Form(
                 key: formKey,
                 child: SingleChildScrollView(
@@ -125,6 +126,7 @@ class _ConsultationsScreenState extends ConsumerState<ConsultationsScreen> {
                               .submitRequest(
                                 topic: topicCtrl.text.trim(),
                                 details: detailsCtrl.text.trim(),
+                                paid: _paidOnly,
                               );
                           if (!ctx.mounted) return;
                           Navigator.pop(ctx, ok);
@@ -150,7 +152,7 @@ class _ConsultationsScreenState extends ConsumerState<ConsultationsScreen> {
         content: Text(
           submitted
               ? 'تم إرسال طلب الاستشارة — سنعود إليكِ قريباً.'
-              : 'تعذّر الإرسال — سجّلي الدخول وتأكدي من اتصال السحابة.',
+              : 'تعذّر الإرسال، اتأكدي من الإنترنت وجربي تاني.',
         ),
         behavior: SnackBarBehavior.floating,
       ),
@@ -225,13 +227,40 @@ class _ConsultationsScreenState extends ConsumerState<ConsultationsScreen> {
                     label: 'سرية تامة لمعلوماتك',
                   ),
                   const SizedBox(height: 20),
+                ] else ...[
+                  _InfoRow(
+                    icon: Symbols.workspace_premium,
+                    label: 'متاحة للمشتركات في أي باقة',
+                  ),
+                  const SizedBox(height: 8),
+                  _InfoRow(
+                    icon: Symbols.event_available,
+                    label: 'هنتواصل معاكي لتحديد ميعاد الجلسة',
+                  ),
+                  const SizedBox(height: 20),
                 ],
                 TactileClayButton(
-                  label: _paidOnly ? 'حجز استشارة مدفوعة' : 'طلب استشارة',
+                  label: _paidOnly ? 'حجز استشارة فردية' : 'طلب استشارة',
                   icon: Symbols.calendar_month,
                   onPressed: _openRequestForm,
                 ),
                 const SizedBox(height: 12),
+                if (!_paidOnly) ...[
+                  TactileClayButton(
+                    label: 'استشارة فردية مدفوعة',
+                    icon: Symbols.payments,
+                    backgroundColor: AppColors.tertiaryContainer,
+                    foregroundColor: AppColors.tertiaryDim,
+                    depthColor: AppColors.tertiaryFixedDim,
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) =>
+                            const ConsultationsScreen(paidOnly: true),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 TactileClayButton(
                   label: 'أسئلة شائعة',
                   icon: Symbols.quiz,
@@ -294,6 +323,15 @@ class _ConsultationsScreenState extends ConsumerState<ConsultationsScreen> {
                                           ),
                                         ),
                                       ),
+                                      if (row['kind'] == 'paid') ...[
+                                        Icon(
+                                          Symbols.workspace_premium,
+                                          size: 18,
+                                          color: AppColors.tertiary,
+                                          fill: 1,
+                                        ),
+                                        const SizedBox(width: 6),
+                                      ],
                                       Container(
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 10,

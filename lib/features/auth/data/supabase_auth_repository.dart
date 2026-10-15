@@ -59,7 +59,7 @@ class SupabaseAuthRepository implements AuthRepository {
 
       final session = response.session;
       if (session == null) {
-        throw AuthFailure('تعذّر تسجيل الدخول — حاولي مرة أخرى.');
+        throw AuthFailure('ما قدرناش ندخلك، جربي تاني.');
       }
 
       await _prefs.setAuthenticated(true);
@@ -93,7 +93,7 @@ class SupabaseAuthRepository implements AuthRepository {
 
       final user = response.user;
       if (user == null) {
-        throw AuthFailure('تعذّر إنشاء الحساب.');
+        throw AuthFailure('ما قدرناش نعمل الحساب، جربي تاني.');
       }
 
       if (kDebugMode) {
@@ -108,24 +108,11 @@ class SupabaseAuthRepository implements AuthRepository {
 
       final session = response.session;
       if (session == null) {
-        throw AuthFailure(
-          'تم إنشاء الحساب — راجعي بريدك لتأكيد الحساب ثم سجّلي الدخول.',
-        );
+        throw EmailConfirmationRequired();
       }
 
-      // End session immediately so the app lands on Login (not onboarding).
-      await _client.auth.signOut();
-      await _prefs.setAuthenticated(false);
-
-      if (kDebugMode) {
-        debugPrint('[Auth] signup OK — signed out, waiting for login');
-      }
-
-      return UserModel(
-        id: user.id,
-        email: user.email ?? email.trim(),
-        name: name.trim().isEmpty ? null : name.trim(),
-      );
+      await _prefs.setAuthenticated(true);
+      return _userFromSession(session, fallbackName: name.trim());
     } catch (e) {
       if (kDebugMode) debugPrint('[Auth] email signup failed: $e');
       throw AuthFailure.from(e);
@@ -186,16 +173,17 @@ class SupabaseAuthRepository implements AuthRepository {
       );
     } on GoogleSignInException catch (e) {
       if (e.code == GoogleSignInExceptionCode.canceled) {
-        throw AuthFailure('تم إلغاء تسجيل الدخول بجوجل.');
+        throw AuthFailure('اتلغى الدخول بجوجل.');
       }
       rethrow;
     }
 
     final idToken = account.authentication.idToken;
     if (idToken == null || idToken.isEmpty) {
-      throw AuthFailure(
-        'تعذّر الحصول على رمز جوجل — تأكدي من GOOGLE_WEB_CLIENT_ID وSHA-1 في Google Cloud.',
-      );
+      if (kDebugMode) {
+        debugPrint('[Auth] Google idToken null — check GOOGLE_WEB_CLIENT_ID and SHA-1');
+      }
+      throw AuthFailure('الدخول بجوجل مش متاح دلوقتي، ادخلي بالإيميل.');
     }
 
     String? accessToken;
@@ -218,7 +206,7 @@ class SupabaseAuthRepository implements AuthRepository {
 
     final session = response.session;
     if (session == null) {
-      throw AuthFailure('تعذّر إكمال تسجيل جوجل مع السحابة.');
+      throw AuthFailure('الدخول بجوجل ما كملش، جربي تاني.');
     }
 
     await _prefs.setAuthenticated(true);
@@ -297,12 +285,12 @@ class SupabaseAuthRepository implements AuthRepository {
         const Duration(minutes: 3),
         onTimeout: () {
           sub.cancel();
-          throw AuthFailure(
-            'انتهت مهلة تسجيل $label.\n'
-            '• فعّلي المزوّد في Supabase → Authentication → Providers\n'
-            '• أضيفي redirect: $_oauthRedirectTo\n'
-            '• شغّلي التطبيق بـ --dart-define-from-file=dart_defines.json',
-          );
+          if (kDebugMode) {
+            debugPrint(
+              '[Auth] OAuth $label timed out — check provider + redirect $_oauthRedirectTo',
+            );
+          }
+          throw AuthFailure('الدخول بـ$label ما كملش، جربي تاني أو ادخلي بالإيميل.');
         },
       );
     } on AuthFailure {
@@ -374,9 +362,7 @@ class SupabaseAuthRepository implements AuthRepository {
       await _client.rpc('delete_own_account');
     } catch (e) {
       if (kDebugMode) debugPrint('[Auth] delete_own_account failed: $e');
-      throw AuthFailure(
-        'تعذّر حذف الحساب. تأكدي من تطبيق migration حذف الحساب على Supabase.',
-      );
+      throw AuthFailure('ما قدرناش نحذف الحساب دلوقتي، جربي تاني بعد شوية.');
     }
 
     try {
@@ -391,6 +377,23 @@ class SupabaseAuthRepository implements AuthRepository {
     } catch (_) {}
   }
 
+  @override
+  Future<void> updateDisplayName(String name) async {
+    await _ensureReady();
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) throw AuthFailure('اكتبي اسمك الأول.');
+    try {
+      final res = await _client.auth.updateUser(
+        UserAttributes(data: {'display_name': trimmed}),
+      );
+      final user = res.user;
+      if (user == null) throw AuthFailure('تعذّر حفظ الاسم.');
+      await _syncDisplayName(user.id, trimmed);
+    } catch (e) {
+      throw AuthFailure.from(e);
+    }
+  }
+
   Future<UserModel?> currentUser() async {
     if (!SupabaseBootstrap.isReady) return null;
 
@@ -402,16 +405,16 @@ class SupabaseAuthRepository implements AuthRepository {
 
   Future<void> _ensureReady() async {
     if (!SupabaseBootstrap.isEnabled) {
-      throw AuthFailure(
-        'Supabase غير مفعّل. شغّلي:\n'
-        'flutter run --dart-define-from-file=dart_defines.json',
-      );
+      if (kDebugMode) {
+        debugPrint('[Auth] Supabase disabled — run with --dart-define-from-file=dart_defines.json');
+      }
+      throw AuthFailure('الخدمة مش متاحة دلوقتي، جربي تاني بعد شوية.');
     }
     if (!SupabaseBootstrap.isReady) {
       await SupabaseBootstrap.init();
     }
     if (!SupabaseBootstrap.isReady) {
-      throw AuthFailure('تعذّر تهيئة الاتصال بالسحابة.');
+      throw AuthFailure('مفيش اتصال بالإنترنت، اتأكدي من النت وجربي تاني.');
     }
   }
 
@@ -460,6 +463,12 @@ class SupabaseAuthRepository implements AuthRepository {
   }
 }
 
+/// Signup succeeded but Supabase wants the email confirmed before login.
+class EmailConfirmationRequired extends AuthFailure {
+  EmailConfirmationRequired()
+      : super('اتعمل الحساب ✔ افتحي إيميلك وأكدي الحساب، وبعدين سجّلي دخول.');
+}
+
 /// User-facing auth errors (Arabic).
 class AuthFailure implements Exception {
   AuthFailure(this.message);
@@ -468,48 +477,48 @@ class AuthFailure implements Exception {
   @override
   String toString() => message;
 
+  static const _generic = 'حصلت مشكلة في الدخول، جربي تاني بعد شوية.';
+
   static AuthFailure from(Object error) {
     if (error is AuthFailure) return error;
+
+    if (kDebugMode) debugPrint('[Auth] raw error: $error');
 
     if (error is AuthException) {
       final msg = error.message.toLowerCase();
       if (msg.contains('invalid login credentials')) {
         return AuthFailure(
-          'البريد أو كلمة المرور غير صحيحة.\n'
-          'لو أول مرة: اضغطي «إنشاء حساب» مش تسجيل الدخول.',
+          'الإيميل أو كلمة السر مش صح.\n'
+          'لو أول مرة تستخدمي التطبيق، اعملي حساب جديد.',
         );
       }
-      if (msg.contains('user already registered')) {
-        return AuthFailure('هذا البريد مسجّل مسبقاً — جرّبي تسجيل الدخول.');
-      }
-      if (msg.contains('password')) {
-        return AuthFailure('كلمة المرور ضعيفة — استخدمي 6 أحرف على الأقل.');
+      if (msg.contains('user already registered') ||
+          msg.contains('already been registered')) {
+        return AuthFailure('الإيميل ده عنده حساب بالفعل، سجّلي دخول.');
       }
       if (msg.contains('email not confirmed')) {
-        return AuthFailure('يرجى تأكيد البريد الإلكتروني أولاً.');
+        return AuthFailure('أكدي إيميلك الأول من الرسالة اللي وصلتلك، وبعدين سجّلي دخول.');
       }
       if (msg.contains('rate limit') || msg.contains('for security purposes')) {
-        return AuthFailure(
-          'تم إرسال طلبات كثيرة — انتظري دقيقة ثم أعيدي المحاولة.',
-        );
+        return AuthFailure('محاولات كتير ورا بعض، استني دقيقة وجربي تاني.');
       }
-      if (msg.contains('redirect') || msg.contains('unable to validate')) {
-        return AuthFailure(
-          'رابط العودة غير مسموح في Supabase.\n'
-          'أضيفي في Redirect URLs:\n'
-          'io.supabase.bayanour://login-callback/',
-        );
+      if (msg.contains('should be different')) {
+        return AuthFailure('اختاري كلمة سر جديدة غير القديمة.');
       }
-      if (msg.contains('provider is not enabled') ||
-          msg.contains('unsupported provider') ||
-          msg.contains('validation_failed')) {
-        return AuthFailure(
-          'مزوّد الدخول غير مفعّل أو غير مضبوط في Supabase — راجعي Authentication → Providers.',
-        );
+      if (msg.contains('password') &&
+          (msg.contains('at least') || msg.contains('weak') || msg.contains('short'))) {
+        return AuthFailure('كلمة السر ضعيفة، خليها 6 حروف أو أرقام على الأقل.');
       }
-      return AuthFailure(error.message);
+      return AuthFailure(_generic);
     }
 
-    return AuthFailure('حدث خطأ — حاولي لاحقاً.');
+    final text = error.toString().toLowerCase();
+    if (text.contains('socket') ||
+        text.contains('network') ||
+        text.contains('failed host lookup') ||
+        text.contains('timeout')) {
+      return AuthFailure('مفيش إنترنت أو النت ضعيف، اتأكدي من الاتصال وجربي تاني.');
+    }
+    return AuthFailure(_generic);
   }
 }

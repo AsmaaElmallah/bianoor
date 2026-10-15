@@ -57,13 +57,13 @@ class _PasswordRecoveryScreenState
       await ref.read(prefsServiceProvider).setPasswordRecoveryPending(false);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم تحديث كلمة المرور — سجّلي الدخول.')),
+        const SnackBar(content: Text('اتغيرت كلمة السر ✔ سجّلي دخول بيها.')),
       );
       await ref.read(authRepositoryProvider).logout();
       if (mounted) context.go(AppRoutes.login);
     } catch (e) {
       if (!mounted) return;
-      final msg = e is AuthFailure ? e.message : 'تعذّر تحديث كلمة المرور.';
+      final msg = e is AuthFailure ? e.message : 'ما قدرناش نغيّر كلمة السر، جربي تاني.';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -88,7 +88,7 @@ class _PasswordRecoveryScreenState
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      'كلمة مرور جديدة',
+                      'كلمة سر جديدة',
                       textAlign: TextAlign.center,
                       style: theme.textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.w800,
@@ -96,7 +96,7 @@ class _PasswordRecoveryScreenState
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'اختاري كلمة مرور قوية لحسابكِ',
+                      'اختاري كلمة سر جديدة لحسابك',
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: AppColors.onSurfaceVariant,
@@ -105,7 +105,7 @@ class _PasswordRecoveryScreenState
                     const SizedBox(height: 28),
                     AppTextField(
                       controller: _passwordCtrl,
-                      label: 'كلمة المرور الجديدة',
+                      label: 'كلمة السر الجديدة',
                       hint: '••••••••',
                       icon: Symbols.lock,
                       obscureText: _obscure,
@@ -115,7 +115,7 @@ class _PasswordRecoveryScreenState
                       onSuffixTap: () => setState(() => _obscure = !_obscure),
                       validator: (v) {
                         if (v == null || v.length < 6) {
-                          return '6 أحرف على الأقل';
+                          return '6 حروف أو أرقام على الأقل';
                         }
                         return null;
                       },
@@ -123,25 +123,25 @@ class _PasswordRecoveryScreenState
                     const SizedBox(height: 16),
                     AppTextField(
                       controller: _confirmCtrl,
-                      label: 'تأكيد كلمة المرور',
+                      label: 'اكتبيها تاني',
                       hint: '••••••••',
                       icon: Symbols.lock,
                       obscureText: _obscure,
                       validator: (v) {
                         if (v != _passwordCtrl.text) {
-                          return 'كلمتا المرور غير متطابقتين';
+                          return 'الكلمتين مش زي بعض';
                         }
                         return null;
                       },
                     ),
                     const SizedBox(height: 28),
                     PrimaryButton(
-                      label: _loading ? 'جاري الحفظ…' : 'حفظ كلمة المرور',
+                      label: _loading ? 'لحظة...' : 'احفظي كلمة السر',
                       onPressed: _loading ? null : _submit,
                     ),
                     const SizedBox(height: 12),
                     TertiaryButton(
-                      label: 'إلغاء والعودة لتسجيل الدخول',
+                      label: 'إلغاء والرجوع للدخول',
                       onPressed: _loading ? null : _clearRecoveryAndLeave,
                     ),
                   ],

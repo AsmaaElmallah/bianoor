@@ -22,6 +22,17 @@ int dailySessionsForKhatmah(int khatmahIndex) {
 int daysPerKhatmahForIndex(int khatmahIndex) =>
     quranSessionsPerKhatmah ~/ dailySessionsForKhatmah(khatmahIndex);
 
+/// Listening day counted from the very first khatmah; must match SQL `quran_session_day`.
+int quranCumulativeDay(int khatmahIndex, int sessionIndex) {
+  var before = 0;
+  for (var k = 1; k < khatmahIndex; k++) {
+    before += daysPerKhatmahForIndex(k);
+  }
+  final daily = dailySessionsForKhatmah(khatmahIndex);
+  final session = sessionIndex.clamp(1, quranSessionsPerKhatmah);
+  return before + (session + daily - 1) ~/ daily;
+}
+
 /// Parent hizb (1–60) for a half-hizb session index (1–120).
 int parentHizbForSession(int sessionIndex) => (sessionIndex + 1) ~/ 2;
 

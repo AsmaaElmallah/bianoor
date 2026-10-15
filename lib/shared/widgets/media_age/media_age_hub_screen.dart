@@ -5,6 +5,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../features/library/domain/library_media_catalog.dart';
+import '../bebo_shell_background.dart';
 import '../youtube/youtube_cover_card.dart';
 import '../youtube/youtube_fullscreen_player.dart';
 import '../tactile/tactile_clay_card.dart';
@@ -106,10 +107,13 @@ class _MediaAgeHubScreenState extends State<MediaAgeHubScreen> {
           MediaAgeTactileHeader(
             title: headerTitle,
             onBack: () => context.pop(),
-            onAction: _openExternal,
+            onAction: hasContent ? _openExternal : null,
           ),
           Expanded(
-            child: ListView(
+            child: Stack(
+              children: [
+                const BeboShellBackground(showBottomCurve: false),
+                ListView(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
               children: [
                 if (!hasContent) ...[
@@ -201,6 +205,8 @@ class _MediaAgeHubScreenState extends State<MediaAgeHubScreen> {
                     accentColor: cfg.accentColor,
                   ),
                 ],
+              ],
+                ),
               ],
             ),
           ),

@@ -10,6 +10,7 @@ import '../../../shared/widgets/tactile/tactile_clay_card.dart';
 import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
 import 'aptitude_test_screen.dart';
 import 'mother_quiz_screen.dart';
+import '../../../shared/widgets/icon_3d.dart';
 
 class OurAssessmentScreen extends ConsumerWidget {
   const OurAssessmentScreen({super.key});
@@ -156,7 +157,7 @@ class _AssessmentCard extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             alignment: Alignment.center,
-            child: Icon(tile.icon, color: AppColors.primary, fill: 1),
+            child: Icon3D(art: null, icon: tile.icon, color: AppColors.primary, size: 32),
           ),
           const SizedBox(width: 12),
           Expanded(

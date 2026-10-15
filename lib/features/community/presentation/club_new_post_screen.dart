@@ -15,11 +15,13 @@ import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
 import '../data/community_cloud_repository.dart';
 import 'widgets/club_shared.dart';
 
-/// «اسألي الأمهات» — returns true when the question was sent for review.
+/// «اسألي الأمهات» — returns true when sent (general feed: for review; group: published).
 class ClubNewPostScreen extends ConsumerStatefulWidget {
-  const ClubNewPostScreen({super.key, this.initialAgeId});
+  const ClubNewPostScreen({super.key, this.initialAgeId, this.groupId, this.groupTitle});
 
   final String? initialAgeId;
+  final String? groupId;
+  final String? groupTitle;
 
   @override
   ConsumerState<ClubNewPostScreen> createState() => _ClubNewPostScreenState();
@@ -67,7 +69,8 @@ class _ClubNewPostScreenState extends ConsumerState<ClubNewPostScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_ageId == null) {
+    final groupId = widget.groupId;
+    if (groupId == null && _ageId == null) {
       showClubSnack(context, 'اختاري عمر البيبي الأول');
       return;
     }
@@ -79,11 +82,17 @@ class _ClubNewPostScreenState extends ConsumerState<ClubNewPostScreen> {
       await repo.createPost(
         title: _title.text,
         body: _body.text,
-        categoryId: _ageId!,
+        categoryId: _ageId,
+        groupId: groupId,
         anonymous: _anonymous,
         imagePath: imagePath,
       );
-      ref.invalidate(mothersClubPostsProvider);
+      if (groupId == null) {
+        ref.invalidate(mothersClubPostsProvider);
+      } else {
+        ref.invalidate(clubGroupPostsProvider(groupId));
+        ref.invalidate(clubGroupsProvider);
+      }
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } on ClubActionException catch (e) {
@@ -98,9 +107,13 @@ class _ClubNewPostScreenState extends ConsumerState<ClubNewPostScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final inGroup = widget.groupId != null;
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: QuranTactileAppBar(title: 'اسألي الأمهات', onBack: () => Navigator.of(context).pop()),
+      appBar: QuranTactileAppBar(
+        title: inGroup ? 'اكتبي في الجروب' : 'اسألي الأمهات',
+        onBack: () => Navigator.of(context).pop(),
+      ),
       body: Stack(
         children: [
           const BeboShellBackground(showBottomCurve: false),
@@ -118,37 +131,41 @@ class _ClubNewPostScreenState extends ConsumerState<ClubNewPostScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'سؤالك هيتراجع من فريق بيانور قبل ما يظهر للأمهات، عشان النادي يفضل مكان آمن ومفيد 💛',
+                            inGroup
+                                ? 'كلامك هيظهر على طول في جروب «${widget.groupTitle ?? ''}» — خليكي لطيفة ومفيدة 💛'
+                                : 'سؤالك هيتراجع من فريق بيانور قبل ما يظهر للأمهات، عشان النادي يفضل مكان آمن ومفيد 💛',
                             style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant, height: 1.45),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  Text(
-                    'عمر البيبي',
-                    style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800, color: AppColors.primary),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final band in LibraryAgeBand.values)
-                        ChoiceChip(
-                          label: Text(band.label),
-                          selected: _ageId == band.dbValue,
-                          onSelected: (_) => setState(() => _ageId = band.dbValue),
-                          selectedColor: AppColors.primaryFixed,
-                          labelStyle: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
-                        ),
-                    ],
-                  ),
+                  if (!inGroup) ...[
+                    const SizedBox(height: 20),
+                    Text(
+                      'عمر البيبي',
+                      style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800, color: AppColors.primary),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final band in LibraryAgeBand.values)
+                          ChoiceChip(
+                            label: Text(band.label),
+                            selected: _ageId == band.dbValue,
+                            onSelected: (_) => setState(() => _ageId = band.dbValue),
+                            selectedColor: AppColors.primaryFixed,
+                            labelStyle: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 20),
                   ClubField(
                     controller: _title,
-                    label: 'عنوان سؤالك',
+                    label: inGroup ? 'العنوان' : 'عنوان سؤالك',
                     hint: 'مثال: البيبي بيصحى كتير بالليل',
                     maxLength: 120,
                     validator: (v) => (v == null || v.trim().length < 5) ? 'اكتبي عنوان أوضح (5 حروف على الأقل)' : null,
@@ -216,7 +233,7 @@ class _ClubNewPostScreenState extends ConsumerState<ClubNewPostScreen> {
                   ),
                   const SizedBox(height: 24),
                   TactileClayButton(
-                    label: _sending ? 'جاري الإرسال…' : 'إرسال السؤال',
+                    label: _sending ? 'جاري الإرسال…' : (inGroup ? 'انشري' : 'إرسال السؤال'),
                     icon: Symbols.send,
                     onPressed: _sending ? null : _submit,
                   ),

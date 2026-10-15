@@ -7,8 +7,9 @@ import '../domain/live_session.dart';
 
 final liveRepositoryProvider = Provider<LiveRepository>((ref) => const LiveRepository());
 
-final liveSessionsProvider = FutureProvider<List<LiveSession>>((ref) {
-  return ref.watch(liveRepositoryProvider).fetchSessions();
+/// Realtime, so a session the admin schedules or starts shows up without reopening the app.
+final liveSessionsProvider = StreamProvider<List<LiveSession>>((ref) {
+  return ref.watch(liveRepositoryProvider).watchSessions();
 });
 
 final liveAccessProvider = FutureProvider.family<bool, String>((ref, sessionId) {
@@ -43,6 +44,25 @@ class LiveRepository {
         .eq('publish_status', 'published')
         .order('scheduled_at', ascending: true, nullsFirst: false);
     return List<Map<String, dynamic>>.from(rows as List).map(LiveSession.fromRow).toList();
+  }
+
+  /// Falls back to a one-time fetch if realtime can't connect.
+  Stream<List<LiveSession>> watchSessions() async* {
+    if (!await _ready()) {
+      yield const [];
+      return;
+    }
+    try {
+      yield* _client
+          .from('live_sessions')
+          .stream(primaryKey: ['id'])
+          .eq('publish_status', 'published')
+          .order('scheduled_at', ascending: true)
+          .map((rows) => rows.map(LiveSession.fromRow).toList());
+    } catch (e) {
+      if (kDebugMode) debugPrint('[Live] realtime failed, using one-time fetch: $e');
+      yield await fetchSessions();
+    }
   }
 
   Future<bool> hasAccess(String sessionId) async {

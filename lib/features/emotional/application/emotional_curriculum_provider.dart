@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/storage/prefs_service.dart';
 import '../../curriculum/data/curriculum_cloud_repository.dart';
 import '../../curriculum/data/progress_sync_service.dart';
+import '../../subscription/application/premium_access.dart';
 import '../../curriculum/domain/curriculum_day_rules.dart';
 import '../data/emotional_manifest.dart';
 import '../data/emotional_progress_storage.dart';
@@ -61,7 +62,12 @@ class EmotionalCurriculumNotifier extends AsyncNotifier<EmotionalCurriculumState
     final manifestRepo = ref.read(emotionalManifestRepositoryProvider);
 
     var progress = await storage.ensureProgramStart();
-    final day = storage.curriculumDayFromStart(progress);
+    var day = storage.curriculumDayFromStart(progress);
+    final held = await holdCurriculumDay(ref, day);
+    if (held != day) {
+      progress = await storage.holdAtDay(progress, held);
+      day = held;
+    }
     if (progress.curriculumDay != day) {
       progress = progress.copyWith(curriculumDay: day);
       await storage.save(progress);

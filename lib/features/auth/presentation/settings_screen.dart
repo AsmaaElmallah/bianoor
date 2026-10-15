@@ -2,12 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
-import 'package:url_launcher/url_launcher.dart';
-
-import '../../../core/constants/app_legal.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/storage/prefs_service.dart';
-import '../../../core/supabase/supabase_bootstrap.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_shadows.dart';
@@ -17,6 +14,7 @@ import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
 import '../application/auth_session_provider.dart';
 import '../data/auth_repository.dart';
 import '../data/supabase_auth_repository.dart';
+import '../../../shared/widgets/icon_3d.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -25,16 +23,56 @@ class SettingsScreen extends ConsumerStatefulWidget {
   ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
+final _appVersionProvider = FutureProvider<String>((ref) async {
+  final info = await PackageInfo.fromPlatform();
+  return info.version;
+});
+
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _busy = false;
 
-  Future<void> _openUrl(String url) async {
-    final uri = Uri.parse(url);
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication) &&
-        mounted) {
+  Future<void> _editName(String? current) async {
+    final ctrl = TextEditingController(text: current ?? '');
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('اسمك'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          maxLength: 40,
+          textInputAction: TextInputAction.done,
+          decoration: const InputDecoration(hintText: 'مثلاً: أم سهيلة'),
+          onSubmitted: (v) => Navigator.pop(ctx, v),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('إلغاء'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text),
+            child: const Text('حفظ'),
+          ),
+        ],
+      ),
+    );
+    ctrl.dispose();
+    if (name == null || name.trim().isEmpty || name.trim() == current) return;
+
+    setState(() => _busy = true);
+    try {
+      await ref.read(authRepositoryProvider).updateDisplayName(name);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تعذّر فتح الرابط')),
+        const SnackBar(content: Text('اتحفظ الاسم')),
       );
+    } catch (e) {
+      if (!mounted) return;
+      final msg = e is AuthFailure ? e.message : 'تعذّر حفظ الاسم';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
   }
 
@@ -96,7 +134,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final user = ref.watch(authSessionProvider).valueOrNull;
-    final cloudOn = SupabaseBootstrap.isEnabled;
+    final version = ref.watch(_appVersionProvider).valueOrNull;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -136,7 +174,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              user?.name ?? 'مستخدمة بيانور',
+                              user?.displayName ?? 'مستخدمة بيانور',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w800,
                               ),
@@ -144,18 +184,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             if (user?.email.isNotEmpty == true)
                               Text(
                                 user!.email,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textDirection: TextDirection.ltr,
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: AppColors.onSurfaceVariant,
                                 ),
                               ),
-                            Text(
-                              cloudOn ? 'متصلة بالسحابة' : 'وضع تجريبي (بدون سحابة)',
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: cloudOn
-                                    ? AppColors.tertiary
-                                    : AppColors.error,
-                              ),
-                            ),
                           ],
                         ),
                       ),
@@ -164,16 +199,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: 20),
                 _SettingsTile(
-                  icon: Symbols.privacy_tip,
-                  title: 'سياسة الخصوصية',
-                  onTap: _busy
+                  icon: Symbols.edit,
+                  title: user?.displayName == null ? 'اكتبي اسمك' : 'تعديل الاسم',
+                  onTap: _busy || user == null
                       ? null
-                      : () => _openUrl(AppLegal.privacyPolicyUrl),
-                ),
-                _SettingsTile(
-                  icon: Symbols.gavel,
-                  title: 'الشروط والأحكام',
-                  onTap: _busy ? null : () => _openUrl(AppLegal.termsUrl),
+                      : () => _editName(user.displayName),
                 ),
                 _SettingsTile(
                   icon: Symbols.workspace_premium,
@@ -198,6 +228,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                   ),
                 ),
+                if (version != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: Text(
+                      'بيانور • الإصدار $version',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -232,7 +273,7 @@ class _SettingsTile extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             child: Row(
               children: [
-                Icon(icon, color: AppColors.primary),
+                Icon3D(art: null, icon: icon, color: AppColors.primary, size: 32),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(

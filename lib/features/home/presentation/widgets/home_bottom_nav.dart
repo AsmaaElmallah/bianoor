@@ -164,24 +164,30 @@ class _NavItemState extends State<_NavItem>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
-                width: isActive ? 38 : 32,
-                height: isActive ? 38 : 32,
-                decoration: BoxDecoration(
-                  color: isActive
-                      ? AppColors.primary.withValues(alpha: 0.15)
-                      : Colors.transparent,
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Icon(
-                  widget.tab.icon,
-                  color: isActive
-                      ? AppColors.primary
-                      : AppColors.onSurfaceVariant.withValues(alpha: 0.65),
-                  size: isActive ? 24 : 22,
-                  fill: isActive ? 1.0 : 0.0,
+              SizedBox(
+                width: 34,
+                height: 34,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 260),
+                  transitionBuilder: (child, anim) => ScaleTransition(
+                    scale: CurvedAnimation(parent: anim, curve: Curves.easeOutBack),
+                    child: child,
+                  ),
+                  child: isActive && widget.tab.art != null
+                      ? Image.asset(
+                          widget.tab.art!,
+                          key: const ValueKey('art'),
+                          width: 32,
+                          height: 32,
+                        )
+                      : Icon(
+                          widget.tab.icon,
+                          key: const ValueKey('icon'),
+                          color: isActive
+                              ? AppColors.primary
+                              : AppColors.onSurfaceVariant.withValues(alpha: 0.65),
+                          size: 24,
+                        ),
                 ),
               ),
               const SizedBox(height: 3),

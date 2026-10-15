@@ -20,12 +20,12 @@ abstract class AuthRepository {
   Future<void> resetPassword({required String email});
   Future<void> updatePassword({required String newPassword});
   Future<void> deleteAccount();
+  Future<void> updateDisplayName(String name);
 }
 
 /// Used only when dart_defines are missing — never fakes a successful login.
 class DisabledAuthRepository implements AuthRepository {
-  static const _msg =
-      'السحابة غير مفعّلة.\nشغّلي من مجلد bayanour:\n.\\run.ps1\nأو:\nflutter run --dart-define-from-file=dart_defines.json';
+  static const _msg = 'الخدمة مش متاحة دلوقتي، جربي تاني بعد شوية.';
 
   Future<UserModel> _blocked() async {
     throw AuthFailure(_msg);
@@ -67,6 +67,11 @@ class DisabledAuthRepository implements AuthRepository {
 
   @override
   Future<void> deleteAccount() async {
+    throw AuthFailure(_msg);
+  }
+
+  @override
+  Future<void> updateDisplayName(String name) async {
     throw AuthFailure(_msg);
   }
 }

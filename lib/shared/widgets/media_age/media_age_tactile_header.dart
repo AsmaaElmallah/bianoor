@@ -31,7 +31,9 @@ class MediaAgeTactileHeader extends StatelessWidget {
           borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
           boxShadow: AppShadows.clayLift,
         ),
-        child: Row(
+        child: SafeArea(
+          bottom: false,
+          child: Row(
           children: [
             Material(
               color: AppColors.primaryContainer,
@@ -68,6 +70,7 @@ class MediaAgeTactileHeader extends StatelessWidget {
                 onPressed: onAction,
               ),
           ],
+          ),
         ),
       ),
     );

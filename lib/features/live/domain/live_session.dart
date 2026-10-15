@@ -49,10 +49,15 @@ class LiveSession {
 
   bool get hasRecording => recordingYoutubeId?.isNotEmpty ?? false;
 
-  /// Clock time has passed (or admin marked it ended) and the host is not on air.
+  /// Hosts often start a few minutes late; until this passes the card says «هيبدأ دلوقتي», not «انتهى».
+  static const startGrace = Duration(hours: 2);
+
+  /// The admin marked it ended, or the start time passed long ago and the host never went on air.
   bool get showAsEnded =>
       status == LiveStatus.ended ||
-      (status != LiveStatus.live && scheduledAt != null && !scheduledAt!.isAfter(DateTime.now()));
+      (status != LiveStatus.live &&
+          scheduledAt != null &&
+          scheduledAt!.add(startGrace).isBefore(DateTime.now()));
 
   String? get scheduleLabel {
     final at = scheduledAt?.toLocal();

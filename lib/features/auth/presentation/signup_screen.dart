@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../../../core/constants/app_assets.dart';
 import '../../../core/router/app_routes.dart';
-import '../../../core/storage/prefs_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_shadows.dart';
 import '../../../shared/widgets/app_text_field.dart';
@@ -13,9 +13,11 @@ import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../../shared/widgets/floating_widget.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/tertiary_button.dart';
+import '../application/post_auth.dart';
 import '../data/auth_repository.dart';
 import '../data/supabase_auth_repository.dart';
 import '../domain/user_model.dart';
+import 'widgets/social_button.dart';
 
 class SignupScreen extends ConsumerStatefulWidget {
   const SignupScreen({super.key});
@@ -40,41 +42,17 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     super.dispose();
   }
 
-  void _goAfterSocialAuth() {
-    final prefs = ref.read(prefsServiceProvider);
-    final hasBaby = prefs.getBabyName()?.trim().isNotEmpty ?? false;
-    context.go(
-      prefs.isOnboardingComplete() && hasBaby
-          ? AppRoutes.home
-          : AppRoutes.language,
-    );
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Future<void> _resetLocalOnboardingForNewAccount() async {
-    final prefs = ref.read(prefsServiceProvider);
-    await prefs.setOnboardingComplete(false);
-    await prefs.setRulesAccepted(false);
-    await prefs.setBabyName('');
-  }
-
-  Future<void> _goToLoginAfterSignup(String message) async {
-    await _resetLocalOnboardingForNewAccount();
-    // Session already cleared in repository after email signup.
-    try {
-      await ref.read(authRepositoryProvider).logout();
-    } catch (_) {}
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-    // Use go + microtask so router sees logged-out state first.
-    await Future<void>.delayed(Duration.zero);
-    if (!mounted) return;
-    context.go(AppRoutes.login);
+  Future<void> _goAfterAuth() async {
+    await finishSignIn(ref);
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_loading || !_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     try {
       await ref.read(authRepositoryProvider).signup(
@@ -82,28 +60,14 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
             email: _emailCtrl.text.trim(),
             password: _passwordCtrl.text,
           );
-      if (mounted) {
-        await _goToLoginAfterSignup(
-          'تم إنشاء الحساب بنجاح — سجّلي الدخول الآن',
-        );
-      }
-    } on AuthFailure catch (e) {
-      if (!mounted) return;
-      final needsLogin = e.message.contains('تم إنشاء الحساب') ||
-          e.message.contains('سجّلي الدخول');
-      if (needsLogin) {
-        await _goToLoginAfterSignup(e.message);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message)),
-        );
-      }
+      TextInput.finishAutofillContext();
+      await _goAfterAuth();
+    } on EmailConfirmationRequired catch (e) {
+      TextInput.finishAutofillContext();
+      _showMessage(e.message);
+      if (mounted) context.go(AppRoutes.login);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AuthFailure.from(e).message)),
-        );
-      }
+      _showMessage(AuthFailure.from(e).message);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -113,20 +77,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     setState(() => _loading = true);
     try {
       await action();
-      await _resetLocalOnboardingForNewAccount();
-      if (mounted) _goAfterSocialAuth();
-    } on AuthFailure catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message)),
-        );
-      }
+      await _goAfterAuth();
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AuthFailure.from(e).message)),
-        );
-      }
+      _showMessage(AuthFailure.from(e).message);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -147,186 +100,158 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
               child: Form(
                 key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 10),
-                    // Floating mascot
-                    Center(
-                      child: FloatingWidget(
-                        amplitude: 8,
-                        duration: const Duration(milliseconds: 3800),
-                        child: Image.asset(
-                          AppAssets.mascotCapLying,
-                          height: 110,
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => Container(
-                            width: 96,
-                            height: 96,
-                            decoration: const BoxDecoration(
-                              color: AppColors.primaryContainer,
-                              shape: BoxShape.circle,
+                child: AutofillGroup(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: 10),
+                      Center(
+                        child: FloatingWidget(
+                          amplitude: 8,
+                          duration: const Duration(milliseconds: 3800),
+                          child: Image.asset(
+                            AppAssets.mascotCapLying,
+                            height: 110,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => const Icon(
+                              Symbols.sentiment_very_satisfied,
+                              color: AppColors.primary,
+                              size: 64,
+                              fill: 1,
                             ),
-                            alignment: Alignment.center,
-                            child: const Icon(Symbols.sentiment_very_satisfied,
-                                color: AppColors.primary, size: 40, fill: 1),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'المربي اللطيف',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.headlineLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.2,
+                      const SizedBox(height: 16),
+                      Text(
+                        'بيانور',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.headlineLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.2,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'خطوتكِ الأولى نحو تربية هادئة وملهمة',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w500,
+                      const SizedBox(height: 6),
+                      Text(
+                        'أول خطوة لتربية هادية وملهمة',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceContainerLowest,
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: AppShadows.soft,
-                      ),
-                      padding: const EdgeInsets.fromLTRB(22, 26, 22, 22),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          AppTextField(
-                            label: 'الاسم الكامل',
-                            hint: 'أدخل اسمكِ هنا',
-                            icon: Symbols.person,
-                            textInputAction: TextInputAction.next,
-                            controller: _nameCtrl,
-                            validator: (v) => (v == null || v.trim().isEmpty) ? 'الاسم مطلوب' : null,
-                          ),
-                          const SizedBox(height: 2),
-                          AppTextField(
-                            label: 'البريد الإلكتروني',
-                            hint: 'email@example.com',
-                            icon: Symbols.mail,
-                            keyboardType: TextInputType.emailAddress,
-                            textInputAction: TextInputAction.next,
-                            controller: _emailCtrl,
-                            validator: (v) {
-                              if (v == null || v.trim().isEmpty) {
-                                return 'البريد مطلوب';
-                              }
-                              if (!v.contains('@')) return 'بريد غير صالح';
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 2),
-                          AppTextField(
-                            label: 'كلمة المرور',
-                            hint: '••••••••',
-                            icon: Symbols.lock,
-                            obscureText: _obscurePassword,
-                            textInputAction: TextInputAction.done,
-                            controller: _passwordCtrl,
-                            suffixIcon: _obscurePassword ? Symbols.visibility : Symbols.visibility_off,
-                            onSuffixTap: () => setState(() => _obscurePassword = !_obscurePassword),
-                            validator: (v) {
-                              if (v == null || v.isEmpty) return 'كلمة المرور مطلوبة';
-                              if (v.length < 6) return '6 أحرف على الأقل';
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 18),
-                          PrimaryButton(
-                            label: _loading ? 'جارٍ الإنشاء...' : 'إنشاء حساب',
-                            height: 58,
-                            onPressed: _loading ? null : _submit,
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              const Expanded(child: Divider(color: AppColors.outlineVariant, thickness: 0.8)),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 10),
-                                child: Text(
-                                  'أو التسجيل عبر',
-                                  style: theme.textTheme.labelMedium?.copyWith(color: AppColors.onSurfaceVariant),
+                      const SizedBox(height: 20),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceContainerLowest,
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: AppShadows.soft,
+                        ),
+                        padding: const EdgeInsets.fromLTRB(22, 26, 22, 22),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            AppTextField(
+                              label: 'اسمك',
+                              hint: 'اكتبي اسمك هنا',
+                              icon: Symbols.person,
+                              textInputAction: TextInputAction.next,
+                              autofillHints: const [AutofillHints.name],
+                              maxLength: 40,
+                              controller: _nameCtrl,
+                              validator: (v) => (v == null || v.trim().isEmpty)
+                                  ? 'اكتبي اسمك'
+                                  : null,
+                            ),
+                            AppTextField(
+                              label: 'الإيميل',
+                              hint: 'example@email.com',
+                              icon: Symbols.mail,
+                              keyboardType: TextInputType.emailAddress,
+                              textInputAction: TextInputAction.next,
+                              textDirection: TextDirection.ltr,
+                              autofillHints: const [AutofillHints.email],
+                              controller: _emailCtrl,
+                              validator: validateEmail,
+                            ),
+                            const SizedBox(height: 2),
+                            AppTextField(
+                              label: 'كلمة السر',
+                              hint: '6 حروف أو أرقام على الأقل',
+                              icon: Symbols.lock,
+                              obscureText: _obscurePassword,
+                              textInputAction: TextInputAction.done,
+                              textDirection: TextDirection.ltr,
+                              autofillHints: const [AutofillHints.newPassword],
+                              onFieldSubmitted: (_) => _submit(),
+                              controller: _passwordCtrl,
+                              suffixIcon: _obscurePassword
+                                  ? Symbols.visibility
+                                  : Symbols.visibility_off,
+                              onSuffixTap: () => setState(
+                                () => _obscurePassword = !_obscurePassword,
+                              ),
+                              validator: (v) {
+                                if (v == null || v.isEmpty) return 'اكتبي كلمة السر';
+                                if (v.length < 6) return '6 حروف أو أرقام على الأقل';
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 18),
+                            PrimaryButton(
+                              label: _loading ? 'لحظة...' : 'اعملي الحساب',
+                              height: 58,
+                              onPressed: _loading ? null : _submit,
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                const Expanded(
+                                  child: Divider(color: AppColors.outlineVariant, thickness: 0.8),
                                 ),
-                              ),
-                              const Expanded(child: Divider(color: AppColors.outlineVariant, thickness: 0.8)),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              _SocialCircle(
-                                icon: Symbols.android,
-                                onTap: _loading ? null : () => _socialSignup(() => repo.loginWithGoogle()),
-                              ),
-                              _SocialCircle(
-                                icon: Symbols.phone_iphone,
-                                onTap: _loading ? null : () => _socialSignup(() => repo.loginWithApple()),
-                              ),
-                              _SocialCircle(
-                                icon: Symbols.public,
-                                onTap: _loading ? null : () => _socialSignup(() => repo.loginWithFacebook()),
-                              ),
-                            ],
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                                  child: Text(
+                                    'أو',
+                                    style: theme.textTheme.labelMedium?.copyWith(
+                                      color: AppColors.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ),
+                                const Expanded(
+                                  child: Divider(color: AppColors.outlineVariant, thickness: 0.8),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            GoogleSignInButton(
+                              label: 'التسجيل بحساب جوجل',
+                              onTap: _loading
+                                  ? null
+                                  : () => _socialSignup(repo.loginWithGoogle),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text('عندك حساب بالفعل؟', style: theme.textTheme.bodyMedium),
+                          TertiaryButton(
+                            label: 'سجّلي دخول',
+                            onPressed: () => context.go(AppRoutes.login),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Text(
-                          'لديكِ حساب بالفعل؟',
-                          style: theme.textTheme.bodyMedium,
-                        ),
-                        TertiaryButton(
-                          label: 'تسجيل الدخول',
-                          onPressed: () => context.go(AppRoutes.login),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                  ],
+                      const SizedBox(height: 8),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _SocialCircle extends StatelessWidget {
-  const _SocialCircle({required this.icon, this.onTap});
-  final IconData icon;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.surfaceContainer,
-      shape: const CircleBorder(),
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Icon(icon, color: AppColors.onSurface, size: 22),
-        ),
       ),
     );
   }

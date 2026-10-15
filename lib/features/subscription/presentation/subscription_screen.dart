@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,7 +6,6 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../../core/analytics/app_analytics.dart';
 import '../../../core/constants/app_assets.dart';
 import '../../../core/router/app_routes.dart';
-import '../../../core/storage/prefs_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../shared/widgets/bebo_shell_background.dart';
@@ -15,11 +13,14 @@ import '../../../shared/widgets/floating_widget.dart';
 import '../../payments/domain/payment_item.dart';
 import '../../payments/presentation/payment_options_sheet.dart';
 import '../data/subscription_cloud_repository.dart';
-import '../data/subscription_purchase_service.dart';
 import '../domain/subscription_plan_model.dart';
 
+/// Opened with [reason] (e.g. «افتحي اليوم 31 من الحساب») when a locked item was tapped.
+/// Pops `true` after a successful payment when pushed on top of another screen.
 class SubscriptionScreen extends ConsumerStatefulWidget {
-  const SubscriptionScreen({super.key});
+  const SubscriptionScreen({super.key, this.reason});
+
+  final String? reason;
 
   @override
   ConsumerState<SubscriptionScreen> createState() => _SubscriptionScreenState();
@@ -28,100 +29,38 @@ class SubscriptionScreen extends ConsumerStatefulWidget {
 class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
   String? _busyPlanId;
 
-  String? _storeLabel(SubscriptionPlan plan) {
-    final productId = defaultTargetPlatform == TargetPlatform.iOS
-        ? plan.storeProductIdIos
-        : plan.storeProductIdAndroid;
-    if (productId == null || productId.isEmpty) return null;
-    return defaultTargetPlatform == TargetPlatform.iOS ? 'App Store' : 'Google Play';
-  }
-
   Future<void> _subscribe(SubscriptionPlan plan) async {
     if (_busyPlanId != null) return;
-    final choice = await showPaymentOptions(
+    setState(() => _busyPlanId = plan.id);
+    final paid = await payWithPaypal(
       context,
-      item: PaymentItem(
-        kind: PaymentKind.subscription,
-        id: plan.id,
-        title: plan.title,
-        priceLabel: plan.price,
-        priceUsd: plan.priceUsd,
-      ),
-      storeLabel: _storeLabel(plan),
+      ref,
+      PaymentItem(kind: PaymentKind.subscription, id: plan.id, title: plan.title, priceUsd: plan.priceUsd),
     );
     if (!mounted) return;
-    switch (choice) {
-      case PaymentChoice.store:
-        await _purchaseFromStore(plan);
-      case PaymentChoice.paidOnline:
-        ref.invalidate(mySubscriptionProvider);
-        _onActivated(plan);
-      case null:
-        break;
-    }
+    setState(() => _busyPlanId = null);
+    if (!paid) return;
+    ref.invalidate(mySubscriptionProvider);
+    _onActivated(plan);
   }
 
   void _onActivated(SubscriptionPlan plan) {
     AppAnalytics.purchaseSuccess(plan.id);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('تم تفعيل ${plan.title} بنجاح'),
+        content: Text('تم تفعيل ${plan.title} 🎉 اتفتحلك ${plan.durationDays} يوم دروس'),
         behavior: SnackBarBehavior.floating,
       ),
     );
-    final prefs = ref.read(prefsServiceProvider);
-    // After subscribe, always collect baby questions unless already filled.
-    context.go(
-      (prefs.getBabyName()?.trim().isNotEmpty ?? false) &&
-              prefs.isOnboardingComplete()
-          ? AppRoutes.home
-          : AppRoutes.onboardingQuestions,
-    );
+    _leave(true);
   }
 
-  Future<void> _purchaseFromStore(SubscriptionPlan plan) async {
-    setState(() => _busyPlanId = plan.id);
-
-    final result =
-        await ref.read(subscriptionPurchaseServiceProvider).purchase(plan);
-    ref.invalidate(mySubscriptionProvider);
-
-    if (!mounted) return;
-    setState(() => _busyPlanId = null);
-
-    switch (result.outcome) {
-      case PurchaseOutcome.success:
-        _onActivated(plan);
-      case PurchaseOutcome.cancelled:
-        break;
-      case PurchaseOutcome.unavailable:
-      case PurchaseOutcome.failed:
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              result.message ?? 'تعذّر تفعيل الاشتراك — سجّلي دخولك أولاً',
-            ),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+  void _leave([bool paid = false]) {
+    if (context.canPop()) {
+      context.pop(paid);
+      return;
     }
-  }
-
-  Future<void> _restore() async {
-    final result =
-        await ref.read(subscriptionPurchaseServiceProvider).restore();
-    ref.invalidate(mySubscriptionProvider);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          result.outcome == PurchaseOutcome.success
-              ? 'تم استعادة اشتراكك النشط'
-              : (result.message ?? 'لا يوجد اشتراك نشط مرتبط بالحساب'),
-        ),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    context.go(AppRoutes.home);
   }
 
   @override
@@ -129,6 +68,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     final theme = Theme.of(context);
     final asyncPlans = ref.watch(cloudSubscriptionPlansProvider);
     final mySub = ref.watch(mySubscriptionProvider).valueOrNull;
+    final reason = widget.reason;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -174,8 +114,12 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                           ),
                         ),
                       ),
-                      const _TopRoundAvatar(
-                        child: Icon(Symbols.menu, color: AppColors.primary, size: 24, fill: 1),
+                      InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: _leave,
+                        child: const _TopRoundAvatar(
+                          child: Icon(Symbols.close, color: AppColors.primary, size: 24),
+                        ),
                       ),
                     ],
                   ),
@@ -238,8 +182,19 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
+                        if (reason != null && reason.isNotEmpty) ...[
+                          Text(
+                            reason,
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: AppColors.secondary,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                        ],
                         Text(
-                          'استثمر في مستقبل طفلك مع مناهجنا\nالمتخصصة والأنشطة التفاعلية',
+                          'كل باقة بتفتح أيام من الدروس الأربعة، وبتتجمع مع اللي قبلها.\nاللي اتفتح بيفضل معاكِ على طول.',
                           textAlign: TextAlign.center,
                           style: theme.textTheme.bodyLarge?.copyWith(
                             color: AppColors.onSurfaceVariant,
@@ -247,11 +202,11 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                           ),
                         ),
                         const SizedBox(height: 22),
-                        if (mySub?.isActive == true)
+                        if ((mySub?.lessonDays ?? 0) > 0)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 16),
                             child: Text(
-                              'اشتراكك الحالي نشط${mySub!.planId != null ? ' (${mySub.planId})' : ''}',
+                              'مفتوحلك ${mySub!.lessonDays} يوم من الدروس',
                               textAlign: TextAlign.center,
                               style: theme.textTheme.titleMedium?.copyWith(
                                 color: AppColors.primary,
@@ -267,15 +222,15 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                             padding: const EdgeInsets.only(bottom: 14),
                             child: _PlanCard(
                               plan: plan,
-                              onSubscribe: _busyPlanId == null
+                              onSubscribe: _busyPlanId == null && plan.canBuy
                                   ? () => _subscribe(plan)
                                   : null,
                             ),
                           ),
                         ),
                         TextButton(
-                          onPressed: _restore,
-                          child: const Text('استعادة المشتريات'),
+                          onPressed: _leave,
+                          child: const Text('بعدين'),
                         ),
                         if (asyncPlans.isLoading)
                           const Padding(
@@ -286,7 +241,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                           const Padding(
                             padding: EdgeInsets.all(16),
                             child: Text(
-                              'لا توجد باقات منشورة من الإدارة بعد.',
+                              'الباقات مش متاحة دلوقتي، جربي بعدين.',
                               textAlign: TextAlign.center,
                             ),
                           ),
@@ -347,6 +302,23 @@ class _PlanCard extends StatelessWidget {
                     style: theme.textTheme.labelSmall?.copyWith(color: Colors.white),
                   ),
                 ),
+              if (plan.savingsPercent != null) ...[
+                if (plan.badge != null) const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.secondaryContainer,
+                    borderRadius: AppRadius.brFull,
+                  ),
+                  child: Text(
+                    'وفّري ${plan.savingsPercent}%',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: AppColors.onSecondaryContainer,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
               const Spacer(),
               Text(
                 plan.duration,
@@ -409,6 +381,7 @@ class _PlanCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           _ClaySubscribeButton(
+            label: plan.canBuy ? 'ادفعي وافتحي ${plan.durationDays} يوم دروس' : 'السعر هيتحدد قريب',
             color: plan.buttonColor,
             textColor: plan.buttonTextColor,
             onTap: onSubscribe,
@@ -434,20 +407,19 @@ class _PaymentSection extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text('طرق الدفع',
+          Text('طريقة الدفع',
               style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 14),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _PayBadge(label: 'PAYPAL', dark: true, icon: Symbols.account_balance_wallet),
-              _PayBadge(label: 'VISA', dark: false, icon: Symbols.credit_card),
-              _PayBadge(label: 'تحويل', dark: false, icon: Symbols.account_balance),
             ],
           ),
           const SizedBox(height: 8),
           Text(
-            'تشفير آمن لحماية بيانات الدفع',
+            'الدفع بالدولار عن طريق PayPal — آمن ومشفّر',
+            textAlign: TextAlign.center,
             style: theme.textTheme.labelMedium?.copyWith(
               color: AppColors.primary,
               fontWeight: FontWeight.w700,
@@ -490,10 +462,12 @@ class _PayBadge extends StatelessWidget {
 
 class _ClaySubscribeButton extends StatefulWidget {
   const _ClaySubscribeButton({
+    required this.label,
     required this.color,
     required this.textColor,
     required this.onTap,
   });
+  final String label;
   final Color color;
   final Color textColor;
   final VoidCallback? onTap;
@@ -553,7 +527,7 @@ class _ClaySubscribeButtonState extends State<_ClaySubscribeButton> {
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  'اشترك الآن',
+                  widget.label,
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
                         color: widget.textColor,
                         fontWeight: FontWeight.w800,

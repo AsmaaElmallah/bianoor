@@ -11,7 +11,6 @@ import '../../../core/theme/app_radius.dart';
 import '../../../shared/widgets/app_logo_avatar.dart';
 import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../../shared/widgets/primary_button.dart';
-import '../../subscription/data/subscription_cloud_repository.dart';
 import '../application/onboarding_controller.dart';
 import '../data/children_cloud_repository.dart';
 import '../data/onboarding_cloud_repository.dart';
@@ -68,16 +67,7 @@ class _OnboardingQuestionsScreenState
 
     if (!mounted) return;
     setState(() => _saving = false);
-
-    final sub = await ref
-        .read(subscriptionCloudRepositoryProvider)
-        .fetchMySubscription();
-    if (!mounted) return;
-    if (sub?.isActive == true) {
-      context.go(AppRoutes.home);
-    } else {
-      context.go(AppRoutes.subscription);
-    }
+    context.go(AppRoutes.home);
   }
 
   @override
@@ -97,14 +87,10 @@ class _OnboardingQuestionsScreenState
                 children: [
                   Row(
                     children: [
-                      IconButton(
-                        onPressed: () => context.go(AppRoutes.subscription),
-                        icon: const Icon(Symbols.menu, size: 24),
-                        color: AppColors.onSurface,
-                      ),
+                      const SizedBox(width: 48),
                       Expanded(
                         child: Text(
-                          'المربي اللطيف',
+                          'بيانور',
                           textAlign: TextAlign.center,
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w700,

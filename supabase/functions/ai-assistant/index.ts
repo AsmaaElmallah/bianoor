@@ -19,6 +19,8 @@ const AGE_LABELS = [
   "من سنة ونص لسنتين",
 ];
 const EMBED_MODEL = "gemini-embedding-001";
+// Used when the saved model is retired by Google (404), so mothers aren't locked out.
+const DEFAULT_GEMINI_MODEL = "gemini-3.8-flash";
 const EMBED_DIMS = 768;
 const HISTORY_LIMIT = 10;
 
@@ -30,7 +32,10 @@ type Settings = {
   model: string;
   dailyLimit: number;
   globalLimit: number;
+  webSearch: boolean;
 };
+type Source = { title: string; url: string | null };
+type StreamPart = { text?: string; sources?: Source[] };
 type Reference = { id: string; title: string; content: string; source_name: string; source_url: string | null };
 type Baby = { childId: string | null; band: string; bandIndex: number; name: string; profileText: string };
 
@@ -38,6 +43,14 @@ class AiError extends Error {
   constructor(public code: "busy" | "not_configured" | "failed", detail?: string) {
     super(detail ?? code);
   }
+}
+
+/** Status + a short reason (no secrets) so the app/dashboard can show what went wrong. */
+function failure(e: unknown) {
+  const code = e instanceof AiError ? e.code : "failed";
+  const status = code === "busy" ? "busy" : code === "not_configured" ? "not_configured" : "error";
+  const detail = (e instanceof Error ? e.message : String(e)).slice(0, 300);
+  return { status, detail };
 }
 
 Deno.serve(async (req) => {
@@ -59,6 +72,8 @@ Deno.serve(async (req) => {
     const settings = await loadSettings(admin);
 
     switch (body.action) {
+      case "health":
+        return await handleHealth(admin, user.id, settings);
       case "embed_knowledge":
         return await handleEmbedKnowledge(admin, user.id);
       case "daily_plan":
@@ -72,7 +87,7 @@ Deno.serve(async (req) => {
     }
   } catch (e) {
     console.error(e);
-    return json({ error: "server_error" }, 500);
+    return json(failure(e));
   }
 });
 
@@ -91,83 +106,153 @@ async function handleAsk(
   const meal = body.mode === "meal" ? readMeal(body.meal) : null;
 
   const baby = await loadBaby(admin, userId, body.age_range_index);
-  const conversationId = await ensureConversation(admin, userId, body.conversation_id, baby.childId, question);
-  const history = await loadHistory(admin, conversationId);
+  const safeQuestion = hideName(question, baby.name);
+  // Emergency words no longer block the answer: the app shows the red steps first, then the answer streams.
+  const emergency = detectEmergency(question, baby.bandIndex);
 
-  if (detectEmergency(question, baby.bandIndex)) {
-    await insertMessage(admin, conversationId, userId, "user", "normal", question, null);
-    const message = await insertMessage(
-      admin, conversationId, userId, "assistant", "emergency", EMERGENCY.message, EMERGENCY,
-    );
-    await touchConversation(admin, conversationId);
-    return json({ status: "emergency", conversation_id: conversationId, message });
-  }
-
-  const quota = await consume(admin, userId, "message", settings);
+  const [conversationId, quota] = await Promise.all([
+    ensureConversation(admin, userId, body.conversation_id, baby.childId, question),
+    consume(admin, userId, "message", settings),
+  ]);
   if (quota !== "ok") return json({ status: quota, conversation_id: conversationId });
 
-  const safeQuestion = hideName(question, baby.name);
-  const refs = await findReferences(
-    admin,
-    meal ? `أكل طفل ${AGE_LABELS[baby.bandIndex]}: ${meal.ingredients}` : safeQuestion,
-    baby.band,
-  );
-  const system = meal ? mealSystemPrompt(baby, refs, meal) : chatSystemPrompt(baby, refs);
+  const [history, refs] = await Promise.all([
+    loadHistory(admin, conversationId),
+    findReferences(admin, meal ? `أكل طفل ${AGE_LABELS[baby.bandIndex]}: ${meal.ingredients}` : safeQuestion, baby.band),
+  ]);
+  const system = meal ? mealSystemPrompt(baby, refs, meal) : chatSystemPrompt(baby, refs, emergency);
+  const messages: ChatMsg[] = [...history, { role: "user", content: safeQuestion }];
+  const notes = meal ? mealSafetyNotes(baby.bandIndex, meal) : [];
 
-  let parsed: Record<string, unknown>;
-  try {
-    const raw = await generate(settings, system, [
-      ...history,
-      { role: "user", content: safeQuestion },
-    ]);
-    parsed = parseJson(raw);
-  } catch (e) {
-    console.error("ai ask failed", e);
-    const code = e instanceof AiError ? e.code : "failed";
-    return json({ status: code === "busy" ? "busy" : "error", conversation_id: conversationId });
-  }
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const send = (event: Record<string, unknown>) =>
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
 
-  const payload = normalizeAnswer(parsed, refs, meal ? mealSafetyNotes(baby.bandIndex, meal) : []);
-  await insertMessage(admin, conversationId, userId, "user", "normal", question, null);
-  const message = await insertMessage(
-    admin, conversationId, userId, "assistant", "normal", payload.summary, payload,
-  );
-  await touchConversation(admin, conversationId);
-  return json({ status: "ok", conversation_id: conversationId, message });
+      send({ t: "meta", conversation_id: conversationId, emergency: emergency ? EMERGENCY : null });
+      let text = "";
+      let emitted = 0;
+      let webSources: Source[] = [];
+      // Hold back a few characters so the trailing «@@followups» block never flashes on screen.
+      const flush = (final: boolean) => {
+        const cut = text.indexOf(TAIL_MARK);
+        const end = cut >= 0 ? cut : final ? text.length : Math.max(emitted, text.length - TAIL_MARK.length);
+        if (end > emitted) {
+          send({ t: "delta", text: text.slice(emitted, end) });
+          emitted = end;
+        }
+      };
+
+      try {
+        for await (const part of streamAnswer(settings, system, messages, !meal)) {
+          if (part.sources) webSources = part.sources;
+          if (part.text) {
+            text += part.text;
+            flush(false);
+          }
+        }
+        flush(true);
+        const answer = splitAnswer(text, refs, webSources);
+        if (!answer.body) throw new AiError("failed", "empty answer");
+
+        const payload = {
+          format: "md",
+          followups: answer.followups,
+          sources: answer.sources,
+          ...(emergency ? { emergency: EMERGENCY } : {}),
+          ...(notes.length ? { notes } : {}),
+        };
+        await insertMessage(admin, conversationId, userId, "user", "normal", question, null);
+        const message = await insertMessage(admin, conversationId, userId, "assistant", "normal", answer.body, payload);
+        await touchConversation(admin, conversationId);
+        send({ t: "done", status: "ok", conversation_id: conversationId, message });
+      } catch (e) {
+        console.error("ai ask failed", e);
+        await refund(admin, userId, "message");
+        send({ t: "error", ...failure(e), conversation_id: conversationId });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: { ...cors, "Content-Type": "text/event-stream; charset=utf-8", "Cache-Control": "no-cache" },
+  });
 }
 
-function chatSystemPrompt(baby: Baby, refs: Reference[]) {
-  const refsText = refs.length
+const TAIL_MARK = "@@followups";
+
+/** Splits the streamed markdown into the visible answer, follow-up chips and sources. */
+function splitAnswer(raw: string, refs: Reference[], webSources: Source[]) {
+  const cut = raw.indexOf(TAIL_MARK);
+  const body = (cut >= 0 ? raw.slice(0, cut) : raw).trim();
+  const tail = cut >= 0 ? raw.slice(cut + TAIL_MARK.length) : "";
+
+  const followups: string[] = [];
+  let refNumbers: number[] = [];
+  for (const line of tail.split("\n")) {
+    const l = line.trim();
+    if (l.startsWith("@@refs")) {
+      refNumbers = (l.slice(6).match(/\d+/g) ?? []).map(Number);
+    } else if (/^[-*•]\s*/.test(l)) {
+      const q = l.replace(/^[-*•]\s*/, "").trim();
+      if (q.length > 2) followups.push(q.slice(0, 120));
+    }
+  }
+
+  const library = [...new Set(refNumbers)]
+    .filter((n) => Number.isInteger(n) && n >= 1 && n <= refs.length)
+    .map((n) => ({ title: refs[n - 1].source_name, url: refs[n - 1].source_url }));
+  const seen = new Set<string>();
+  const sources = [...library, ...webSources].filter((s) => {
+    const key = s.url ?? s.title;
+    if (!s.title || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 6);
+
+  return { body, followups: followups.slice(0, 3), sources };
+}
+
+function referencesBlock(refs: Reference[]) {
+  return refs.length
     ? refs.map((r, i) => `[${i + 1}] ${r.title} — المصدر: ${r.source_name}\n${r.content}`).join("\n\n")
-    : "لا توجد مراجع مطابقة لهذا السؤال في مكتبة بيانور.";
+    : "(مفيش مرجع مطابق في المكتبة للسؤال ده — اعتمدي على معرفتك الموثوقة ونتايج البحث)";
+}
 
-  return `أنتِ «مساعدة بيانور»، مساعدة تربوية لأمهات الأطفال من الولادة حتى عمر سنتين داخل تطبيق بيانور.
+const ANSWER_TAIL = `في آخر الرد بالظبط، بعد سطر فاضي، اكتبي الجزء ده (التطبيق بيخفيه ويحوّله لأزرار):
+${TAIL_MARK}
+- سؤال متابعة قصير ممكن الأم تسأله بعد كده (بلهجتها)
+- سؤال متابعة تاني
+- سؤال متابعة تالت
+@@refs أرقام مراجع مكتبة بيانور اللي استخدمتيها مفصولة بفاصلة، أو سيبيها فاضية`;
 
-بيانات الطفل:
+function chatSystemPrompt(baby: Baby, refs: Reference[], emergency: boolean) {
+  return `أنتِ «بيانور»: رفيقة ذكية ودافية جوه تطبيق بيانور، بتساعد الأمهات في كل حاجة — زي ChatGPT بالظبط في الذكاء والتفصيل، بس قلبك مع الأم وخبرتك الأساسية في الأطفال من الولادة لحد سنتين.
+
+عن طفل الأم:
 ${baby.profileText}
 
-مراجع بيانور العلمية (مأخوذة من WHO وAAP وCDC وNHS ومصادر معتمدة):
-${refsText}
+مكتبة بيانور (مراجع من WHO وAAP وCDC وNHS — استخدميها لما تفيد):
+${referencesBlock(refs)}
 
-قواعد إلزامية:
-1. ردي بنفس لغة الأم ولهجتها (يمنية، مصرية، خليجية، شامية، فصحى، إنجليزية...). لو اللهجة غير واضحة استخدمي عربية فصحى بسيطة.
-2. اعتمدي على مراجع بيانور المرفقة فقط. أي معلومة مهمة لازم تكون من مرجع، واكتبي أرقام المراجع اللي استخدمتيها في "refs".
-3. لو المراجع لا تغطي السؤال: وضّحي ذلك بلطف، وقدمي توجيهاً عاماً آمناً ومتفقاً عليه فقط، بدون أرقام أو تفاصيل غير مؤكدة، واجعلي "grounded": false، وانصحي باستشارة أخصائية بيانور أو طبيب الأطفال.
-4. ممنوع التشخيص. ممنوع ذكر أي دواء أو جرعة أو مكمل غذائي. ممنوع تأليف دراسات أو أرقام أو روابط أو مصادر.
-5. لو في السؤال أي علامة خطر، اكتبي بوضوح أن الطفل يحتاج طبيباً فوراً.
-6. النبرة: هادئة، مطمئنة، مختصرة، بدون لوم للأم.
-7. عند الإشارة للطفل استخدمي {{baby}} بدلاً من اسمه.
-8. لو السؤال خارج رعاية الطفل والأمومة والتربية، اعتذري بلطف ووجّهيها لما تقدري تساعدي فيه.
+إزاي تردي:
+- اتكلمي بنفس لهجة الأم بالظبط: لو كتبت مصري ردي مصري، يمني ردي يمني، خليجي/شامي/مغربي نفس الشيء، فصحى ردي فصحى، إنجليزي ردي إنجليزي.
+- جاوبي على السؤال نفسه من أول سطر، وبعدين التفاصيل اللي تفرق معاها. طول الرد على قد السؤال: سؤال بسيط = سطرين تلاتة، سؤال كبير = رد مفصّل ومنظم.
+- نظّمي الرد بـ Markdown بسيط: **تقيل** للمعلومة المهمة، نقط بـ "- "، خطوات مرقمة "1. "، وعنوان صغير "### " بس لو الرد طويل. ممنوع الجداول والروابط.
+- خليكي إنسانة: لو الأم قلقانة أو تعبانة طمّنيها بجملة صادقة من غير مبالغة ومن غير لوم. إيموجي واحد أو اتنين بالكتير لو مناسب.
+- خصّصي الرد على عمر الطفل وبياناته. ولو ناقصك معلومة مهمة جاوبي باللي تقدري عليه وفي الآخر اسأليها سؤال توضيحي واحد.
+- جاوبي على أي سؤال تسأله: الطفل، الحمل والولادة، الرضاعة، صحة الأم ونفسيتها، العلاقة مع الزوج والأهل، البيت والأكل، وحتى الأسئلة العامة. ما ترفضيش سؤال إلا لو مؤذي.
+- المعلومة الطبية لازم تكون من مصادر موثوقة (مكتبة بيانور، WHO، AAP، CDC، NHS، Mayo Clinic، UNICEF). ممنوع تأليف أرقام أو دراسات أو أسماء مصادر.
 
-أرجعي JSON فقط بهذا الشكل:
-{
-  "summary": "خلاصة مطمئنة في جملتين أو ثلاث",
-  "activity": { "title": "نشاط عملي مناسب لعمر الطفل اليوم", "steps": ["خطوة", "خطوة", "خطوة"] } أو null لو غير مناسب,
-  "see_doctor_when": "متى تستشير الطبيب بخصوص هذا الموضوع (جملة أو جملتين)",
-  "followups": ["سؤال متابعة قصير", "سؤال متابعة قصير"],
-  "refs": [1, 2],
-  "grounded": true
-}`;
+الأمان (مهم جداً):
+- ممنوع تحديد جرعة أي دواء أو وصف دواء بالاسم كعلاج للطفل؛ قولي إن الجرعة بيحددها الدكتور أو الصيدلي حسب الوزن.
+- ممنوع التشخيص الأكيد؛ اشرحي الأسباب الشائعة المحتملة، وقولي بوضوح وبالتقيل علامات الخطر اللي تستدعي الدكتور أو الطوارئ.
+- لما تتكلمي عن الطفل استخدمي {{baby}} مكان اسمه.
+${emergency ? "\nتنبيه: كلام الأم فيه علامة طوارئ محتملة، والتطبيق بيعرض لها خطوات الطوارئ فوق ردك. لو بتوصف حالة بتحصل دلوقتي: أول سطر في ردك يكون توجيه واضح إنها تروح الطوارئ أو تكلم الإسعاف حالاً، وبعدين اللي تعمله لحد ما توصل. لو سؤالها وقائي أو عام جاوبي عادي.\n" : ""}
+${ANSWER_TAIL}`;
 }
 
 type Meal = { ingredients: string; allergies: string[] };
@@ -184,12 +269,10 @@ function readMeal(raw: unknown): Meal {
 }
 
 function mealSystemPrompt(baby: Baby, refs: Reference[], meal: Meal) {
-  const refsText = refs.length
-    ? refs.map((r, i) => `[${i + 1}] ${r.title} — المصدر: ${r.source_name}\n${r.content}`).join("\n\n")
-    : "لا توجد مراجع مطابقة.";
+  const refsText = referencesBlock(refs);
   const underOne = baby.bandIndex <= 2;
 
-  return `أنتِ «مساعدة بيانور». الأم عايزة وجبة النهارده لطفلها.
+  return `أنتِ «بيانور»، رفيقة الأم الدافية. الأم عايزة وجبة النهارده لطفلها.
 
 بيانات الطفل:
 ${baby.profileText}
@@ -210,15 +293,14 @@ ${underOne ? "5. أقل من سنة: ممنوع العسل، ممنوع إضاف
 7. الكمية بمقاييس البيت (معالق صغيرة/كبيرة) ومناسبة للعمر حسب المراجع، وقولي إن الطفل هو اللي يحدد الشبع.
 8. ممنوع أي دواء أو مكمل أو تشخيص. عند الإشارة للطفل استخدمي {{baby}}.
 
-أرجعي JSON فقط:
-{
-  "summary": "اسم الوجبة + الكمية المناسبة لعمره في جملتين",
-  "activity": { "title": "اسم الوجبة", "steps": ["خطوات التحضير", "...", "آخر خطوة: إزاي تحفظيها ولحد إمتى"] } أو null,
-  "see_doctor_when": "علامات الحساسية اللي تستدعي الطبيب لو الأكلة جديدة",
-  "followups": ["سؤال متابعة قصير", "سؤال متابعة قصير"],
-  "refs": [1],
-  "grounded": true
-}`;
+شكل الرد (Markdown بسيط، ممنوع الجداول):
+- أول سطر: اسم الوجبة بالتقيل + جملة دافية ليه هي مناسبة لعمره.
+- ### المكونات (نقط، بالكميات بمقاييس البيت)
+- ### طريقة التحضير (خطوات مرقمة، وآخر خطوة إزاي تحفظيها ولحد إمتى)
+- ### الكمية المناسبة لعمره
+- سطر أخير عن علامات الحساسية اللي تستدعي الدكتور لو الأكلة جديدة.
+
+${ANSWER_TAIL}`;
 }
 
 /** Fixed safety lines shown with every meal — never left to the model. */
@@ -230,31 +312,6 @@ function mealSafetyNotes(bandIndex: number, meal: Meal) {
   notes.push("الأكل يتقطع صغير أو يتهرس، والطفل ياكل وهو قاعد وتحت عينك.");
   if (meal.allergies.length) notes.push(`اتأكدي إن الوجبة مافيهاش: ${meal.allergies.join("، ")}.`);
   return notes;
-}
-
-function normalizeAnswer(parsed: Record<string, unknown>, refs: Reference[], notes: string[] = []) {
-  const activityRaw = parsed.activity as Record<string, unknown> | null | undefined;
-  const steps = Array.isArray(activityRaw?.steps)
-    ? (activityRaw!.steps as unknown[]).map(String).filter(Boolean).slice(0, 6)
-    : [];
-  const refNumbers = Array.isArray(parsed.refs) ? (parsed.refs as unknown[]).map(Number) : [];
-  const used = [...new Set(refNumbers)]
-    .filter((n) => Number.isInteger(n) && n >= 1 && n <= refs.length)
-    .map((n) => refs[n - 1]);
-
-  return {
-    summary: String(parsed.summary ?? "").trim() || "معلش، ما قدرتش أجهز رد واضح. جربي تسألي بطريقة تانية.",
-    activity: activityRaw && activityRaw.title && steps.length
-      ? { title: String(activityRaw.title), steps }
-      : null,
-    see_doctor_when: String(parsed.see_doctor_when ?? "").trim(),
-    followups: Array.isArray(parsed.followups)
-      ? (parsed.followups as unknown[]).map(String).filter(Boolean).slice(0, 3)
-      : [],
-    sources: used.map((r) => ({ title: r.source_name, url: r.source_url })),
-    grounded: used.length > 0 && parsed.grounded !== false,
-    ...(notes.length ? { notes } : {}),
-  };
 }
 
 // ---------------------------------------------------------------------------
@@ -335,8 +392,8 @@ ${lastTitles ? `- لا تكرري أنشطة أمس: ${lastTitles}.` : ""}
     parsed = parseJson(await generate(settings, system, [{ role: "user", content: `خطة يوم ${date}` }]));
   } catch (e) {
     console.error("ai plan failed", e);
-    const code = e instanceof AiError ? e.code : "failed";
-    return json({ status: code === "busy" ? "busy" : "error" });
+    await refund(admin, userId, "plan");
+    return json(failure(e));
   }
 
   const refNumbers = Array.isArray(parsed.refs) ? (parsed.refs as unknown[]).map(Number) : [];
@@ -381,6 +438,7 @@ async function handleEmbedKnowledge(admin: SupabaseClient, userId: string) {
     .limit(40);
 
   let done = 0;
+  let lastError: ReturnType<typeof failure> | null = null;
   for (const row of rows ?? []) {
     try {
       const values = await embed(`${row.title}\n${row.content}`, "RETRIEVAL_DOCUMENT");
@@ -389,6 +447,7 @@ async function handleEmbedKnowledge(admin: SupabaseClient, userId: string) {
       done++;
     } catch (e) {
       console.error("embed failed", e);
+      lastError = failure(e);
       break;
     }
   }
@@ -397,6 +456,7 @@ async function handleEmbedKnowledge(admin: SupabaseClient, userId: string) {
     .from("ai_knowledge")
     .select("id", { count: "exact", head: true })
     .is("embedding", null);
+  if (done === 0 && lastError) return json({ ...lastError, done, remaining: count ?? 0 });
   return json({ status: "ok", done, remaining: count ?? 0 });
 }
 
@@ -435,11 +495,8 @@ async function embed(text: string, taskType: "RETRIEVAL_DOCUMENT" | "RETRIEVAL_Q
       }),
     },
   );
-  if (res.status === 429) throw new AiError("busy");
-  if (!res.ok) {
-    console.error("embed http", res.status, await res.text());
-    return null;
-  }
+  if (res.status === 429) throw new AiError("busy", "gemini embed 429: quota/rate limit");
+  if (!res.ok) throw new AiError("failed", `gemini embed ${res.status}: ${await googleErrorMessage(res)}`);
   const data = await res.json();
   const values = data?.embedding?.values as number[] | undefined;
   return values?.length === EMBED_DIMS ? values : null;
@@ -459,16 +516,19 @@ async function generate(settings: Settings, system: string, messages: ChatMsg[])
     : await callGemini(settings.model, system, messages);
 }
 
-async function callGemini(model: string, system: string, messages: ChatMsg[]) {
+async function callGemini(model: string, system: string, messages: ChatMsg[]): Promise<string> {
   const key = Deno.env.get("GEMINI_API_KEY");
   if (!key) throw new AiError("not_configured");
 
+  // Arabic JSON is token-heavy, and thinking tokens share the same budget.
   const generationConfig: Record<string, unknown> = {
     temperature: 0.5,
-    maxOutputTokens: 1500,
+    maxOutputTokens: 8192,
     responseMimeType: "application/json",
   };
-  if (model.includes("flash")) generationConfig.thinkingConfig = { thinkingBudget: 0 };
+  // Gemini 2.x takes a token budget; 3.x+ takes a level and rejects budget 0.
+  if (/^gemini-2\.5-flash/.test(model)) generationConfig.thinkingConfig = { thinkingBudget: 0 };
+  else if (/^gemini-[3-9]/.test(model)) generationConfig.thinkingConfig = { thinkingLevel: "low" };
 
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
@@ -485,17 +545,134 @@ async function callGemini(model: string, system: string, messages: ChatMsg[]) {
       }),
     },
   );
-  if (res.status === 429) throw new AiError("busy");
-  if (!res.ok) throw new AiError("failed", `gemini ${res.status}: ${await res.text()}`);
+  if (res.status === 429) throw new AiError("busy", "gemini 429: quota/rate limit");
+  if (res.status === 404 && model !== DEFAULT_GEMINI_MODEL) {
+    await res.body?.cancel();
+    console.warn(`gemini model ${model} not found, falling back to ${DEFAULT_GEMINI_MODEL}`);
+    return await callGemini(DEFAULT_GEMINI_MODEL, system, messages);
+  }
+  if (!res.ok) throw new AiError("failed", `gemini ${res.status} (${model}): ${await googleErrorMessage(res)}`);
   const data = await res.json();
-  const text = (data?.candidates?.[0]?.content?.parts ?? [])
+  const candidate = data?.candidates?.[0];
+  const text = (candidate?.content?.parts ?? [])
     .map((p: { text?: string }) => p.text ?? "")
     .join("");
-  if (!text) throw new AiError("failed", "gemini empty response");
+  if (!text) {
+    const reason = data?.promptFeedback?.blockReason ?? candidate?.finishReason ?? "unknown";
+    throw new AiError("failed", `gemini empty response (${reason})`);
+  }
+  if (candidate?.finishReason === "MAX_TOKENS") throw new AiError("failed", "gemini answer cut (MAX_TOKENS)");
   return text;
 }
 
-async function callClaude(model: string, system: string, messages: ChatMsg[]) {
+async function googleErrorMessage(res: Response) {
+  const raw = await res.text();
+  try {
+    const err = JSON.parse(raw)?.error;
+    return `${err?.status ?? ""} ${err?.message ?? raw}`.trim().slice(0, 250);
+  } catch {
+    return raw.slice(0, 250);
+  }
+}
+
+/** Chat answers: markdown streamed as it is written, so the first words show in about a second. */
+async function* streamAnswer(
+  settings: Settings,
+  system: string,
+  messages: ChatMsg[],
+  allowSearch: boolean,
+): AsyncGenerator<StreamPart> {
+  if (settings.provider === "claude") {
+    yield { text: await callClaude(settings.model, system, messages, false) };
+    return;
+  }
+  yield* streamGemini(settings.model, system, messages, allowSearch && settings.webSearch);
+}
+
+async function* streamGemini(
+  model: string,
+  system: string,
+  messages: ChatMsg[],
+  search: boolean,
+): AsyncGenerator<StreamPart> {
+  const key = Deno.env.get("GEMINI_API_KEY");
+  if (!key) throw new AiError("not_configured");
+
+  const generationConfig: Record<string, unknown> = { temperature: 0.7, maxOutputTokens: 4096 };
+  if (/^gemini-2\.5-flash/.test(model)) generationConfig.thinkingConfig = { thinkingBudget: 0 };
+  else if (/^gemini-[3-9]/.test(model)) generationConfig.thinkingConfig = { thinkingLevel: "low" };
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: system }] },
+        contents: messages.map((m) => ({
+          role: m.role === "assistant" ? "model" : "user",
+          parts: [{ text: m.content }],
+        })),
+        generationConfig,
+        ...(search ? { tools: [{ google_search: {} }] } : {}),
+      }),
+    },
+  );
+
+  if (res.status === 404 && model !== DEFAULT_GEMINI_MODEL) {
+    await res.body?.cancel();
+    yield* streamGemini(DEFAULT_GEMINI_MODEL, system, messages, search);
+    return;
+  }
+  // Google Search has its own (small) free quota; answering without it beats failing.
+  if (!res.ok && search) {
+    console.warn(`gemini search unavailable (${res.status}): ${await googleErrorMessage(res)}`);
+    yield* streamGemini(model, system, messages, false);
+    return;
+  }
+  if (res.status === 429) throw new AiError("busy", "gemini 429: quota/rate limit");
+  if (!res.ok || !res.body) throw new AiError("failed", `gemini ${res.status} (${model}): ${await googleErrorMessage(res)}`);
+
+  const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+  let buffer = "";
+  let finish = "";
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += value;
+    let newline: number;
+    while ((newline = buffer.indexOf("\n")) >= 0) {
+      const line = buffer.slice(0, newline).trim();
+      buffer = buffer.slice(newline + 1);
+      if (!line.startsWith("data:")) continue;
+      let chunk: Record<string, any>;
+      try {
+        chunk = JSON.parse(line.slice(5));
+      } catch {
+        continue;
+      }
+      const candidate = chunk?.candidates?.[0];
+      const text = (candidate?.content?.parts ?? [])
+        .filter((p: { thought?: boolean }) => !p.thought)
+        .map((p: { text?: string }) => p.text ?? "")
+        .join("");
+      if (text) yield { text };
+      const chunks = candidate?.groundingMetadata?.groundingChunks;
+      if (Array.isArray(chunks) && chunks.length) {
+        yield {
+          sources: chunks
+            .map((c: { web?: { uri?: string; title?: string } }) => ({ title: c.web?.title ?? "", url: c.web?.uri ?? null }))
+            .filter((s: Source) => s.title),
+        };
+      }
+      if (candidate?.finishReason) finish = candidate.finishReason;
+      if (chunk?.promptFeedback?.blockReason) throw new AiError("failed", `blocked (${chunk.promptFeedback.blockReason})`);
+    }
+  }
+  if (finish && !["STOP", "MAX_TOKENS"].includes(finish)) console.warn(`gemini finished with ${finish}`);
+}
+
+async function callClaude(model: string, system: string, messages: ChatMsg[], jsonOnly = true) {
   const key = Deno.env.get("ANTHROPIC_API_KEY");
   if (!key) throw new AiError("not_configured");
   const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -507,14 +684,14 @@ async function callClaude(model: string, system: string, messages: ChatMsg[]) {
     },
     body: JSON.stringify({
       model,
-      max_tokens: 1500,
-      temperature: 0.5,
-      system: `${system}\n\nأرجعي JSON صالح فقط بدون أي نص قبله أو بعده.`,
+      max_tokens: jsonOnly ? 1500 : 4096,
+      temperature: jsonOnly ? 0.5 : 0.7,
+      system: jsonOnly ? `${system}\n\nأرجعي JSON صالح فقط بدون أي نص قبله أو بعده.` : system,
       messages,
     }),
   });
-  if (res.status === 429 || res.status === 529) throw new AiError("busy");
-  if (!res.ok) throw new AiError("failed", `claude ${res.status}: ${await res.text()}`);
+  if (res.status === 429 || res.status === 529) throw new AiError("busy", `claude ${res.status}`);
+  if (!res.ok) throw new AiError("failed", `claude ${res.status}: ${(await res.text()).slice(0, 250)}`);
   const data = await res.json();
   return (data?.content ?? []).map((p: { text?: string }) => p.text ?? "").join("");
 }
@@ -592,15 +769,16 @@ async function loadSettings(admin: SupabaseClient): Promise<Settings> {
   const { data } = await admin
     .from("app_settings")
     .select("key, value")
-    .in("key", ["ai_enabled", "ai_provider", "ai_model", "ai_daily_limit", "ai_global_daily_limit"]);
+    .in("key", ["ai_enabled", "ai_provider", "ai_model", "ai_daily_limit", "ai_global_daily_limit", "ai_web_search"]);
   const map = Object.fromEntries((data ?? []).map((r: { key: string; value: string }) => [r.key, r.value]));
   const provider = map.ai_provider === "claude" ? "claude" : "gemini";
   return {
     enabled: (map.ai_enabled ?? "true") !== "false",
     provider,
-    model: (map.ai_model ?? "").trim() || (provider === "claude" ? "claude-haiku-4-5" : "gemini-2.5-flash"),
+    model: (map.ai_model ?? "").trim() || (provider === "claude" ? "claude-haiku-4-5" : DEFAULT_GEMINI_MODEL),
     dailyLimit: Math.max(1, Number(map.ai_daily_limit) || 20),
     globalLimit: Math.max(1, Number(map.ai_global_daily_limit) || 200),
+    webSearch: (map.ai_web_search ?? "true") !== "false",
   };
 }
 
@@ -616,6 +794,76 @@ async function consume(admin: SupabaseClient, userId: string, kind: "message" | 
     return "error";
   }
   return data as "ok" | "limit" | "busy";
+}
+
+/** A failed AI call must not eat the mother's daily quota. */
+async function refund(admin: SupabaseClient, userId: string, kind: "message" | "plan") {
+  const { error } = await admin.rpc("ai_refund", { p_user: userId, p_kind: kind });
+  if (error) console.error("ai_refund", error);
+}
+
+// ---------------------------------------------------------------------------
+// Health check (staff) — dashboard button «اختبار المساعدة»
+// ---------------------------------------------------------------------------
+
+async function handleHealth(admin: SupabaseClient, userId: string, settings: Settings) {
+  const { data: profile } = await admin.from("profiles").select("role").eq("id", userId).maybeSingle();
+  if (!["admin", "editor"].includes(profile?.role ?? "")) return json({ error: "forbidden" }, 403);
+
+  type Check = { name: string; ok: boolean; detail: string };
+  const checks: Check[] = [];
+  const run = async (name: string, fn: () => Promise<string>) => {
+    try {
+      checks.push({ name, ok: true, detail: await fn() });
+    } catch (e) {
+      checks.push({ name, ok: false, detail: failure(e).detail });
+    }
+  };
+
+  await run("settings", async () => {
+    if (!settings.enabled) throw new Error("ai_enabled = false (المساعدة متوقفة من الإعدادات)");
+    return `${settings.provider} / ${settings.model}`;
+  });
+  await run("api_key", async () => {
+    const name = settings.provider === "claude" ? "ANTHROPIC_API_KEY" : "GEMINI_API_KEY";
+    if (!Deno.env.get(name)) throw new Error(`${name} مش موجود في Supabase Secrets`);
+    if (!Deno.env.get("GEMINI_API_KEY")) throw new Error("GEMINI_API_KEY مطلوب للبحث في المراجع");
+    return `${name} موجود`;
+  });
+  await run("generate", async () => {
+    const raw = await generate(settings, 'أرجعي JSON فقط: {"ok": true}', [{ role: "user", content: "اختبار" }]);
+    parseJson(raw);
+    return "الموديل رد بـ JSON سليم";
+  });
+  await run("stream", async () => {
+    const started = Date.now();
+    let firstMs = 0;
+    let text = "";
+    for await (const part of streamAnswer(settings, "ردي بكلمتين بالمصري.", [{ role: "user", content: "إزيك؟" }], true)) {
+      if (part.text && !firstMs) firstMs = Date.now() - started;
+      text += part.text ?? "";
+    }
+    if (!text.trim()) throw new Error("الرد المباشر رجع فاضي");
+    return `أول كلمة بعد ${(firstMs / 1000).toFixed(1)} ثانية — البحث في Google ${settings.webSearch ? "شغال" : "مقفول"}`;
+  });
+  await run("embedding", async () => {
+    const v = await embed("اختبار", "RETRIEVAL_QUERY");
+    if (!v) throw new Error("embedding فاضي");
+    return `${v.length} أبعاد`;
+  });
+  await run("database", async () => {
+    const { error } = await admin.rpc("ai_refund", { p_user: userId, p_kind: "message" });
+    if (error) throw new Error(`ai_refund: ${error.message} — شغّلي migration 039`);
+    const { count: total } = await admin.from("ai_knowledge").select("id", { count: "exact", head: true })
+      .eq("publish_status", "published");
+    const { count: pending } = await admin.from("ai_knowledge").select("id", { count: "exact", head: true })
+      .eq("publish_status", "published").is("embedding", null);
+    if (!total) throw new Error("مفيش مراجع منشورة — شغّلي ملفات 035 و036");
+    if (pending) throw new Error(`${pending} من ${total} مرجع مش متجهزين — دوسي «تجهيز المراجع للبحث»`);
+    return `${total} مرجع جاهز للبحث`;
+  });
+
+  return json({ status: checks.every((c) => c.ok) ? "ok" : "error", checks });
 }
 
 const NUTRITION: Record<string, string> = {
@@ -714,9 +962,10 @@ async function loadHistory(admin: SupabaseClient, conversationId: string): Promi
     .order("created_at", { ascending: false })
     .limit(HISTORY_LIMIT);
   const rows = (data ?? []).reverse().filter((m: { kind: string }) => m.kind === "normal");
-  const history: ChatMsg[] = rows.map((m: { role: Role; content: string; payload: Record<string, unknown> | null }) => ({
+  // Old card-style answers only carry a short summary; replaying their JSON would pull the model back to JSON.
+  const history: ChatMsg[] = rows.map((m: { role: Role; content: string }) => ({
     role: m.role,
-    content: m.role === "assistant" && m.payload ? JSON.stringify(m.payload) : m.content,
+    content: m.content,
   }));
   while (history.length && history[0].role !== "user") history.shift();
   return history;

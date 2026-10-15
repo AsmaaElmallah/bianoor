@@ -1,5 +1,6 @@
 import 'package:material_symbols_icons/symbols.dart';
 
+import '../../../core/constants/app_art.dart';
 import '../../../core/theme/app_colors.dart';
 import 'home_menu_item.dart';
 
@@ -7,60 +8,63 @@ import 'home_menu_item.dart';
 class HomeLessonColors {
   HomeLessonColors._();
 
-  static const quranBg   = AppColors.trackQuranLight;    // #FFF3CC gold tint
-  static const quranIcon = AppColors.trackQuranGold;     // #FFAA00
+  // Green + gold to match the Quran art.
+  static const quranBg   = Color(0xFFE2F1E3);
+  static const quranIcon = Color(0xFF3E8E5A);
 
   static const mathBg    = AppColors.trackMathLight;     // #FFE4DB orange tint
-  static const mathIcon  = AppColors.trackMathOrange;    // #FF7043
+  // Sky blue lets the colourful abacus pop.
+  static const mathBg    = Color(0xFFE2EEFF);
+  static const mathIcon  = Color(0xFF4A7FD6);
 
   static const visualBg  = AppColors.trackVisualLight;  // #EFE3FF purple tint
   static const visualIcon= AppColors.trackVisualPurple; // #9C6FD6
 
-  static const emotionalBg  = AppColors.trackEmotionalLight; // #FFE4EC coral tint
-  static const emotionalIcon= AppColors.trackEmotionalRed;   // #F1758E
+  static const emotionalBg  = Color(0xFFFFE5EE);
 }
 
 const homeMenuSections = <HomeMenuSection>[
   HomeMenuSection(
     id: 'start_learning',
+    art: AppArt.sparkles,
     title: 'ابدأ التعلم',
     accentColor: AppColors.primary,
     layout: HomeSectionLayout.shortcutStrip,
     items: [
       HomeMenuItem(
-        id: 'curriculum',
+        id: 'curriculum', art: AppArt.books,
         title: 'المنهج',
         icon: Symbols.menu_book,
         children: [
           HomeMenuItem(
-            id: 'curriculum_about',
-            title: '🌸 ما هو المنهج ؟ ( اهدافه و اساليبه)',
+            id: 'curriculum_about', art: AppArt.openBook,
+            title: 'ما هو المنهج؟ (أهدافه وأساليبه)',
             icon: Symbols.auto_stories,
           ),
           HomeMenuItem(
-            id: 'parent_general_culture',
+            id: 'parent_general_culture', art: AppArt.lightBulb,
             title: 'ثقافة هامة للأمهات / ولي الأمر لطفلك',
             icon: Symbols.groups,
           ),
           HomeMenuItem(
-            id: 'parent_health_culture',
+            id: 'parent_health_culture', art: AppArt.stethoscope,
             title: 'الثقافة الصحية',
             icon: Symbols.health_and_safety,
           ),
         ],
       ),
       HomeMenuItem(
-        id: 'how_to_teach',
-        title: '🌸 كيف ادررس طفلي ؟',
+        id: 'how_to_teach', art: AppArt.puzzle,
+        title: 'كيف أدرّس طفلي؟',
         icon: Symbols.location_on,
       ),
       HomeMenuItem(
-        id: 'baby_exercises',
+        id: 'baby_exercises', art: AppArt.ball,
         title: 'الرياضة',
         icon: Symbols.fitness_center,
       ),
       HomeMenuItem(
-        id: 'courses',
+        id: 'courses', art: AppArt.graduationCap,
         title: 'الدورات',
         icon: Symbols.school,
       ),
@@ -68,63 +72,69 @@ const homeMenuSections = <HomeMenuSection>[
   ),
   HomeMenuSection(
     id: 'lessons',
+    art: AppArt.graduationCap,
     title: 'الدروس',
     accentColor: AppColors.secondary,
     layout: HomeSectionLayout.pastelGrid,
     items: [
       HomeMenuItem(
-        id: 'lesson_quran',
+        id: 'lesson_quran', art: AppArt.quran,
         title: 'القرآن الكريم',
         icon: Symbols.menu_book,
         cardColor: HomeLessonColors.quranBg,
         iconColor: HomeLessonColors.quranIcon,
+        premium: true,
       ),
       HomeMenuItem(
-        id: 'lesson_math',
+        id: 'lesson_math', art: AppArt.abacus,
         title: 'الحساب النقطي',
         icon: Symbols.grid_on,
         cardColor: HomeLessonColors.mathBg,
         iconColor: HomeLessonColors.mathIcon,
+        premium: true,
       ),
       HomeMenuItem(
-        id: 'lesson_visual',
+        id: 'lesson_visual', art: AppArt.eye,
         title: 'التحفيز البصري',
         icon: Symbols.visibility,
         cardColor: HomeLessonColors.visualBg,
         iconColor: HomeLessonColors.visualIcon,
+        premium: true,
       ),
       HomeMenuItem(
-        id: 'lesson_emotional',
+        id: 'lesson_emotional', art: AppArt.heart,
         title: 'الذكاء العاطفي',
         icon: Symbols.favorite,
         cardColor: HomeLessonColors.emotionalBg,
         iconColor: HomeLessonColors.emotionalIcon,
+        premium: true,
       ),
     ],
   ),
   HomeMenuSection(
     id: 'assessment',
+    art: AppArt.clipboard,
     title: 'التقييم',
     accentColor: AppColors.tertiary,
     layout: HomeSectionLayout.listPanel,
     items: [
       HomeMenuItem(
-        id: 'mother_assessment',
+        id: 'mother_assessment', art: AppArt.clipboard,
         title: 'تقييم الأم',
         icon: Symbols.family_restroom,
         children: [
-          HomeMenuItem(id: 'aptitude_test', title: 'اختبار القدرات', icon: Symbols.psychology),
-          HomeMenuItem(id: 'skills_test', title: 'اختبار المهارات', icon: Symbols.fact_check),
-          HomeMenuItem(id: 'interests_test', title: 'فحص ميول الطفل وشغفه', icon: Symbols.interests),
+          HomeMenuItem(id: 'aptitude_test', art: AppArt.brain, title: 'اختبار القدرات', icon: Symbols.psychology),
+          HomeMenuItem(id: 'skills_test', art: AppArt.checkMark, title: 'اختبار المهارات', icon: Symbols.fact_check),
+          HomeMenuItem(id: 'interests_test', art: AppArt.palette, title: 'فحص ميول الطفل وشغفه', icon: Symbols.interests),
         ],
       ),
       HomeMenuItem(
-        id: 'our_assessment',
+        id: 'our_assessment', art: AppArt.star,
         title: 'تقييمنا',
         icon: Symbols.verified,
       ),
       HomeMenuItem(
-        id: 'child_tests',
+        id: 'child_tests', art: AppArt.memo,
         title: 'اختبارات الطفل',
         icon: Symbols.assignment,
       ),
@@ -132,30 +142,31 @@ const homeMenuSections = <HomeMenuSection>[
   ),
   HomeMenuSection(
     id: 'support',
+    art: AppArt.headphone,
     title: 'الدعم',
     accentColor: AppColors.error,
     layout: HomeSectionLayout.supportList,
     panelColor: AppColors.surfaceContainer,
     items: [
       HomeMenuItem(
-        id: 'problem_solving',
+        id: 'problem_solving', art: AppArt.tools,
         title: 'حل المشكلات',
         icon: Symbols.build,
       ),
       HomeMenuItem(
-        id: 'behavioral_consultations',
+        id: 'behavioral_consultations', art: AppArt.headphone,
         title: 'استشارات سلوكية',
         icon: Symbols.support_agent,
         children: [
           HomeMenuItem(
-            id: 'paid_consultations',
+            id: 'paid_consultations', art: AppArt.gem,
             title: 'الاستشارات السلوكية والأسرية لطفلك المدفوعة',
             icon: Symbols.payments,
           ),
         ],
       ),
       HomeMenuItem(
-        id: 'common_problems',
+        id: 'common_problems', art: AppArt.thinking,
         title: 'مشاكل الأطفال الشائعة',
         icon: Symbols.warning,
       ),
@@ -163,31 +174,33 @@ const homeMenuSections = <HomeMenuSection>[
   ),
   HomeMenuSection(
     id: 'library',
+    art: AppArt.books,
     title: 'مكتبة المحتوى',
     accentColor: AppColors.primaryDim,
     layout: HomeSectionLayout.contentGrid,
     items: [
-      HomeMenuItem(id: 'activities', title: 'الأنشطة', icon: Symbols.sports_esports,
+      HomeMenuItem(id: 'activities', art: AppArt.teddyBear, title: 'الأنشطة', icon: Symbols.sports_esports,
           cardColor: AppColors.trackExerciseLight, iconColor: AppColors.trackExerciseGreen),
-      HomeMenuItem(id: 'nature_sounds', title: 'صوت الطبيعة', icon: Symbols.park,
+      HomeMenuItem(id: 'nature_sounds', art: AppArt.tree, title: 'صوت الطبيعة', icon: Symbols.park,
           cardColor: AppColors.trackExerciseLight, iconColor: AppColors.trackExerciseGreen),
-      HomeMenuItem(id: 'calm_music', title: 'موسيقى هادئة', icon: Symbols.music_note,
+      HomeMenuItem(id: 'calm_music', art: AppArt.musicNotes, title: 'موسيقى هادئة', icon: Symbols.music_note,
           cardColor: AppColors.trackLibraryLight, iconColor: AppColors.trackLibraryBlue),
-      HomeMenuItem(id: 'lullabies', title: 'تهويدات', icon: Symbols.bedtime,
+      HomeMenuItem(id: 'lullabies', art: AppArt.moon, title: 'تهويدات', icon: Symbols.bedtime,
           cardColor: AppColors.trackVisualLight, iconColor: AppColors.trackVisualPurple),
     ],
   ),
   HomeMenuSection(
     id: 'community',
+    art: AppArt.people,
     title: 'المجتمع',
     accentColor: AppColors.secondary,
     layout: HomeSectionLayout.communityTiles,
     panelColor: AppColors.secondaryContainer,
     items: [
-      HomeMenuItem(id: 'mothers_club', title: 'نادي الأمهات', icon: Symbols.groups),
-      HomeMenuItem(id: 'faq', title: 'أسئلة وأجوبة', icon: Symbols.quiz),
-      HomeMenuItem(id: 'complaints', title: 'الشكاوى', icon: Symbols.feedback),
-      HomeMenuItem(id: 'suggestions', title: 'الاقتراحات', icon: Symbols.lightbulb),
+      HomeMenuItem(id: 'mothers_club', art: AppArt.people, title: 'نادي الأمهات', icon: Symbols.groups),
+      HomeMenuItem(id: 'faq', art: AppArt.question, title: 'أسئلة وأجوبة', icon: Symbols.quiz),
+      HomeMenuItem(id: 'complaints', art: AppArt.megaphone, title: 'الشكاوى', icon: Symbols.feedback),
+      HomeMenuItem(id: 'suggestions', art: AppArt.lightBulb, title: 'الاقتراحات', icon: Symbols.lightbulb),
     ],
   ),
 ];

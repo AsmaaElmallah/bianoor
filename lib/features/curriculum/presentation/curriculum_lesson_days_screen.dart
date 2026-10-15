@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -6,11 +7,12 @@ import '../../../core/theme/app_radius.dart';
 import '../../quran/presentation/widgets/tactile/quran_journey_node.dart';
 import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
 import '../../quran/presentation/widgets/tactile/tactile_clay_card.dart';
+import '../../subscription/application/premium_access.dart';
 import '../domain/curriculum_journey_config.dart';
 import '../domain/curriculum_lesson_journey.dart';
 
 /// أيام درس واحد (اليوم الأول، الثاني، …) مع علامة الإنجاز.
-class CurriculumLessonDaysScreen extends StatelessWidget {
+class CurriculumLessonDaysScreen extends ConsumerWidget {
   const CurriculumLessonDaysScreen({
     super.key,
     required this.config,
@@ -25,7 +27,8 @@ class CurriculumLessonDaysScreen extends StatelessWidget {
   final String? slideInfo;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unlocked = ref.watch(unlockedLessonDaysProvider).valueOrNull;
     final span = curriculumLessonDaySpan(
       lessonNumber,
       maxLessonNumber: config.maxLessonNumber,
@@ -158,11 +161,17 @@ class CurriculumLessonDaysScreen extends StatelessWidget {
           final dx = quranJourneyPathOffsets[(dayInLesson - 1) % quranJourneyPathOffsets.length];
           final isDone = dayInLesson <= completedDays;
           final isActive = isCurrentLesson && !lessonDone && dayInLesson == currentDayInLesson;
-          final isLocked = !isDone && !isActive;
+          final paid = unlocked != null && span.startDay + dayInLesson - 1 <= unlocked;
+          final isLocked = !isDone && !isActive && !paid;
+          final needsPlan = isActive && unlocked != null && !paid;
 
           String? subtitle;
           if (isDone) {
             subtitle = 'مكتمل';
+          } else if (!isActive && paid) {
+            subtitle = 'مفتوح';
+          } else if (needsPlan) {
+            subtitle = 'مقفول — محتاج باقة';
           } else if (isActive) {
             subtitle = 'اليوم الحالي';
           }
@@ -177,10 +186,13 @@ class CurriculumLessonDaysScreen extends StatelessWidget {
                 isDone: isDone,
                 isActive: isActive,
                 isLocked: isLocked,
-                speechBubble: isActive ? 'ابدأ الآن' : null,
-                onTap: isActive
+                needsPlan: needsPlan,
+                speechBubble: isActive ? (needsPlan ? 'افتحي بالباقة' : 'ابدأ الآن') : null,
+                onTap: needsPlan
+                    ? () => openPlansForLessons(context, ref)
+                    : isActive
                     ? () => context.push(config.playerPath)
-                    : isDone
+                    : !isLocked
                         ? () => context.push('${config.playerPath}?review_lesson=$lessonNumber')
                         : null,
               ),

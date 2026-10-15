@@ -4,6 +4,7 @@ import '../../../core/analytics/app_analytics.dart';
 import '../../../core/storage/prefs_service.dart';
 import '../../curriculum/data/curriculum_cloud_repository.dart';
 import '../../curriculum/data/progress_sync_service.dart';
+import '../../subscription/application/premium_access.dart';
 import '../data/math_manifest.dart';
 import '../data/math_progress_storage.dart';
 import '../domain/math_curriculum_schedule.dart';
@@ -70,7 +71,12 @@ class MathCurriculumNotifier extends AsyncNotifier<MathCurriculumState> {
     final manifestRepo = ref.read(mathManifestRepositoryProvider);
 
     var progress = await storage.ensureProgramStart();
-    final day = storage.curriculumDayFromStart(progress);
+    var day = storage.curriculumDayFromStart(progress);
+    final held = await holdCurriculumDay(ref, day);
+    if (held != day) {
+      progress = await storage.holdAtDay(progress, held);
+      day = held;
+    }
     if (progress.curriculumDay != day) {
       progress = progress.copyWith(curriculumDay: day);
       await storage.save(progress);
@@ -102,7 +108,7 @@ class MathCurriculumNotifier extends AsyncNotifier<MathCurriculumState> {
       return [
         for (var i = 0; i < use.length; i++)
           MathRoundStep(
-            trackLabel: use[i].title ?? 'سحابة',
+            trackLabel: use[i].title ?? 'الحساب',
             slide: MathSlide(
               packageId: use[i].packageId ?? 'cloud',
               slideIndex: use[i].slideIndex,

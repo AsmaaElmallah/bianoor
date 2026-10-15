@@ -33,7 +33,7 @@ class CurriculumSlideImage extends StatelessWidget {
             Icon(Icons.cloud_off, size: 56, color: AppColors.outline.withValues(alpha: 0.6)),
             const SizedBox(height: 8),
             Text(
-              'لا توجد شريحة منشورة من الإدارة بعد',
+              'الصورة دي بتتجهز',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppColors.onSurfaceVariant,

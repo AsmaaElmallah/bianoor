@@ -41,14 +41,49 @@ class TimelineItem {
   final String? sourceUrl;
 }
 
+/// Countries with a vaccine schedule (codes match `baby_timeline.country`).
+const vaccineCountries = <String, String>{
+  'EG': 'مصر',
+  'YE': 'اليمن',
+  'SA': 'السعودية',
+  'AE': 'الإمارات',
+  'KW': 'الكويت',
+  'QA': 'قطر',
+  'BH': 'البحرين',
+  'OM': 'عُمان',
+  'JO': 'الأردن',
+  'IQ': 'العراق',
+  'SY': 'سوريا',
+  'LB': 'لبنان',
+  'PS': 'فلسطين',
+  'LY': 'ليبيا',
+  'SD': 'السودان',
+  'MA': 'المغرب',
+  'DZ': 'الجزائر',
+  'TN': 'تونس',
+};
+
 final timelineRepositoryProvider = Provider<TimelineRepository>((ref) => TimelineRepository());
 
 class TimelineRepository {
-  Future<List<TimelineItem>> fetchItems() async {
+  /// The dashboard default, used until the mother picks her own country.
+  Future<String> fetchDefaultCountry() async {
+    final setting = await SupabaseBootstrap.client
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'vaccine_country')
+        .maybeSingle();
+    final code = (setting?['value'] as String?)?.trim() ?? '';
+    return vaccineCountries.containsKey(code) ? code : 'EG';
+  }
+
+  /// Vaccines of [country] only; skills and feeding items are shared by all countries.
+  Future<List<TimelineItem>> fetchItems(String country) async {
     final rows = await SupabaseBootstrap.client
         .from('baby_timeline')
         .select('id, kind, age_days, title, body, tips, source_name, source_url')
         .eq('publish_status', 'published')
+        .or('country.is.null,country.eq.$country')
         .order('age_days');
     return [for (final r in List<Map<String, dynamic>>.from(rows as List)) TimelineItem.fromRow(r)];
   }

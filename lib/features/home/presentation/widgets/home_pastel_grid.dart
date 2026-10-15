@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
+import '../../../../shared/widgets/floating_widget.dart';
+import '../../../../shared/widgets/icon_3d.dart';
+import '../../../subscription/application/premium_access.dart';
 import '../../domain/home_menu_item.dart';
 
 class HomePastelGrid extends StatelessWidget {
@@ -38,17 +43,17 @@ class HomePastelGrid extends StatelessWidget {
   }
 }
 
-class _PastelCard extends StatefulWidget {
+class _PastelCard extends ConsumerStatefulWidget {
   const _PastelCard({required this.item, required this.onTap});
 
   final HomeMenuItem item;
   final VoidCallback onTap;
 
   @override
-  State<_PastelCard> createState() => _PastelCardState();
+  ConsumerState<_PastelCard> createState() => _PastelCardState();
 }
 
-class _PastelCardState extends State<_PastelCard> {
+class _PastelCardState extends ConsumerState<_PastelCard> {
   bool _pressed = false;
 
   void _onTapDown(TapDownDetails _) {
@@ -68,9 +73,10 @@ class _PastelCardState extends State<_PastelCard> {
     final theme = Theme.of(context);
     final bg = widget.item.cardColor ?? AppColors.primaryContainer;
     final iconColor = widget.item.iconColor ?? AppColors.primary;
+    final locked = widget.item.premium && ref.watch(unlockedLessonDaysProvider).valueOrNull == 0;
 
     // Depth block color — slightly darker than bg
-    final depthColor = Color.lerp(bg, Colors.black, 0.15) ?? bg;
+    final depthColor = Color.lerp(bg, iconColor, 0.45) ?? bg;
 
     return GestureDetector(
       onTapDown: _onTapDown,
@@ -109,7 +115,15 @@ class _PastelCardState extends State<_PastelCard> {
             Container(
               margin: EdgeInsets.only(bottom: _pressed ? 0 : 5),
               decoration: BoxDecoration(
-                color: bg,
+                gradient: LinearGradient(
+                  begin: AlignmentDirectional.topEnd,
+                  end: AlignmentDirectional.bottomStart,
+                  colors: [
+                    Color.lerp(bg, Colors.white, 0.35)!,
+                    bg,
+                    Color.lerp(bg, iconColor, 0.14)!,
+                  ],
+                ),
                 borderRadius: AppRadius.brMd,
                 border: Border.all(
                   color: Colors.white.withValues(alpha: 0.6),
@@ -130,21 +144,61 @@ class _PastelCardState extends State<_PastelCard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Icon with background circle
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: iconColor.withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: Icon(widget.item.icon,
-                        color: iconColor, size: 26, fill: 1),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Align(
+                          alignment: AlignmentDirectional.topStart,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              Container(
+                                width: 76,
+                                height: 76,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: RadialGradient(
+                                    colors: [
+                                      Colors.white.withValues(alpha: 0.9),
+                                      Colors.white.withValues(alpha: 0),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              FloatingWidget(
+                                amplitude: 3,
+                                duration: Duration(milliseconds: 2600 + widget.item.id.length * 90),
+                                child: Icon3D(
+                                  art: widget.item.art,
+                                  icon: widget.item.icon,
+                                  color: iconColor,
+                                  size: 68,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (locked)
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.85),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Symbols.lock,
+                            size: 16,
+                            fill: 1,
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                        ),
+                    ],
                   ),
                   Text(
                     widget.item.title,
-                    style: theme.textTheme.titleSmall?.copyWith(
+                    style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                       height: 1.25,
                     ),

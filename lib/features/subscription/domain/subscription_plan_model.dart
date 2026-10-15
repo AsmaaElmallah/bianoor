@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
 
 class SubscriptionPlan {
   const SubscriptionPlan({
@@ -15,10 +14,9 @@ class SubscriptionPlan {
     required this.buttonColor,
     required this.buttonTextColor,
     this.badge,
-    this.storeProductIdIos,
-    this.storeProductIdAndroid,
     this.durationDays = 30,
     this.priceUsd,
+    this.savingsPercent,
   });
 
   final String id;
@@ -33,72 +31,20 @@ class SubscriptionPlan {
   final Color buttonColor;
   final Color buttonTextColor;
   final String? badge;
-  final String? storeProductIdIos;
-  final String? storeProductIdAndroid;
   final int durationDays;
   final double? priceUsd;
+
+  /// Saving vs. paying monthly for the same period; null when not meaningful.
+  final int? savingsPercent;
+
+  bool get canBuy => priceUsd != null;
 }
 
-const _commonFeatures = [
-  'منهج تعليمي متخصص لمرحلة طفلك العمرية بدقة',
-  'أنشطة متخصصة مناسبة لعمره تطوّر مهاراته وإدراكه',
-  'تمارين رياضية متخصصة بعمره وتناسب قدراته',
-  'توجيه ومتابعة ورقابة منا ومنكم أولاً بأول',
-  'استشارات خاصة',
-];
-
-final subscriptionPlans = <SubscriptionPlan>[
-  SubscriptionPlan(
-    id: 'monthly',
-    title: 'الباقة الشهرية',
-    duration: 'شهر واحد',
-    price: r'$5',
-    priceSuffix: '/ شهر',
-    features: _commonFeatures,
-    gradient: const [AppColors.surfaceContainerLowest, AppColors.surfaceContainerLow],
-    titleColor: AppColors.planMonthlyText,
-    subtitleColor: AppColors.planMonthlySub,
-    buttonColor: Colors.white,
-    buttonTextColor: AppColors.primary,
-  ),
-  SubscriptionPlan(
-    id: 'bronze',
-    title: 'الباقة البرونزية',
-    duration: '3 أشهر',
-    price: r'$15',
-    priceSuffix: '/ 3 أشهر',
-    features: _commonFeatures,
-    gradient: const [AppColors.planBronzeStart, AppColors.planBronzeEnd],
-    titleColor: AppColors.planBronzeText,
-    subtitleColor: AppColors.planBronzeSub,
-    buttonColor: AppColors.planBronzeText,
-    buttonTextColor: Colors.white,
-  ),
-  SubscriptionPlan(
-    id: 'silver',
-    title: 'الباقة الفضية',
-    duration: '6 أشهر',
-    price: r'$30',
-    priceSuffix: '/ 6 أشهر',
-    features: _commonFeatures,
-    gradient: const [AppColors.planSilverStart, AppColors.planSilverEnd],
-    titleColor: AppColors.planSilverText,
-    subtitleColor: AppColors.planSilverSub,
-    buttonColor: AppColors.planSilverText,
-    buttonTextColor: Colors.white,
-  ),
-  SubscriptionPlan(
-    id: 'gold',
-    title: 'الباقة الذهبية',
-    duration: 'سنة كاملة',
-    price: r'$60',
-    priceSuffix: '/ سنة',
-    features: _commonFeatures,
-    gradient: const [AppColors.planGoldStart, AppColors.planGoldEnd],
-    titleColor: AppColors.planGoldText,
-    subtitleColor: AppColors.planGoldSub,
-    buttonColor: AppColors.planGoldText,
-    buttonTextColor: Colors.white,
-    badge: 'الأكثر توفيراً',
-  ),
-];
+/// «شهر» / «3 شهور» / «6 شهور» / «سنة» from the plan's duration.
+String planDurationLabel(int days) {
+  if (days >= 360) return days >= 720 ? '${(days / 365).round()} سنين' : 'سنة';
+  final months = (days / 30).round();
+  if (months <= 1) return 'شهر';
+  if (months == 2) return 'شهرين';
+  return '$months شهور';
+}

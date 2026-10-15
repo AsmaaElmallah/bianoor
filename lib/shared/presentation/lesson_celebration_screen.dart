@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../../core/constants/app_assets.dart';
 import '../../core/router/app_routes.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_radius.dart';
 import '../../core/theme/app_shadows.dart';
+import '../../features/home/presentation/home_shell_screen.dart';
 import '../widgets/bebo_shell_background.dart';
 import '../widgets/floating_decoration.dart';
 import '../widgets/tactile/tactile_clay_button.dart';
 import '../widgets/tactile/tactile_clay_card.dart';
+import '../widgets/icon_3d.dart';
 
 /// احتفال بإكمال جولة درس (رياضيات / بصري / عاطفي).
 class LessonCelebrationScreen extends StatelessWidget {
@@ -29,7 +31,7 @@ class LessonCelebrationScreen extends StatelessWidget {
           accent: AppColors.trackMathOrange,
           accentLight: AppColors.trackMathLight,
           journeyRoute: AppRoutes.mathJourney,
-          mascotAsset: AppAssets.mascotSpoonSitting,
+          mascotAsset: AppAssets.heroMath,
         );
       case 'visual':
         return const LessonCelebrationConfig(
@@ -40,7 +42,7 @@ class LessonCelebrationScreen extends StatelessWidget {
           accent: AppColors.trackVisualPurple,
           accentLight: AppColors.trackVisualLight,
           journeyRoute: AppRoutes.visualJourney,
-          mascotAsset: AppAssets.mascotGirlStanding,
+          mascotAsset: AppAssets.heroVisual,
         );
       case 'emotional':
         return const LessonCelebrationConfig(
@@ -51,7 +53,7 @@ class LessonCelebrationScreen extends StatelessWidget {
           accent: AppColors.trackEmotionalRed,
           accentLight: AppColors.trackEmotionalLight,
           journeyRoute: AppRoutes.emotionalJourney,
-          mascotAsset: AppAssets.mascotCapLying,
+          mascotAsset: AppAssets.heroEmotional,
         );
       default:
         return const LessonCelebrationConfig(
@@ -112,11 +114,12 @@ class LessonCelebrationScreen extends StatelessWidget {
                                     shape: BoxShape.circle,
                                     boxShadow: AppShadows.primaryGlow,
                                   ),
-                                  child: Icon(
-                                    cfg.icon,
-                                    size: 48,
+                                  alignment: Alignment.center,
+                                  child: Icon3D(
+                                    art: null,
+                                    icon: cfg.icon,
+                                    size: 60,
                                     color: cfg.accent,
-                                    fill: 1,
                                   ),
                                 ),
                                 const SizedBox(height: 20),
@@ -159,7 +162,12 @@ class LessonCelebrationScreen extends StatelessWidget {
                                   backgroundColor: AppColors.secondaryContainer,
                                   foregroundColor: AppColors.onSecondaryContainer,
                                   depthColor: AppColors.secondaryDim,
-                                  onPressed: () => context.go(AppRoutes.home),
+                                  onPressed: () {
+                                    ProviderScope.containerOf(context, listen: false)
+                                        .read(homeTabIndexProvider.notifier)
+                                        .state = 0;
+                                    context.go(AppRoutes.home);
+                                  },
                                 ),
                               ],
                             ),

@@ -5,6 +5,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
+import '../../../../shared/widgets/icon_3d.dart';
 import '../../domain/home_menu_item.dart';
 
 class HomeCommunityTiles extends StatelessWidget {
@@ -100,25 +101,18 @@ class _CommunityTileState extends State<_CommunityTile> {
         child: Row(
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 46,
+              height: 46,
               decoration: BoxDecoration(
-                color: AppColors.secondaryContainer.withValues(alpha: 0.65),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.onSurface.withValues(alpha: 0.04),
-                    offset: const Offset(2, 2),
-                    blurRadius: 4,
-                  ),
-                ],
+                color: AppColors.secondaryContainer.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(14),
               ),
               alignment: Alignment.center,
-              child: Icon(
-                widget.item.icon,
+              child: Icon3D(
+                art: widget.item.art,
+                icon: widget.item.icon,
                 color: AppColors.secondary,
-                size: 22,
-                fill: 1,
+                size: 34,
               ),
             ),
             const SizedBox(width: 12),

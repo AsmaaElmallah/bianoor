@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/storage/prefs_service.dart';
 import '../../../core/supabase/supabase_bootstrap.dart';
 import '../../curriculum/data/progress_sync_service.dart';
+import '../../notifications/application/push_notifications.dart';
 import '../../notifications/data/notifications_cloud_repository.dart';
 import '../domain/user_model.dart';
 
@@ -73,12 +74,15 @@ final authSessionProvider = StreamProvider<UserModel?>((ref) {
       if (recovery) return;
 
       try {
-        final token =
-            'local:${session.user.id}:${DateTime.now().millisecondsSinceEpoch ~/ 86400000}';
-        await ref.read(notificationsCloudRepositoryProvider).upsertDeviceToken(
-              token: token,
-              platform: defaultTargetPlatform.name,
-            );
+        final repo = ref.read(notificationsCloudRepositoryProvider);
+        if (!await PushNotifications.instance.register(repo)) {
+          final token =
+              'local:${session.user.id}:${DateTime.now().millisecondsSinceEpoch ~/ 86400000}';
+          await repo.upsertDeviceToken(
+            token: token,
+            platform: defaultTargetPlatform.name,
+          );
+        }
       } catch (_) {}
     }
 

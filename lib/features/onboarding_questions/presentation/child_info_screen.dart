@@ -54,7 +54,7 @@ class _ChildInfoScreenState extends ConsumerState<ChildInfoScreen> {
                   const Icon(Symbols.menu, size: 24),
                   const Spacer(),
                   Text(
-                    'المربي اللطيف',
+                    'بيانور',
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),

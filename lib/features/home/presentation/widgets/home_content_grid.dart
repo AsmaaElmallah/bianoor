@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
+import '../../../../shared/widgets/icon_3d.dart';
 import '../../domain/home_menu_item.dart';
 
 class HomeContentGrid extends StatelessWidget {
@@ -65,7 +66,7 @@ class _ContentCardState extends State<_ContentCard> {
     final theme = Theme.of(context);
     final bg = widget.item.cardColor ?? AppColors.primaryContainer;
     final iconColor = widget.item.iconColor ?? AppColors.primary;
-    final depthColor = Color.lerp(bg, Colors.black, 0.12) ?? bg;
+    final depthColor = Color.lerp(bg, iconColor, 0.45) ?? bg;
 
     return GestureDetector(
       onTapDown: _onTapDown,
@@ -102,7 +103,11 @@ class _ContentCardState extends State<_ContentCard> {
             Container(
               margin: EdgeInsets.only(bottom: _pressed ? 0 : 5),
               decoration: BoxDecoration(
-                color: bg,
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color.lerp(bg, Colors.white, 0.4)!, bg],
+                ),
                 borderRadius: AppRadius.brMd,
                 border: Border.all(
                   color: Colors.white.withValues(alpha: 0.6),
@@ -122,18 +127,13 @@ class _ContentCardState extends State<_ContentCard> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: iconColor.withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: Icon(widget.item.icon,
-                        color: iconColor, size: 24, fill: 1),
+                  Icon3D(
+                    art: widget.item.art,
+                    icon: widget.item.icon,
+                    color: iconColor,
+                    size: 54,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   Text(
                     widget.item.title,
                     textAlign: TextAlign.center,

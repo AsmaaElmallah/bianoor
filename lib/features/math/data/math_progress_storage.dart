@@ -44,6 +44,18 @@ class MathProgressStorage {
     return days.clamp(1, 9999);
   }
 
+  /// Moves the program start so today counts as curriculum [day].
+  Future<MathProgress> holdAtDay(MathProgress current, int day) async {
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day - (day - 1));
+    final updated = current.copyWith(
+      curriculumDay: day,
+      programStartDateIso: start.toIso8601String().split('T').first,
+    );
+    await save(updated);
+    return updated;
+  }
+
   bool canStartAnotherRoundToday(MathProgress progress, int dailyRepetitions) {
     final today = DateTime.now().toIso8601String().split('T').first;
     if (progress.lastSessionDateIso != today) return true;

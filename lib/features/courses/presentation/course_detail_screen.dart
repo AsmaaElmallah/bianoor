@@ -16,10 +16,9 @@ import '../../library/data/library_sections_repository.dart';
 import '../../live/data/live_repository.dart';
 import '../../live/domain/live_session.dart';
 import '../../live/presentation/live_sessions_screen.dart';
-import '../../payments/data/payment_settings_repository.dart';
 import '../../payments/domain/payment_item.dart';
 import '../../payments/presentation/payment_options_sheet.dart';
-import '../data/course_purchase_service.dart';
+import '../../subscription/data/subscription_cloud_repository.dart';
 import '../data/courses_repository.dart';
 import '../domain/course.dart';
 import 'course_lesson_player_screen.dart';
@@ -108,7 +107,7 @@ class _CoursesHubScreenState extends ConsumerState<CoursesHubScreen> {
       return;
     }
     final uri = Uri.https('wa.me', '/$number', {
-      'text': 'مرحباً، أرغب في الاشتراك في دورة: ${course.title}',
+      'text': 'مرحباً، عندي سؤال عن دورة: ${course.title}',
     });
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
@@ -160,7 +159,14 @@ class _CoursesHubScreenState extends ConsumerState<CoursesHubScreen> {
       bottomNavigationBar: course != null && asyncAccess?.valueOrNull == false
           ? _PurchaseBar(
               course: course,
-              onSubscribe: () => context.push(AppRoutes.subscription),
+              onSubscribe: () async {
+                await context.push<bool>(
+                  AppRoutes.subscription,
+                  extra: 'الدورة دي ضمن الباقة — اشتركي وهتتفتحلك طول مدة الاشتراك.',
+                );
+                ref.invalidate(mySubscriptionProvider);
+                ref.invalidate(courseAccessProvider(course.id));
+              },
               onContact: () => _contactForCourse(course),
             )
           : null,
@@ -297,15 +303,18 @@ class _CoursesHubScreenState extends ConsumerState<CoursesHubScreen> {
   }
 }
 
-class _CourseStrip extends StatelessWidget {
+class _CourseStrip extends ConsumerWidget {
   const _CourseStrip({required this.courses, required this.selectedId, required this.onSelected});
 
   final List<Course> courses;
   final String? selectedId;
   final ValueChanged<String> onSelected;
 
-  Widget _chip(Course course, {bool expanded = false}) {
+  Widget _chip(WidgetRef ref, Course course, {bool expanded = false}) {
     final selected = course.id == selectedId;
+    final locked = course.accessType != CourseAccessType.free &&
+        ref.watch(courseAccessProvider(course.id)).valueOrNull == false;
+    final color = selected ? AppColors.primary : AppColors.onSurfaceVariant;
     final chip = GestureDetector(
       onTap: () => onSelected(course.id),
       child: AnimatedContainer(
@@ -325,16 +334,24 @@ class _CourseStrip extends StatelessWidget {
                 ],
               )
             : null,
-        child: Text(
-          course.title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w800,
-            color: selected ? AppColors.primary : AppColors.onSurfaceVariant,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (locked) ...[
+              Icon(Symbols.lock, size: 13, color: color, fill: 1),
+              const SizedBox(width: 3),
+            ],
+            Flexible(
+              child: Text(
+                course.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: color),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -342,7 +359,7 @@ class _CourseStrip extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
@@ -350,10 +367,10 @@ class _CourseStrip extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
       ),
       child: courses.length <= 3
-          ? Row(children: [for (final course in courses) _chip(course, expanded: true)])
+          ? Row(children: [for (final course in courses) _chip(ref, course, expanded: true)])
           : SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: Row(children: [for (final course in courses) _chip(course)]),
+              child: Row(children: [for (final course in courses) _chip(ref, course)]),
             ),
     );
   }
@@ -460,7 +477,7 @@ class _InstructorCard extends StatelessWidget {
     final uri = _facebookUri();
     if (uri == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('حطي لينك الفيسبوك من لوحة التحكم أولاً')),
+        const SnackBar(content: Text('رابط الجروب مش متاح دلوقتي.')),
       );
       return;
     }
@@ -582,7 +599,7 @@ LiveSession? _pickCourseLive(List<LiveSession> all, String courseId) {
     });
   final now = DateTime.now();
   for (final s in scheduled) {
-    if (s.scheduledAt == null || !s.scheduledAt!.isBefore(now)) return s;
+    if (s.scheduledAt == null || !s.scheduledAt!.add(LiveSession.startGrace).isBefore(now)) return s;
   }
   if (scheduled.isNotEmpty) return scheduled.last;
   ofCourse.sort((a, b) => (b.scheduledAt ?? DateTime.fromMillisecondsSinceEpoch(0))
@@ -601,9 +618,15 @@ class _CourseLiveSection extends ConsumerStatefulWidget {
 }
 
 class _CourseLiveSectionState extends ConsumerState<_CourseLiveSection> {
-  late final Timer _clock = Timer.periodic(const Duration(seconds: 1), (_) {
-    if (mounted) setState(() {});
-  });
+  late final Timer _clock;
+
+  @override
+  void initState() {
+    super.initState();
+    _clock = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
 
   @override
   void dispose() {
@@ -655,7 +678,7 @@ class _CourseLiveSectionState extends ConsumerState<_CourseLiveSection> {
                   background: ended ? AppColors.surfaceContainerHigh : AppColors.errorContainer,
                   foreground: ended ? AppColors.onSurfaceVariant : AppColors.onErrorContainer,
                 ),
-                if (!isLive && !ended) _CountdownPill(at: session.scheduledAt),
+                if (!isLive && !ended) LiveCountdownPill(at: session.scheduledAt),
               ],
             ),
             const SizedBox(height: 10),
@@ -695,30 +718,55 @@ class _CourseLiveSectionState extends ConsumerState<_CourseLiveSection> {
   }
 }
 
-class _CountdownPill extends StatelessWidget {
-  const _CountdownPill({this.at});
+/// Ticks on its own every second, independent of the parent rebuilding.
+class LiveCountdownPill extends StatefulWidget {
+  const LiveCountdownPill({super.key, this.at});
 
   final DateTime? at;
 
   @override
+  State<LiveCountdownPill> createState() => LiveCountdownPillState();
+}
+
+class LiveCountdownPillState extends State<LiveCountdownPill> {
+  Timer? _tick;
+
+  @override
+  void initState() {
+    super.initState();
+    _tick = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _tick?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final at = widget.at;
     final left = at?.difference(DateTime.now());
-    if (left == null || left.inSeconds <= 0) {
+    if (left == null) return const SizedBox.shrink();
+    if (left.inSeconds <= 0) {
       return const ClayPill(
-        icon: Symbols.check_circle,
-        text: 'انتهى',
-        background: AppColors.surfaceContainerHigh,
+        icon: Symbols.hourglass_top,
+        text: 'هيبدأ دلوقتي',
+        background: AppColors.secondaryContainer,
         foreground: AppColors.onSurface,
-        iconColor: AppColors.onSurfaceVariant,
+        iconColor: kClayAccent,
       );
     }
     String two(int n) => n.toString().padLeft(2, '0');
     final days = left.inDays;
     final clock =
         '${two(left.inHours.remainder(24))}:${two(left.inMinutes.remainder(60))}:${two(left.inSeconds.remainder(60))}';
+    final dayText = switch (days) { 1 => 'يوم', 2 => 'يومين', <= 10 => '$days أيام', _ => '$days يوم' };
     return ClayPill(
       icon: Symbols.timer,
-      text: days > 0 ? 'متبقي $daysي $clock' : 'متبقي $clock',
+      text: days > 0 ? 'متبقي $dayText و $clock' : 'متبقي $clock',
       background: AppColors.secondaryContainer,
       foreground: AppColors.onSurface,
       iconColor: kClayAccent,
@@ -1167,58 +1215,29 @@ class _PurchaseBarState extends ConsumerState<_PurchaseBar> {
   bool _buying = false;
 
   Future<void> _buy() async {
-    setState(() => _buying = true);
-    final result = await ref.read(coursePurchaseServiceProvider).buy(widget.course);
-    if (!mounted) return;
-    setState(() => _buying = false);
-    if (result.outcome == CoursePurchaseOutcome.success) {
-      ref.invalidate(courseAccessProvider(widget.course.id));
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم فتح الدورة 🎉 استمتعي بالدروس')),
-      );
-    } else if (result.outcome != CoursePurchaseOutcome.cancelled && result.message != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.message!)));
-    }
-  }
-
-  Future<void> _choosePayment(String? storePrice) async {
     final course = widget.course;
-    final choice = await showPaymentOptions(
+    setState(() => _buying = true);
+    final paid = await payWithPaypal(
       context,
-      item: PaymentItem(
-        kind: PaymentKind.course,
-        id: course.id,
-        title: course.title,
-        priceLabel: course.priceLabel,
-        priceUsd: course.priceUsd,
-      ),
-      storeLabel: storePrice == null ? null : 'Google Play — $storePrice',
+      ref,
+      PaymentItem(kind: PaymentKind.course, id: course.id, title: course.title, priceUsd: course.priceUsd),
     );
     if (!mounted) return;
-    switch (choice) {
-      case PaymentChoice.store:
-        await _buy();
-      case PaymentChoice.paidOnline:
-        ref.invalidate(courseAccessProvider(course.id));
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم فتح الدورة 🎉 استمتعي بالدروس')),
-        );
-      case null:
-        break;
-    }
+    setState(() => _buying = false);
+    if (!paid) return;
+    ref.invalidate(courseAccessProvider(course.id));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('تم فتح الدورة 🎉 استمتعي بالدروس')),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final course = widget.course;
     final isSubscription = course.accessType == CourseAccessType.subscription;
-    final storePrice = isSubscription ? null : ref.watch(courseStorePriceProvider(course)).valueOrNull;
-    final settings = ref.watch(paymentSettingsProvider).valueOrNull ?? const PaymentSettings();
-    final canPaypal = settings.paypalEnabled && course.priceUsd != null;
-    final canBuy = storePrice != null || canPaypal || settings.canPayManually;
-    final priceText = isSubscription
-        ? 'ضمن الباقة'
-        : storePrice ?? (course.priceLabel.isNotEmpty ? course.priceLabel : formatUsd(course.priceUsd)) ?? 'مدفوعة';
+    final usd = formatUsd(course.priceUsd);
+    final canBuy = usd != null;
+    final priceText = isSubscription ? 'ضمن الباقة' : usd ?? 'السعر قريباً';
 
     return Container(
       decoration: BoxDecoration(
@@ -1295,16 +1314,16 @@ class _PurchaseBarState extends ConsumerState<_PurchaseBar> {
                           label: isSubscription
                               ? 'اشتركي وافتحي الدورة'
                               : canBuy
-                                  ? 'افتحي الدورة'
-                                  : 'تواصلي على واتساب',
-                          leadingIcon: isSubscription || canBuy ? Symbols.lock_open : Symbols.chat,
+                                  ? 'ادفعي وافتحي الدورة'
+                                  : 'السعر هيتحدد قريب',
+                          leadingIcon: Symbols.lock_open,
                           fontSize: 15,
                           busy: _buying,
                           onPressed: isSubscription
                               ? widget.onSubscribe
                               : canBuy
-                                  ? () => _choosePayment(storePrice)
-                                  : widget.onContact,
+                                  ? _buy
+                                  : null,
                         ),
                       ),
                     ),

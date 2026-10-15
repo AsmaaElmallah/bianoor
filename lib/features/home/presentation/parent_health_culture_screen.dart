@@ -10,6 +10,7 @@ import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
 import '../data/cms_cloud_repository.dart';
 import '../domain/parenting_article.dart';
 import 'parenting_article_screen.dart';
+import '../../../shared/widgets/mascot_message.dart';
 
 /// الثقافة الصحية — مقالات منشورة من CMS فقط.
 class ParentHealthCultureScreen extends ConsumerWidget {
@@ -34,16 +35,14 @@ class ParentHealthCultureScreen extends ConsumerWidget {
               loading: () => const Center(
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
-              error: (_, __) => const Center(
-                child: Text('تعذّر تحميل المقالات من السحابة'),
-              ),
+              error: (_, __) => const MascotMessage.error(),
               data: (articles) {
                 if (articles.isEmpty) {
                   return const Center(
                     child: Padding(
                       padding: EdgeInsets.all(24),
                       child: Text(
-                        'لا توجد مقالات صحية منشورة من الإدارة بعد.',
+                        'المقالات هتتضاف قريباً.',
                         textAlign: TextAlign.center,
                       ),
                     ),

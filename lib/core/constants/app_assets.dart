@@ -9,6 +9,12 @@ class AppAssets {
   static const String mascotSpoonSitting = 'assets/images/bebo_mascot_spoon_sitting.png';
   static const String mascotCapLying = 'assets/images/bebo_mascot_cap_lying.png';
   static const String mascotGirlStanding = 'assets/images/bebo_mascot_girl_standing.png';
+  static const String mascotEmpty = 'assets/images/bebo_empty.png';
+  static const String mascotOffline = 'assets/images/bebo_offline.png';
+  static const String heroQuran = 'assets/images/hero_quran.png';
+  static const String heroMath = 'assets/images/hero_math.png';
+  static const String heroVisual = 'assets/images/hero_visual.png';
+  static const String heroEmotional = 'assets/images/hero_emotional.png';
 
   // Accept both naming conventions so the app keeps working
   // if files are renamed later (onboarding_1.mp4 or video_1.mp4).

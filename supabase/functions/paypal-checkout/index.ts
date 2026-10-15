@@ -1,8 +1,10 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
 
-// Secrets: PAYPAL_CLIENT_ID, PAYPAL_SECRET, PAYPAL_ENV ("sandbox" | "live", default sandbox).
-// "Verify JWT" must be OFF for this function: PayPal redirects the buyer back here without a token.
+// Secrets: PAYPAL_CLIENT_ID, PAYPAL_SECRET, PAYPAL_ENV ("sandbox" | "live", default sandbox),
+// PAYPAL_WEBHOOK_ID (webhook URL: .../functions/v1/paypal-checkout?hook=paypal).
+// "Verify JWT" must be OFF for this function: PayPal redirects the buyer back here without a token,
+// and its webhooks carry no Supabase token either.
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -21,6 +23,7 @@ Deno.serve(async (req) => {
 
   try {
     if (req.method === "GET") return await handleReturn(req, admin);
+    if (new URL(req.url).searchParams.get("hook") === "paypal") return await handleWebhook(req, admin);
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) return json({ error: "unauthorized" }, 401);
@@ -51,6 +54,12 @@ Deno.serve(async (req) => {
       if (!order || order.user_id !== user.id) return json({ error: "not_found" }, 404);
       const result = await captureOrder(admin, orderId);
       return json(result, result.ok ? 200 : 402);
+    }
+
+    if (action === "inspect") {
+      const { data: isStaff } = await userClient.rpc("is_staff");
+      if (isStaff !== true) return json({ error: "forbidden" }, 403);
+      return await inspectOrder(admin, String(body.order_id ?? ""));
     }
 
     return json({ error: "bad_request" }, 400);
@@ -142,10 +151,15 @@ async function captureOrder(admin: SupabaseClient, orderId: string) {
   if (order.status === "completed") return { ok: true, status: "completed", kind: order.kind };
 
   let res = await paypal(`/v2/checkout/orders/${orderId}/capture`, {});
+  const captureError = res.ok ? null : res.data;
   if (!res.ok) {
     // Already captured (e.g. return page and app both confirmed) or not yet approved.
     res = await paypal(`/v2/checkout/orders/${orderId}`, null);
-    if (!res.ok) return { ok: false, status: "paypal_error" };
+    if (!res.ok) {
+      const detail = { lookupStatus: res.status, lookupError: res.data?.name ?? null, captureError: paypalIssue(captureError) };
+      console.error("paypal order lookup failed", orderId, JSON.stringify(detail));
+      return { ok: false, status: "paypal_error", detail };
+    }
   }
 
   const capture = res.data.purchase_units?.[0]?.payments?.captures?.[0];
@@ -153,13 +167,74 @@ async function captureOrder(admin: SupabaseClient, orderId: string) {
     capture?.status === "COMPLETED" &&
     capture.amount?.currency_code === order.currency &&
     Number(capture.amount?.value) >= Number(order.amount);
-  if (!paid) return { ok: false, status: res.data.status ?? "pending" };
+  if (!paid) {
+    const detail = {
+      orderStatus: res.data.status ?? null,
+      captureStatus: capture?.status ?? null,
+      captureReason: capture?.status_details?.reason ?? null,
+      amount: capture?.amount ?? null,
+      expected: { value: order.amount, currency: order.currency },
+      captureError: paypalIssue(captureError),
+    };
+    console.warn("paypal not paid", orderId, JSON.stringify(detail));
+    return { ok: false, status: capture?.status ?? res.data.status ?? "pending", detail };
+  }
 
   await grant(admin, order.user_id, order.kind, order.item_id, orderId);
   await admin.from("paypal_orders")
     .update({ status: "completed", completed_at: new Date().toISOString() })
     .eq("id", orderId);
   return { ok: true, status: "completed", kind: order.kind };
+}
+
+// deno-lint-ignore no-explicit-any
+function paypalIssue(err: any) {
+  if (!err) return null;
+  return {
+    name: err.name ?? null,
+    issue: err.details?.[0]?.issue ?? null,
+    description: err.details?.[0]?.description ?? err.message ?? null,
+  };
+}
+
+/** Staff support tool: what PayPal says about an order, and finish it if the buyer did approve. */
+async function inspectOrder(admin: SupabaseClient, orderId: string) {
+  const { data: order } = await admin
+    .from("paypal_orders").select("*").eq("id", orderId).maybeSingle();
+  if (!order) return json({ error: "not_found" }, 404);
+
+  const env = Deno.env.get("PAYPAL_ENV") === "live" ? "live" : "sandbox";
+  const before = await paypal(`/v2/checkout/orders/${orderId}`, null);
+  if (!before.ok) {
+    return json({
+      env,
+      localStatus: order.status,
+      found: false,
+      lookupStatus: before.status,
+      lookupError: before.data?.name ?? null,
+    });
+  }
+
+  const d = before.data;
+  const unit = d.purchase_units?.[0];
+  const snapshot = {
+    env,
+    localStatus: order.status,
+    found: true,
+    paypalStatus: d.status ?? null,
+    payerCountry: d.payer?.address?.country_code ?? d.payment_source?.paypal?.address?.country_code ?? null,
+    payerEmail: d.payer?.email_address ?? d.payment_source?.paypal?.email_address ?? null,
+    payeeEmail: unit?.payee?.email_address ?? null,
+    payeeMerchantId: unit?.payee?.merchant_id ?? null,
+    captureStatus: unit?.payments?.captures?.[0]?.status ?? null,
+    captureReason: unit?.payments?.captures?.[0]?.status_details?.reason ?? null,
+  };
+
+  if (order.status === "completed" || (d.status !== "APPROVED" && d.status !== "COMPLETED")) {
+    return json(snapshot);
+  }
+  const attempt = await captureOrder(admin, orderId);
+  return json({ ...snapshot, attempt });
 }
 
 async function grant(admin: SupabaseClient, userId: string, kind: Kind, itemId: string, orderId: string) {
@@ -181,28 +256,12 @@ async function grant(admin: SupabaseClient, userId: string, kind: Kind, itemId: 
     return;
   }
 
-  const { data: plan } = await admin
-    .from("subscription_plans").select("duration_days").eq("id", itemId).maybeSingle();
-  const { data: current } = await admin
-    .from("user_subscriptions").select("status, expires_at").eq("user_id", userId).maybeSingle();
-
-  let base = Date.now();
-  if (current && ["active", "trial"].includes(current.status) && current.expires_at) {
-    base = Math.max(base, new Date(current.expires_at).getTime());
-  }
-  const expires = new Date(base + Number(plan?.duration_days ?? 30) * 86_400_000);
-
-  const { error } = await admin.from("user_subscriptions").upsert(
-    {
-      user_id: userId,
-      plan_id: itemId,
-      status: "active",
-      expires_at: expires.toISOString(),
-      store_receipt: receipt,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "user_id" },
-  );
+  // Extends the plan and adds its lesson days in one transaction, at most once per order.
+  const { error } = await admin.rpc("grant_paid_subscription", {
+    p_order_id: orderId,
+    p_user_id: userId,
+    p_plan_id: itemId,
+  });
   if (error) throw error;
 }
 
@@ -219,9 +278,55 @@ async function handleReturn(req: Request, admin: SupabaseClient) {
     : result.kind === "course"
     ? "تم الدفع بنجاح ✅\nاقفلي الصفحة دي وارجعي لتطبيق بيانور، هتلاقي الدورة اتفتحت."
     : "تم الدفع بنجاح ✅\nاقفلي الصفحة دي وارجعي لتطبيق بيانور، هتلاقي الاشتراك اتفعّل.";
-  return result.ok
-    ? text(done)
-    : text("الدفع لسه ما اكتملش.\nارجعي للتطبيق ودوسي «تحققي من الدفع»، أو تواصلي معانا.", 402);
+  if (result.ok) return text(done);
+  if (result.status === "PENDING") {
+    return text("PayPal بيراجع الدفعة دي ⏳\nأول ما تتأكد هتتفعّل لوحدها. ارجعي لتطبيق بيانور ودوسي «تحققي من الدفع» بعد شوية.", 202);
+  }
+  return text("الدفع لسه ما اكتملش.\nارجعي للتطبيق ودوسي «تحققي من الدفع»، أو تواصلي معانا.", 402);
+}
+
+// Covers buyers who approve the payment but never come back to the return page.
+async function handleWebhook(req: Request, admin: SupabaseClient) {
+  const webhookId = Deno.env.get("PAYPAL_WEBHOOK_ID");
+  if (!webhookId) {
+    console.error("PAYPAL_WEBHOOK_ID not set");
+    return json({ error: "webhook_not_configured" }, 500);
+  }
+
+  const raw = await req.text();
+  // deno-lint-ignore no-explicit-any
+  let event: any;
+  try {
+    event = JSON.parse(raw);
+  } catch {
+    return json({ error: "bad_request" }, 400);
+  }
+
+  const h = req.headers;
+  const verify = await paypal("/v1/notifications/verify-webhook-signature", {
+    auth_algo: h.get("paypal-auth-algo"),
+    cert_url: h.get("paypal-cert-url"),
+    transmission_id: h.get("paypal-transmission-id"),
+    transmission_sig: h.get("paypal-transmission-sig"),
+    transmission_time: h.get("paypal-transmission-time"),
+    webhook_id: webhookId,
+    webhook_event: event,
+  });
+  if (!verify.ok || verify.data?.verification_status !== "SUCCESS") {
+    console.error("paypal webhook verification failed", verify.status, verify.data);
+    return json({ error: "invalid_signature" }, 400);
+  }
+
+  let orderId = "";
+  if (event.event_type === "CHECKOUT.ORDER.APPROVED") {
+    orderId = String(event.resource?.id ?? "");
+  } else if (event.event_type === "PAYMENT.CAPTURE.COMPLETED") {
+    orderId = String(event.resource?.supplementary_data?.related_ids?.order_id ?? "");
+  }
+  if (!orderId) return json({ ok: true, ignored: event.event_type ?? null });
+
+  const result = await captureOrder(admin, orderId);
+  return json({ ok: true, order: orderId, status: result.status });
 }
 
 let cachedToken: { value: string; expiresAt: number } | null = null;

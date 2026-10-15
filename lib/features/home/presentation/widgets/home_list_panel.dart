@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
+import '../../../../shared/widgets/icon_3d.dart';
 import '../../domain/home_menu_item.dart';
 
 class HomeListPanel extends StatelessWidget {
@@ -125,17 +126,20 @@ class _ListRowState extends State<_ListRow> {
                   size: 22,
                 ),
 
-              // Icon circle
               Container(
-                width: 36,
-                height: 36,
+                width: 46,
+                height: 46,
                 decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.10),
-                  shape: BoxShape.circle,
+                  color: AppColors.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 alignment: Alignment.center,
-                child: Icon(widget.item.icon,
-                    color: iconColor, size: 20, fill: 1),
+                child: Icon3D(
+                  art: widget.item.art,
+                  icon: widget.item.icon,
+                  color: iconColor,
+                  size: 34,
+                ),
               ),
               const SizedBox(width: 12),
 

@@ -151,7 +151,7 @@ class _MathPlayerScreenState extends ConsumerState<MathPlayerScreen> {
       _advancing = false;
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('انتهت المراجعة')),
+        const SnackBar(content: Text('خلص الدرس 👏')),
       );
       context.pop();
       return;
@@ -295,7 +295,9 @@ class _MathPlayerScreenState extends ConsumerState<MathPlayerScreen> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'عمل رائع!',
+                                        _stepIndex + 1 >= _steps.length
+                                            ? 'عمل رائع!'
+                                            : 'يلا نتعلّم سوا!',
                                         style: theme.textTheme.titleMedium?.copyWith(
                                           fontWeight: FontWeight.w800,
                                           color: AppColors.onTertiaryFixed,
@@ -415,7 +417,7 @@ class _EmptyState extends StatelessWidget {
             const Icon(Symbols.info, color: AppColors.primary, size: 48, fill: 1),
             const SizedBox(height: 16),
             Text(
-              'لا توجد شرائح منشورة من الإدارة بعد.',
+              'الدرس ده بيتجهز، وهيكون متاح قريباً.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleMedium,
             ),
