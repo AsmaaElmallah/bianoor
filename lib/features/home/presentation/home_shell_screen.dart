@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/bebo_shell_background.dart';
+import '../../ai/presentation/widgets/ai_launcher.dart';
 import '../domain/home_menu_item.dart';
 import 'tabs/home_dashboard_tab.dart';
 import 'tabs/library_tab.dart';
@@ -22,6 +23,7 @@ class HomeShellScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      extendBody: true,
       body: Stack(
         children: [
           const BeboShellBackground(showBottomCurve: false),
@@ -42,9 +44,8 @@ class HomeShellScreen extends ConsumerWidget {
                       children: [
                         const HomeDashboardTab(),
                         HomeSectionTab(sectionId: homeNavTabs[1].sectionId!),
-                        HomeSectionTab(sectionId: homeNavTabs[2].sectionId!),
                         const LibraryTab(),
-                        HomeSectionTab(sectionId: homeNavTabs[4].sectionId!),
+                        HomeSectionTab(sectionId: homeNavTabs[3].sectionId!),
                       ],
                     ),
                   ),
@@ -58,6 +59,7 @@ class HomeShellScreen extends ConsumerWidget {
         tabs: homeNavTabs,
         currentIndex: currentTab,
         onTap: (i) => ref.read(homeTabIndexProvider.notifier).state = i,
+        center: const AiLauncherButton(),
       ),
     );
   }

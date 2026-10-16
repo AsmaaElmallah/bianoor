@@ -30,7 +30,7 @@ class HomePastelGrid extends StatelessWidget {
         crossAxisCount: 2,
         mainAxisSpacing: 12,
         crossAxisSpacing: 12,
-        childAspectRatio: 1.12,
+        childAspectRatio: 1.05,
       ),
       itemBuilder: (context, index) {
         final item = items[index];
@@ -113,6 +113,7 @@ class _PastelCardState extends ConsumerState<_PastelCard> {
 
             // Card face
             Container(
+              clipBehavior: Clip.hardEdge,
               margin: EdgeInsets.only(bottom: _pressed ? 0 : 5),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -139,68 +140,80 @@ class _PastelCardState extends ConsumerState<_PastelCard> {
                         ),
                       ],
               ),
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Align(
-                          alignment: AlignmentDirectional.topStart,
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              Container(
-                                width: 76,
-                                height: 76,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: RadialGradient(
-                                    colors: [
-                                      Colors.white.withValues(alpha: 0.9),
-                                      Colors.white.withValues(alpha: 0),
-                                    ],
-                                  ),
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Align(
+                            alignment: AlignmentDirectional.topStart,
+                            child: FittedBox(
+                              fit: BoxFit.contain,
+                              alignment: AlignmentDirectional.topStart,
+                              child: SizedBox(
+                                width: 72,
+                                height: 72,
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    Container(
+                                      width: 72,
+                                      height: 72,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        gradient: RadialGradient(
+                                          colors: [
+                                            Colors.white.withValues(alpha: 0.9),
+                                            Colors.white.withValues(alpha: 0),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    FloatingWidget(
+                                      amplitude: 1.5,
+                                      duration: Duration(milliseconds: 2600 + widget.item.id.length * 90),
+                                      child: Icon3D(
+                                        art: widget.item.art,
+                                        icon: widget.item.icon,
+                                        color: iconColor,
+                                        size: 58,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              FloatingWidget(
-                                amplitude: 3,
-                                duration: Duration(milliseconds: 2600 + widget.item.id.length * 90),
-                                child: Icon3D(
-                                  art: widget.item.art,
-                                  icon: widget.item.icon,
-                                  color: iconColor,
-                                  size: 68,
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
                         ),
-                      ),
-                      if (locked)
-                        Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.85),
-                            shape: BoxShape.circle,
+                        if (locked)
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.85),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Symbols.lock,
+                              size: 16,
+                              fill: 1,
+                              color: AppColors.onSurfaceVariant,
+                            ),
                           ),
-                          child: const Icon(
-                            Symbols.lock,
-                            size: 16,
-                            fill: 1,
-                            color: AppColors.onSurfaceVariant,
-                          ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(height: 4),
                   Text(
                     widget.item.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w800,
-                      height: 1.25,
+                      height: 1.15,
                     ),
                   ),
                 ],

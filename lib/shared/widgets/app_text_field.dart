@@ -40,6 +40,10 @@ class AppTextField extends StatelessWidget {
 
   /// BeBo-style: white fill, thin grey outline, large pill radius.
   final bool beboPillBorder;
+  final TextDirection? textDirection;
+  final Iterable<String>? autofillHints;
+  final ValueChanged<String>? onFieldSubmitted;
+  final int? maxLength;
 
   static TextStyle hintStyle(ThemeData theme) =>
       theme.textTheme.bodyLarge?.copyWith(

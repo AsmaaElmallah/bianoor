@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../../../core/constants/app_art.dart';
@@ -12,7 +13,6 @@ class HomeLessonColors {
   static const quranBg   = Color(0xFFE2F1E3);
   static const quranIcon = Color(0xFF3E8E5A);
 
-  static const mathBg    = AppColors.trackMathLight;     // #FFE4DB orange tint
   // Sky blue lets the colourful abacus pop.
   static const mathBg    = Color(0xFFE2EEFF);
   static const mathIcon  = Color(0xFF4A7FD6);
@@ -21,6 +21,7 @@ class HomeLessonColors {
   static const visualIcon= AppColors.trackVisualPurple; // #9C6FD6
 
   static const emotionalBg  = Color(0xFFFFE5EE);
+  static const emotionalIcon = Color(0xFFD45D7A);
 }
 
 const homeMenuSections = <HomeMenuSection>[
@@ -31,6 +32,38 @@ const homeMenuSections = <HomeMenuSection>[
     accentColor: AppColors.primary,
     layout: HomeSectionLayout.shortcutStrip,
     items: [
+      HomeMenuItem(
+        id: 'courses', art: AppArt.graduationCap,
+        title: 'الدورات',
+        icon: Symbols.school,
+      ),
+      HomeMenuItem(
+        id: 'assessment', art: AppArt.clipboard,
+        title: 'التقييم',
+        icon: Symbols.assignment,
+        children: [
+          HomeMenuItem(
+            id: 'mother_assessment', art: AppArt.clipboard,
+            title: 'تقييم الأم',
+            icon: Symbols.family_restroom,
+            children: [
+              HomeMenuItem(id: 'aptitude_test', art: AppArt.brain, title: 'اختبار القدرات', icon: Symbols.psychology),
+              HomeMenuItem(id: 'skills_test', art: AppArt.checkMark, title: 'اختبار المهارات', icon: Symbols.fact_check),
+              HomeMenuItem(id: 'interests_test', art: AppArt.palette, title: 'فحص ميول الطفل وشغفه', icon: Symbols.interests),
+            ],
+          ),
+          HomeMenuItem(
+            id: 'our_assessment', art: AppArt.star,
+            title: 'تقييمنا',
+            icon: Symbols.verified,
+          ),
+          HomeMenuItem(
+            id: 'child_tests', art: AppArt.memo,
+            title: 'اختبارات الطفل',
+            icon: Symbols.assignment,
+          ),
+        ],
+      ),
       HomeMenuItem(
         id: 'curriculum', art: AppArt.books,
         title: 'المنهج',
@@ -62,11 +95,6 @@ const homeMenuSections = <HomeMenuSection>[
         id: 'baby_exercises', art: AppArt.ball,
         title: 'الرياضة',
         icon: Symbols.fitness_center,
-      ),
-      HomeMenuItem(
-        id: 'courses', art: AppArt.graduationCap,
-        title: 'الدورات',
-        icon: Symbols.school,
       ),
     ],
   ),
@@ -108,35 +136,6 @@ const homeMenuSections = <HomeMenuSection>[
         cardColor: HomeLessonColors.emotionalBg,
         iconColor: HomeLessonColors.emotionalIcon,
         premium: true,
-      ),
-    ],
-  ),
-  HomeMenuSection(
-    id: 'assessment',
-    art: AppArt.clipboard,
-    title: 'التقييم',
-    accentColor: AppColors.tertiary,
-    layout: HomeSectionLayout.listPanel,
-    items: [
-      HomeMenuItem(
-        id: 'mother_assessment', art: AppArt.clipboard,
-        title: 'تقييم الأم',
-        icon: Symbols.family_restroom,
-        children: [
-          HomeMenuItem(id: 'aptitude_test', art: AppArt.brain, title: 'اختبار القدرات', icon: Symbols.psychology),
-          HomeMenuItem(id: 'skills_test', art: AppArt.checkMark, title: 'اختبار المهارات', icon: Symbols.fact_check),
-          HomeMenuItem(id: 'interests_test', art: AppArt.palette, title: 'فحص ميول الطفل وشغفه', icon: Symbols.interests),
-        ],
-      ),
-      HomeMenuItem(
-        id: 'our_assessment', art: AppArt.star,
-        title: 'تقييمنا',
-        icon: Symbols.verified,
-      ),
-      HomeMenuItem(
-        id: 'child_tests', art: AppArt.memo,
-        title: 'اختبارات الطفل',
-        icon: Symbols.assignment,
       ),
     ],
   ),

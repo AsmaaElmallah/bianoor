@@ -19,7 +19,6 @@ class FeaturePlaceholderScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final item = homeMenuItemById(featureId);
     final title = item?.title ?? featureId;
     final children = item?.children ?? const <HomeMenuItem>[];

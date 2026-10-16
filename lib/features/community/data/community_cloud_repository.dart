@@ -27,6 +27,7 @@ class MothersClubPost {
     this.authorId,
     this.authorDisplayName,
     this.categoryId,
+    this.groupId,
     this.tag,
     this.publishStatus = 'published',
     this.likesCount = 0,
@@ -84,7 +85,6 @@ class MothersClubPost {
   final String? authorId;
   final String? authorDisplayName;
   final String? categoryId;
-  final String? tag;
   final String? groupId;
   final String? tag;
   final String publishStatus;
@@ -130,6 +130,7 @@ class MothersClubGroup {
   final String infoNote;
   final int postsCount;
   final int membersCount;
+}
 
 class MothersClubComment {
   const MothersClubComment({
@@ -376,6 +377,7 @@ class CommunityCloudRepository {
     var q = SupabaseBootstrap.client.from('mothers_club_posts').select();
     // Group posts stay inside their groups; «المحفوظة» shows saved ones from anywhere.
     if (onlyIds == null) q = q.isFilter('group_id', null);
+    if (term.isNotEmpty) {
       // PostgREST takes one top-level `or`, so search shows published posts only.
       q = q.eq('publish_status', 'published').or('title.ilike.*$term*,body.ilike.*$term*');
     } else if (userId == null) {
@@ -549,6 +551,7 @@ class CommunityCloudRepository {
         'title': title.trim(),
         'body': body.trim(),
         'publish_status': groupId == null ? 'review' : 'published',
+      });
     } on PostgrestException catch (e) {
       if (kDebugMode) debugPrint('[Community] create post failed: ${e.message}');
       throw ClubActionException(

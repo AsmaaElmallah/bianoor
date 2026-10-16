@@ -119,6 +119,7 @@ class QuranJourneyScreen extends ConsumerWidget {
     BuildContext context, {
     required int completed,
     required int current,
+    required int? unlocked,
   }) {
     const showCount = 5;
     final nodes = <Widget>[];

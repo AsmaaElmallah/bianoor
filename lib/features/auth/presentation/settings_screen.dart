@@ -15,6 +15,7 @@ import '../application/auth_session_provider.dart';
 import '../data/auth_repository.dart';
 import '../data/supabase_auth_repository.dart';
 import '../../../shared/widgets/icon_3d.dart';
+import '../../home/application/home_avatar.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -71,6 +72,37 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (!mounted) return;
       final msg = e is AuthFailure ? e.message : 'تعذّر حفظ الاسم';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _pickHomePhoto() async {
+    setState(() => _busy = true);
+    try {
+      final saved = await pickHomeAvatar(ref);
+      if (!mounted || !saved) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('اتحفظت الصورة')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تعذّر فتح الصور')),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _resetHomePhoto() async {
+    setState(() => _busy = true);
+    try {
+      await clearHomeAvatar(ref);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('رجّعنا صورة بيانور')),
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -135,6 +167,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final theme = Theme.of(context);
     final user = ref.watch(authSessionProvider).valueOrNull;
     final version = ref.watch(_appVersionProvider).valueOrNull;
+    final hasHomePhoto = ref.watch(homeAvatarPathProvider) != null;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -198,6 +231,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
+                _SettingsTile(
+                  icon: Symbols.add_a_photo,
+                  title: 'تغيير صورة الرئيسية',
+                  onTap: _busy ? null : _pickHomePhoto,
+                ),
+                if (hasHomePhoto)
+                  _SettingsTile(
+                    icon: Symbols.restart_alt,
+                    title: 'إرجاع صورة بيانور',
+                    onTap: _busy ? null : _resetHomePhoto,
+                  ),
                 _SettingsTile(
                   icon: Symbols.edit,
                   title: user?.displayName == null ? 'اكتبي اسمك' : 'تعديل الاسم',

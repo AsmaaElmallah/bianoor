@@ -102,7 +102,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 28),
-              child: Column(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final circle = (constraints.maxHeight * 0.38).clamp(140.0, 292.0);
+                  final mascot = circle * 0.79;
+                  final badge = (circle * 0.23).clamp(40.0, 68.0);
+                  final gap = constraints.maxHeight < 520 ? 16.0 : 48.0;
+                  return Column(
                 children: [
                   const Spacer(flex: 2),
                   Stack(
@@ -111,8 +117,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                     children: [
                       // Warm gradient circle background
                       Container(
-                        width: 292,
-                        height: 292,
+                        width: circle,
+                        height: circle,
                         decoration: BoxDecoration(
                           gradient: RadialGradient(
                             colors: [
@@ -136,7 +142,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                       Positioned(
                         bottom: 20,
                         child: Container(
-                          width: 140,
+                          width: circle * 0.48,
                           height: 28,
                           decoration: BoxDecoration(
                             color: AppColors.primary.withValues(alpha: 0.12),
@@ -151,17 +157,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                         duration: const Duration(milliseconds: 3800),
                         child: Image.asset(
                           AppAssets.mascotCapLying,
-                          width: 230,
-                          height: 230,
+                          width: mascot,
+                          height: mascot,
                           fit: BoxFit.contain,
                           errorBuilder: (_, __, ___) => Image.asset(
                             AppAssets.logoBaby,
-                            width: 220,
-                            height: 220,
+                            width: mascot * 0.95,
+                            height: mascot * 0.95,
                             fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) => const Icon(
+                            errorBuilder: (_, __, ___) => Icon(
                               Symbols.child_care,
-                              size: 100,
+                              size: mascot * 0.43,
                               color: AppColors.primary,
                               fill: 1,
                             ),
@@ -177,8 +183,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                           delay: const Duration(seconds: 1),
                           amplitude: 10,
                           child: Container(
-                            width: 68,
-                            height: 68,
+                            width: badge,
+                            height: badge,
                             decoration: BoxDecoration(
                               color: AppColors.secondaryContainer,
                               shape: BoxShape.circle,
@@ -191,10 +197,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                               ],
                             ),
                             alignment: Alignment.center,
-                            child: const Icon(
+                            child: Icon(
                               Symbols.school,
                               color: AppColors.secondary,
-                              size: 32,
+                              size: badge * 0.47,
                               fill: 1,
                             ),
                           ),
@@ -202,7 +208,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 48),
+                  SizedBox(height: gap),
                   Text(
                     'بيانور',
                     textAlign: TextAlign.center,
@@ -253,6 +259,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   ),
                   const SizedBox(height: 10),
                 ],
+                  );
+                },
               ),
             ),
           ),

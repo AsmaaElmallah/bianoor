@@ -15,22 +15,4 @@ class AppAssets {
   static const String heroMath = 'assets/images/hero_math.png';
   static const String heroVisual = 'assets/images/hero_visual.png';
   static const String heroEmotional = 'assets/images/hero_emotional.png';
-
-  // Accept both naming conventions so the app keeps working
-  // if files are renamed later (onboarding_1.mp4 or video_1.mp4).
-  static List<String> get onboardingVideoCandidates {
-    const max = 8;
-    return List.generate(max, (i) {
-      final n = i + 1;
-      return 'assets/videos/onboarding_$n.mp4';
-    });
-  }
-
-  static List<String> get legacyVideoCandidates {
-    const max = 8;
-    return List.generate(max, (i) {
-      final n = i + 1;
-      return 'assets/videos/video_$n.mp4';
-    });
-  }
 }

@@ -1,24 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
-import '../../../core/constants/app_art.dart';
-import '../../../core/constants/app_assets.dart';
-import '../../../core/router/app_routes.dart';
+import 'widgets/ai_orb.dart';
 import '../../../core/storage/prefs_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
-import '../../../shared/widgets/app_text_field.dart';
 import '../../community/presentation/widgets/club_shared.dart';
 import '../../support/presentation/consultations_screen.dart';
 import '../application/ai_providers.dart';
 import '../application/ai_voice.dart';
 import '../data/ai_models.dart';
-import 'widgets/ai_chat_extras.dart';
 import 'widgets/ai_markdown.dart';
 import 'widgets/ai_shared.dart';
+import 'widgets/ai_tool_panels.dart';
 
 const _starterQuestions = [
   'طفلي مش بينام كويس بالليل، أعمل إيه؟',
@@ -54,8 +50,8 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
   final _scroll = ScrollController();
   final _voice = AiVoice();
   bool _listening = false;
-  bool _toolsOpen = false;
   String? _speakingId;
+  AiChatTool? _tool;
 
   @override
   void initState() {
@@ -171,14 +167,9 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
     _scrollToEnd();
   }
 
-  Future<void> _askMeal() async {
-    final meal = await showAiMealSheet(
-      context,
-      ageRangeIndex: ref.read(prefsServiceProvider).getBabyAgeRangeIndex(),
-    );
-    if (meal == null || !mounted) return;
+  Future<void> _sendMeal(AiMealRequest meal) async {
     final text = [
-      'وجبة النهارده 🍲',
+      'وجبة النهارده',
       if (meal.ingredients.isNotEmpty) 'الموجود عندي: ${meal.ingredients}',
       if (meal.allergies.isNotEmpty) 'عنده حساسية من: ${meal.allergies.join('، ')}',
     ].join('\n');
@@ -187,42 +178,30 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
     _scrollToEnd();
   }
 
-  void _close() => Navigator.of(context).maybePop();
-
-  /// The floating window sits above every page, so it closes first or the new screen opens hidden behind it.
-  void _openRoute(String route) {
-    final router = GoRouter.of(context);
-    if (widget.popup) Navigator.of(context).pop();
-    router.push(route);
+  void _close() {
+    if (_tool != null) {
+      setState(() => _tool = null);
+      return;
+    }
+    Navigator.of(context).maybePop();
   }
 
-  void _openPlan() {
-    final plan = ref.read(aiDailyPlanProvider);
-    if (plan.valueOrNull?.plan == null && !plan.isLoading) ref.invalidate(aiDailyPlanProvider);
-    _openRoute(AppRoutes.dailyPlan);
+  void _openTool(AiChatTool tool) {
+    if (tool == AiChatTool.plan) {
+      final plan = ref.read(aiDailyPlanProvider);
+      if (plan.valueOrNull?.plan == null && !plan.isLoading) ref.invalidate(aiDailyPlanProvider);
+    }
+    setState(() => _tool = tool);
   }
 
-  String _planLine(String? babyName) {
-    final plan = ref.watch(aiDailyPlanProvider);
-    if (plan.isLoading) return 'بنجهزلك أنشطة النهارده…';
-    final activities = plan.valueOrNull?.plan?.activities ?? const [];
-    if (activities.isEmpty) return 'دوسي عشان نجهزها';
-    final first = withBabyName(activities.first.title, babyName);
-    return activities.length > 1 ? '$first و${activities.length - 1} أنشطة كمان' : first;
-  }
-
-  List<_AiTool> _tools(String? babyName) {
-    VoidCallback closing(VoidCallback action) => () {
-          if (_toolsOpen) setState(() => _toolsOpen = false);
-          action();
-        };
+  List<_AiTool> _tools() {
     return [
-      _AiTool(AppArt.sparkles, 'خطة النهارده', closing(_openPlan), subtitle: _planLine(babyName)),
-      _AiTool(AppArt.child, 'نموه', closing(() => _openRoute(AppRoutes.growth))),
-      _AiTool(AppArt.plate, 'وجبة النهارده', closing(_askMeal)),
-      _AiTool(AppArt.pensive, 'طفلي بيعيط', closing(() => _send('طفلي بيعيط ومش عارفة ليه، أعمل إيه؟'))),
-      _AiTool(AppArt.calendar, 'تطعيمات ومهارات', closing(() => _openRoute(AppRoutes.timeline))),
-      _AiTool(AppArt.palette, 'لون البراز', closing(() => _openRoute(AppRoutes.stoolColors))),
+      _AiTool('خطة النهارده', () => _openTool(AiChatTool.plan)),
+      _AiTool('نموه', () => _openTool(AiChatTool.growth)),
+      _AiTool('وجبة النهارده', () => _openTool(AiChatTool.meal)),
+      _AiTool('طفلي بيعيط', () => _send('طفلي بيعيط ومش عارفة ليه، أعمل إيه؟')),
+      _AiTool('تطعيمات ومهارات', () => _openTool(AiChatTool.vaccines)),
+      _AiTool('لون البراز', () => _openTool(AiChatTool.stool)),
     ];
   }
 
@@ -301,34 +280,31 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
       }
     });
 
-    final tools = _tools(babyName);
+    final tools = _tools();
     final padding = MediaQuery.paddingOf(context);
+    final toolOpen = _tool != null;
 
     final panel = Column(
       children: [
-        _ChatHeader(
-          topInset: widget.popup ? 0 : padding.top,
-          onClose: _close,
-          onNewChat: messages.isEmpty || sending
-              ? null
-              : () {
-                  setState(() => _toolsOpen = false);
-                  ref.read(aiChatProvider.notifier).newConversation();
-                },
-        ),
+        if (!toolOpen)
+          _ChatHeader(
+            topInset: widget.popup ? 0 : padding.top,
+            onClose: _close,
+            onNewChat: messages.isEmpty || sending ? null : () => ref.read(aiChatProvider.notifier).newConversation(),
+          ),
         Expanded(
-          child: DecoratedBox(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [AppColors.surfaceContainerLow, AppColors.background],
-              ),
-            ),
-            child: chat.isLoading && state == null
-                      ? const Center(child: CircularProgressIndicator())
+          child: toolOpen
+              ? AiToolPanel(
+                  tool: _tool!,
+                  onClose: () => setState(() => _tool = null),
+                  onMealReady: _sendMeal,
+                )
+              : DecoratedBox(
+                  decoration: const BoxDecoration(gradient: AiSiteColors.messageGradient),
+                  child: chat.isLoading && state == null
+                      ? const Center(child: CircularProgressIndicator(color: AiSiteColors.teal))
                       : messages.isEmpty
-                          ? _WelcomeView(babyName: babyName, tools: tools, enabled: !sending)
+                          ? const _EmptyThread()
                           : ListView.builder(
                               controller: _scroll,
                               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
@@ -382,9 +358,9 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
                                 );
                               },
                             ),
-          ),
+                ),
         ),
-        if (state?.notice != null)
+        if (!toolOpen && state?.notice != null)
           Container(
             width: double.infinity,
             color: AppColors.primaryContainer,
@@ -397,40 +373,36 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
                   ),
             ),
           ),
-        AnimatedSize(
-          duration: const Duration(milliseconds: 260),
-          curve: Curves.easeOutCubic,
-          child: _toolsOpen && messages.isNotEmpty
-              ? _ToolsTray(tools: tools, enabled: !sending)
-              : const SizedBox(width: double.infinity),
-        ),
-        if (messages.isEmpty) _StarterChips(onPick: _send, enabled: !sending),
-        _InputBar(
-          controller: _input,
-          sending: sending,
-          listening: _listening,
-          toolsOpen: _toolsOpen,
-          bottomInset: widget.popup ? 0 : padding.bottom,
-          onTools: messages.isEmpty ? null : () => setState(() => _toolsOpen = !_toolsOpen),
-          onSend: () => _send(),
-          onStop: () => ref.read(aiChatProvider.notifier).stop(),
-          onMic: _toggleMic,
-        ),
+        if (!toolOpen) ...[
+          _PinnedBar(
+            questions: _starterQuestions,
+            tools: tools,
+            enabled: !sending,
+            onQuestion: _send,
+          ),
+          _InputBar(
+            controller: _input,
+            sending: sending,
+            listening: _listening,
+            bottomInset: widget.popup ? 0 : padding.bottom,
+            onSend: () => _send(),
+            onStop: () => ref.read(aiChatProvider.notifier).stop(),
+            onMic: _toggleMic,
+          ),
+        ],
       ],
     );
 
-    if (widget.popup) return Material(color: AppColors.background, child: panel);
-    return Scaffold(backgroundColor: AppColors.background, body: panel);
+    if (widget.popup) return Material(color: AiSiteColors.cream50, child: panel);
+    return Scaffold(backgroundColor: AiSiteColors.cream50, body: panel);
   }
 }
 
 class _AiTool {
-  const _AiTool(this.art, this.label, this.onTap, {this.subtitle});
+  const _AiTool(this.label, this.onTap);
 
-  final String art;
   final String label;
   final VoidCallback onTap;
-  final String? subtitle;
 }
 
 /// The «مساعدة بيانور» bar: mascot, online status, new chat and close.
@@ -445,57 +417,55 @@ class _ChatHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      padding: EdgeInsets.fromLTRB(14, 12 + topInset, 14, 12),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: AlignmentDirectional.topStart,
-          end: AlignmentDirectional.bottomEnd,
-          colors: [AppColors.primary, AppColors.onPrimaryFixedVariant],
-        ),
-      ),
+      padding: EdgeInsets.fromLTRB(16, 14 + topInset, 12, 14),
+      decoration: const BoxDecoration(gradient: AiSiteColors.headerGradient),
       child: Stack(
         children: [
           const Positioned.fill(child: IgnorePointer(child: CustomPaint(painter: _StarsPainter()))),
           Row(
             children: [
               Container(
-                width: 44,
-                height: 44,
-                padding: const EdgeInsets.all(3),
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.16),
+                  color: AiSiteColors.cream100.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(13),
-                  child: Image.asset(AppAssets.logoBaby, fit: BoxFit.cover),
-                ),
+                child: const BayanourFace(size: 28),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'مساعدة بيانور',
-                      style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w800),
+                      'مساعد بيانور',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: AiSiteColors.cream50,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Row(
                       children: [
                         Container(
-                          width: 7,
-                          height: 7,
-                          decoration: const BoxDecoration(color: Color(0xFFB8F2D9), shape: BoxShape.circle),
+                          width: 6,
+                          height: 6,
+                          decoration: const BoxDecoration(color: AiSiteColors.mint300, shape: BoxShape.circle),
                         ),
                         const SizedBox(width: 6),
                         Flexible(
                           child: Text(
-                            'متاحة دلوقتي • بترد في ثواني',
+                            'متصل الآن • يردّ في ثوانٍ',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.labelSmall?.copyWith(color: Colors.white.withValues(alpha: 0.82)),
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: AiSiteColors.mint200.withValues(alpha: 0.8),
+                              fontSize: 11,
+                            ),
                           ),
                         ),
                       ],
@@ -507,7 +477,7 @@ class _ChatHeader extends StatelessWidget {
                 _HeaderButton(icon: Symbols.add_comment, tooltip: 'محادثة جديدة', onTap: onNewChat!),
                 const SizedBox(width: 6),
               ],
-              _HeaderButton(icon: Symbols.close, tooltip: 'قفل', onTap: onClose),
+              _HeaderButton(icon: Symbols.close, tooltip: 'إغلاق المحادثة', onTap: onClose),
             ],
           ),
         ],
@@ -529,14 +499,14 @@ class _HeaderButton extends StatelessWidget {
       message: tooltip,
       child: Material(
         color: Colors.transparent,
-        shape: CircleBorder(side: BorderSide(color: Colors.white.withValues(alpha: 0.2))),
+        shape: CircleBorder(side: BorderSide(color: AiSiteColors.cream100.withValues(alpha: 0.15))),
         child: InkWell(
           customBorder: const CircleBorder(),
           onTap: onTap,
           child: SizedBox(
             width: 36,
             height: 36,
-            child: Icon(icon, size: 20, color: Colors.white.withValues(alpha: 0.9)),
+            child: Icon(icon, size: 16, color: AiSiteColors.cream100.withValues(alpha: 0.8)),
           ),
         ),
       ),
@@ -559,7 +529,7 @@ class _StarsPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.white.withValues(alpha: 0.12);
+    final paint = Paint()..color = AiSiteColors.cream100.withValues(alpha: 0.16);
     for (final (x, y, r) in _spots) {
       final c = Offset(size.width * x, size.height * y);
       final path = Path()
@@ -593,172 +563,82 @@ BoxDecoration _botBubbleDecoration() => BoxDecoration(
       ],
     );
 
-/// First screen: a welcome bubble, then every tool as a 3D card.
-class _WelcomeView extends StatelessWidget {
-  const _WelcomeView({required this.babyName, required this.tools, required this.enabled});
-
-  final String? babyName;
-  final List<_AiTool> tools;
-  final bool enabled;
+/// Empty thread, matching the landing card before the first message.
+class _EmptyThread extends StatelessWidget {
+  const _EmptyThread();
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final name = (babyName ?? '').trim();
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-      children: [
-        Align(
-          alignment: AlignmentDirectional.centerStart,
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 340),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: AlignmentDirectional.topStart,
-                end: AlignmentDirectional.bottomEnd,
-                colors: [AppColors.primary, AppColors.primaryDim],
-              ),
-              borderRadius: _botBubbleRadius,
-              boxShadow: [
-                BoxShadow(color: AppColors.primaryDim.withValues(alpha: 0.35), blurRadius: 18, offset: const Offset(0, 8)),
-              ],
-            ),
-            child: Text(
-              '${name.isEmpty ? 'أهلاً بيكي' : 'أهلاً يا ماما $name'} 💛 أنا مساعدتك في بيانور. '
-              'اسأليني عن النوم والرضاعة والأكل والتطور، أو اختاري حاجة من تحت.',
-              style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white, height: 1.8),
-            ),
-          ),
+    return Align(
+      alignment: AlignmentDirectional.topStart,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+        child: Text(
+          'إجابات تعليمية من مراجع علمية (WHO، AAP، CDC، NHS) ومش بديل عن الطبيب.',
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AiSiteColors.ink800.withValues(alpha: 0.45)),
         ),
-        Padding(
-          padding: const EdgeInsetsDirectional.only(start: 4, top: 8),
-          child: Text(
-            'إجابات تعليمية من مراجع علمية (WHO، AAP، CDC، NHS) ومش بديل عن الطبيب.',
-            style: theme.textTheme.labelSmall?.copyWith(color: AppColors.onSurfaceVariant),
-          ),
-        ),
-        const SizedBox(height: 18),
-        Text('أدوات بيانور', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
-        const SizedBox(height: 10),
-        _ToolTile(tool: tools.first, enabled: enabled, wide: true),
-        const SizedBox(height: 10),
-        for (final row in _rowsOf(tools.skip(1).toList(), 3)) ...[
-          SizedBox(
-            height: 104,
-            child: Row(
+      ),
+    );
+  }
+}
+
+/// Tools stay visible first; starter questions sit in a second scrollable row.
+class _PinnedBar extends StatelessWidget {
+  const _PinnedBar({
+    required this.questions,
+    required this.tools,
+    required this.enabled,
+    required this.onQuestion,
+  });
+
+  final List<String> questions;
+  final List<_AiTool> tools;
+  final bool enabled;
+  final ValueChanged<String> onQuestion;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AiSiteColors.cream50,
+        border: Border(top: BorderSide(color: AiSiteColors.ink900.withValues(alpha: 0.08))),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                for (var i = 0; i < row.length; i++) ...[
-                  if (i > 0) const SizedBox(width: 10),
-                  Expanded(child: _ToolTile(tool: row[i], enabled: enabled)),
-                ],
+                for (final tool in tools)
+                  _SiteChip(label: tool.label, onTap: enabled ? tool.onTap : null),
               ],
             ),
-          ),
-          const SizedBox(height: 10),
-        ],
-      ],
-    );
-  }
-
-  static List<List<_AiTool>> _rowsOf(List<_AiTool> items, int size) => [
-        for (var i = 0; i < items.length; i += size) items.sublist(i, (i + size).clamp(0, items.length)),
-      ];
-}
-
-class _ToolTile extends StatelessWidget {
-  const _ToolTile({required this.tool, required this.enabled, this.wide = false});
-
-  final _AiTool tool;
-  final bool enabled;
-  final bool wide;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final label = Text(
-      tool.label,
-      textAlign: wide ? TextAlign.start : TextAlign.center,
-      maxLines: 2,
-      overflow: TextOverflow.ellipsis,
-      style: (wide ? theme.textTheme.titleSmall : theme.textTheme.labelMedium)?.copyWith(fontWeight: FontWeight.w800),
-    );
-    return Material(
-      color: wide ? AppColors.primaryContainer : AppColors.surfaceContainerLowest,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: const BorderSide(color: AppColors.outlineVariant),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: enabled ? tool.onTap : null,
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: wide ? 14 : 6, vertical: wide ? 12 : 8),
-          child: wide
-              ? Row(
-                  children: [
-                    Image.asset(tool.art, width: 40, height: 40),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          label,
-                          if (tool.subtitle != null)
-                            Text(
-                              tool.subtitle!,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceVariant),
-                            ),
-                        ],
-                      ),
-                    ),
-                    const Icon(Symbols.chevron_left, color: AppColors.primary),
-                  ],
-                )
-              : Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset(tool.art, width: 36, height: 36),
-                    const SizedBox(height: 6),
-                    label,
-                  ],
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 36,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: questions.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (_, i) => _SiteChip(
+                  label: questions[i],
+                  onTap: enabled ? () => onQuestion(questions[i]) : null,
                 ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-/// Tools during a conversation, opened from the grid button next to the input.
-class _ToolsTray extends StatelessWidget {
-  const _ToolsTray({required this.tools, required this.enabled});
-
-  final List<_AiTool> tools;
-  final bool enabled;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 104,
-      decoration: const BoxDecoration(
-        color: AppColors.background,
-        border: Border(top: BorderSide(color: AppColors.outlineVariant)),
-      ),
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-        itemCount: tools.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (_, i) => SizedBox(width: 92, child: _ToolTile(tool: tools[i], enabled: enabled)),
-      ),
-    );
-  }
-}
-
-class _Pill extends StatelessWidget {
-  const _Pill({required this.label, required this.onTap});
+class _SiteChip extends StatelessWidget {
+  const _SiteChip({required this.label, required this.onTap});
 
   final String label;
   final VoidCallback? onTap;
@@ -766,8 +646,8 @@ class _Pill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.primary.withValues(alpha: 0.08),
-      shape: StadiumBorder(side: BorderSide(color: AppColors.primary.withValues(alpha: 0.25))),
+      color: AiSiteColors.teal.withValues(alpha: 0.08),
+      shape: StadiumBorder(side: BorderSide(color: AiSiteColors.teal.withValues(alpha: 0.25))),
       child: InkWell(
         customBorder: const StadiumBorder(),
         onTap: onTap,
@@ -775,39 +655,8 @@ class _Pill extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           child: Text(
             label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: AppColors.primaryDim,
-                  fontWeight: FontWeight.w700,
-                ),
+            style: const TextStyle(color: AiSiteColors.teal, fontSize: 11.5, fontWeight: FontWeight.w500),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _StarterChips extends StatelessWidget {
-  const _StarterChips({required this.onPick, required this.enabled});
-
-  final ValueChanged<String> onPick;
-  final bool enabled;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 54,
-      decoration: const BoxDecoration(
-        color: AppColors.background,
-        border: Border(top: BorderSide(color: AppColors.outlineVariant)),
-      ),
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        itemCount: _starterQuestions.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (_, i) => _Pill(
-          label: _starterQuestions[i],
-          onTap: enabled ? () => onPick(_starterQuestions[i]) : null,
         ),
       ),
     );
@@ -826,18 +675,19 @@ class _UserBubble extends StatelessWidget {
       child: Container(
         margin: const EdgeInsetsDirectional.only(bottom: 12, start: 48),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: const BoxDecoration(
-          color: AppColors.primaryFixed,
-          borderRadius: BorderRadiusDirectional.only(
+        decoration: BoxDecoration(
+          color: AiSiteColors.teal.withValues(alpha: 0.12),
+          borderRadius: const BorderRadiusDirectional.only(
             topStart: Radius.circular(18),
             topEnd: Radius.circular(18),
             bottomStart: Radius.circular(18),
             bottomEnd: Radius.circular(4),
           ),
+          border: Border.all(color: AiSiteColors.teal.withValues(alpha: 0.25)),
         ),
         child: Text(
           text,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.onPrimaryFixed, height: 1.6),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AiSiteColors.ink900, height: 1.6),
         ),
       ),
     );
@@ -1147,7 +997,7 @@ class _ChatAnswer extends StatelessWidget {
                 runSpacing: 8,
                 children: [
                   for (final f in message.followups)
-                    _Pill(
+                    _SiteChip(
                       label: withBabyName(f, babyName),
                       onTap: () => onFollowup(withBabyName(f, babyName)),
                     ),
@@ -1385,9 +1235,7 @@ class _InputBar extends StatelessWidget {
     required this.controller,
     required this.sending,
     required this.listening,
-    required this.toolsOpen,
     required this.bottomInset,
-    required this.onTools,
     required this.onSend,
     required this.onStop,
     required this.onMic,
@@ -1396,11 +1244,7 @@ class _InputBar extends StatelessWidget {
   final TextEditingController controller;
   final bool sending;
   final bool listening;
-  final bool toolsOpen;
   final double bottomInset;
-
-  /// Null on the welcome screen, where the tools are already showing.
-  final VoidCallback? onTools;
   final VoidCallback onSend;
   final VoidCallback onStop;
   final VoidCallback onMic;
@@ -1408,36 +1252,18 @@ class _InputBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final pill = OutlineInputBorder(
+    final border = OutlineInputBorder(
       borderRadius: AppRadius.brFull,
-      borderSide: const BorderSide(color: AppColors.outlineVariant),
+      borderSide: BorderSide(color: AiSiteColors.ink900.withValues(alpha: 0.1)),
     );
     return Container(
-      padding: EdgeInsets.fromLTRB(10, 10, 10, 10 + bottomInset),
-      decoration: const BoxDecoration(
-        color: AppColors.background,
-        border: Border(top: BorderSide(color: AppColors.outlineVariant)),
+      padding: EdgeInsets.fromLTRB(12, 12, 12, 12 + bottomInset),
+      decoration: BoxDecoration(
+        color: AiSiteColors.cream50,
+        border: Border(top: BorderSide(color: AiSiteColors.ink900.withValues(alpha: 0.08))),
       ),
       child: Row(
         children: [
-          if (onTools != null) ...[
-            _RoundButton(
-              icon: toolsOpen ? Symbols.close : Symbols.apps,
-              tooltip: toolsOpen ? 'اقفلي الأدوات' : 'أدوات بيانور',
-              background: toolsOpen ? AppColors.primaryFixed : AppColors.surfaceContainerLow,
-              foreground: AppColors.primary,
-              onTap: onTools,
-            ),
-            const SizedBox(width: 6),
-          ],
-          _RoundButton(
-            icon: listening ? Symbols.stop : Symbols.mic,
-            tooltip: listening ? 'إيقاف التسجيل' : 'اسألي بصوتك',
-            background: listening ? AppColors.error : AppColors.surfaceContainerLow,
-            foreground: listening ? AppColors.onError : AppColors.primary,
-            onTap: sending ? null : onMic,
-          ),
-          const SizedBox(width: 6),
           Expanded(
             child: TextField(
               controller: controller,
@@ -1446,80 +1272,51 @@ class _InputBar extends StatelessWidget {
               maxLength: 1000,
               textInputAction: TextInputAction.send,
               onSubmitted: (_) => onSend(),
+              style: theme.textTheme.bodyMedium?.copyWith(color: AiSiteColors.ink900, fontSize: 12.5),
+              cursorColor: AiSiteColors.teal,
               decoration: InputDecoration(
                 hintText: listening ? 'بسمعك… اتكلمي' : 'اكتبي سؤالك…',
-                hintStyle: AppTextField.hintStyle(theme),
+                hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                  color: AiSiteColors.ink800.withValues(alpha: 0.35),
+                  fontSize: 12.5,
+                ),
                 filled: true,
-                fillColor: AppColors.surfaceContainerLow,
+                fillColor: AiSiteColors.cream100.withValues(alpha: 0.7),
                 isDense: true,
                 counterText: '',
-                border: pill,
-                enabledBorder: pill,
-                focusedBorder: pill.copyWith(
-                  borderSide: BorderSide(color: AppColors.primary.withValues(alpha: 0.5)),
+                prefixIcon: IconButton(
+                  tooltip: listening ? 'إيقاف التسجيل' : 'اسألي بصوتك',
+                  onPressed: sending ? null : onMic,
+                  icon: Icon(
+                    listening ? Symbols.stop : Symbols.mic,
+                    size: 18,
+                    color: listening ? AppColors.error : AiSiteColors.teal,
+                  ),
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                border: border,
+                enabledBorder: border,
+                focusedBorder: border.copyWith(borderSide: BorderSide(color: AiSiteColors.teal.withValues(alpha: 0.5))),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               ),
             ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 8),
           Tooltip(
             message: sending ? 'إيقاف الرد' : 'إرسال',
             child: GestureDetector(
               onTap: sending ? onStop : onSend,
               child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: AlignmentDirectional.topStart,
-                    end: AlignmentDirectional.bottomEnd,
-                    colors: sending
-                        ? const [AppColors.onSurface, AppColors.onSurface]
-                        : const [AppColors.primary, AppColors.onPrimaryFixedVariant],
-                  ),
-                  boxShadow: [
-                    BoxShadow(color: AppColors.primaryDim.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4)),
-                  ],
-                ),
-                child: Icon(sending ? Symbols.stop : Symbols.send, fill: 1, size: 20, color: AppColors.onPrimary),
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(shape: BoxShape.circle, gradient: AiSiteColors.sendGradient),
+                child: sending
+                    ? const Icon(Symbols.stop, size: 16, color: AiSiteColors.mint300)
+                    : const AiSparkleIcon(),
               ),
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _RoundButton extends StatelessWidget {
-  const _RoundButton({
-    required this.icon,
-    required this.tooltip,
-    required this.background,
-    required this.foreground,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String tooltip;
-  final Color background;
-  final Color foreground;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: Material(
-        color: background,
-        shape: const CircleBorder(side: BorderSide(color: AppColors.outlineVariant)),
-        child: InkWell(
-          customBorder: const CircleBorder(),
-          onTap: onTap,
-          child: SizedBox(width: 40, height: 40, child: Icon(icon, size: 20, color: foreground)),
-        ),
       ),
     );
   }

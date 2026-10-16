@@ -40,6 +40,7 @@ class PrefsService {
   static const _kSavedCourses = 'saved_courses';
   static const _kTimelineReminders = 'timeline_reminders_enabled';
   static const _kVaccineCountry = 'vaccine_country';
+  static const _kHomeAvatarPath = 'home_avatar_path';
 
   int getVideoIndex() => _prefs.getInt(_kVideoIndex) ?? 0;
   Future<void> setVideoIndex(int value) => _prefs.setInt(_kVideoIndex, value);
@@ -62,6 +63,11 @@ class PrefsService {
 
   bool getTimelineReminders() => _prefs.getBool(_kTimelineReminders) ?? true;
   Future<void> setTimelineReminders(bool value) => _prefs.setBool(_kTimelineReminders, value);
+
+  /// Local file of the photo the mother picked for the home logo.
+  String? getHomeAvatarPath() => _prefs.getString(_kHomeAvatarPath);
+  Future<void> setHomeAvatarPath(String path) => _prefs.setString(_kHomeAvatarPath, path);
+  Future<void> clearHomeAvatarPath() => _prefs.remove(_kHomeAvatarPath);
 
   /// The mother's own pick; null means «use the dashboard default».
   String? getVaccineCountry() => _prefs.getString(_kVaccineCountry);

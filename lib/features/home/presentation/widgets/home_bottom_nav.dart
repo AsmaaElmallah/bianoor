@@ -15,70 +15,83 @@ class HomeBottomNav extends StatelessWidget {
     required this.tabs,
     required this.currentIndex,
     required this.onTap,
+    this.center,
   });
 
   final List<HomeNavTab> tabs;
   final int currentIndex;
   final ValueChanged<int> onTap;
 
+  /// Raised control sitting in the middle of the bar, above the glass.
+  final Widget? center;
+
+  /// Puts the glass top a little below the chat orb's midline.
+  static const _raise = 36.0;
+
   @override
   Widget build(BuildContext context) {
     final bottomPad = MediaQuery.of(context).padding.bottom;
+    final midpoint = tabs.length ~/ 2;
+    final hasCenter = center != null;
 
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-        child: Container(
-          decoration: BoxDecoration(
-            // Frosted sugar-beige glass.
-            color: AppColors.background.withValues(alpha: 0.88),
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.topCenter,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(top: hasCenter ? _raise : 0),
+          child: ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primaryDim.withValues(alpha: 0.12),
-                blurRadius: 32,
-                offset: const Offset(0, -8),
-              ),
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.06),
-                blurRadius: 16,
-                offset: const Offset(0, -2),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                height: 1.5,
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+              child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.6),
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(32),
-                  ),
+                  color: AppColors.background.withValues(alpha: 0.88),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      height: 1.5,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(32),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(8, 12, 8, 10 + bottomPad),
+                      child: Row(
+                        children: [
+                          for (var i = 0; i < midpoint; i++)
+                            Expanded(child: _item(i)),
+                          if (hasCenter) const SizedBox(width: 72),
+                          for (var i = midpoint; i < tabs.length; i++)
+                            Expanded(child: _item(i)),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              Padding(
-                padding: EdgeInsets.fromLTRB(8, 12, 8, 10 + bottomPad),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: List.generate(tabs.length, (i) {
-                    return _NavItem(
-                      tab: tabs[i],
-                      isActive: i == currentIndex,
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        onTap(i);
-                      },
-                    );
-                  }),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
-      ),
+        if (hasCenter) Positioned(top: 0, child: center!),
+      ],
+    );
+  }
+
+  Widget _item(int index) {
+    return _NavItem(
+      tab: tabs[index],
+      isActive: index == currentIndex,
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap(index);
+      },
     );
   }
 }

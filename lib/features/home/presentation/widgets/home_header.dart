@@ -8,7 +8,7 @@ import '../../../auth/application/auth_session_provider.dart';
 import '../../../auth/presentation/settings_screen.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_shadows.dart';
-import '../../../../shared/widgets/app_logo_avatar.dart';
+import '../../application/home_avatar.dart';
 import '../../../notifications/presentation/notifications_screen.dart';
 import '../../../onboarding_questions/data/children_cloud_repository.dart';
 
@@ -24,7 +24,7 @@ class HomeHeader extends ConsumerWidget {
 
     return Row(
       children: [
-        const AppLogoAvatar(size: 48),
+        const HomeLogoAvatar(size: 48),
         const SizedBox(width: 12),
         Expanded(
           child: Column(

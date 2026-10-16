@@ -90,7 +90,6 @@ class HomeNavTab {
 const homeNavTabs = <HomeNavTab>[
   HomeNavTab(id: 'home', label: 'الرئيسية', icon: Symbols.home, art: AppArt.house),
   HomeNavTab(id: 'lessons', label: 'الدروس', icon: Symbols.school, art: AppArt.graduationCap, sectionId: 'lessons'),
-  HomeNavTab(id: 'assessment', label: 'التقييم', icon: Symbols.assignment, art: AppArt.clipboard, sectionId: 'assessment'),
   HomeNavTab(id: 'library', label: 'المكتبة', icon: Symbols.menu_book, art: AppArt.books, sectionId: 'library'),
   HomeNavTab(id: 'community', label: 'المجتمع', icon: Symbols.groups, art: AppArt.people, sectionId: 'community'),
 ];
