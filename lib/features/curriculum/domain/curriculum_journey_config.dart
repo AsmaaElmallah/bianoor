@@ -14,6 +14,11 @@ class CurriculumJourneyConfig {
     required this.reviewCycleStartDay,
     required this.lessonDaysPath,
     required this.playerPath,
+    required this.arenaHeroColor,
+    this.arenaIconWell,
+    this.arenaBadge,
+    this.arenaTags = const [],
+    this.arenaShowContrastTiles = false,
   });
 
   final String journeyTitle;
@@ -27,13 +32,21 @@ class CurriculumJourneyConfig {
   final String Function(int lessonNumber) lessonDaysPath;
   final String playerPath;
 
+  /// Arena feature-card background.
+  final Color arenaHeroColor;
+  final Color? arenaIconWell;
+  final String? arenaBadge;
+  final List<String> arenaTags;
+  final bool arenaShowContrastTiles;
+
   String lessonLabel(int lessonNumber) => 'الدرس $lessonNumber';
 }
 
 CurriculumJourneyConfig mathJourneyConfig() => CurriculumJourneyConfig(
       journeyTitle: 'رحلة الحساب النقطي',
-      journeyHeroTitle: 'منهج الحساب الذهني',
-      journeyHeroSubtitle: '٢٥ درساً — من البداية الذكية حتى التكرار',
+      journeyHeroTitle: 'الحساب الذهني',
+      journeyHeroSubtitle:
+          'أناشيد وألعاب أرقام أولى تصنع علاقة ودّ مع الأرقام وتهيّئ التفكير المنطقي.',
       headerIcon: Symbols.calculate,
       lessonCount: 25,
       maxLessonNumber: 25,
@@ -41,12 +54,16 @@ CurriculumJourneyConfig mathJourneyConfig() => CurriculumJourneyConfig(
       reviewCycleStartDay: 161,
       lessonDaysPath: (n) => '/home/math/$n',
       playerPath: '/home/math/player',
+      arenaHeroColor: Colors.white,
+      arenaIconWell: const Color(0xFF4A7FD6),
+      arenaTags: const ['أناشيد ١–١٠', 'ألعاب عدّ'],
     );
 
 CurriculumJourneyConfig visualJourneyConfig() => CurriculumJourneyConfig(
       journeyTitle: 'رحلة التحفيز البصري',
       journeyHeroTitle: 'التحفيز البصري',
-      journeyHeroSubtitle: '٣٠ درساً — شرائح متدرجة حسب العمر',
+      journeyHeroSubtitle:
+          'بطاقات بالأبيض والأسود عالية التباين تحفّز شبكية العين والوصلات العصبية.',
       headerIcon: Symbols.visibility,
       lessonCount: 30,
       maxLessonNumber: 30,
@@ -54,6 +71,9 @@ CurriculumJourneyConfig visualJourneyConfig() => CurriculumJourneyConfig(
       reviewCycleStartDay: 186,
       lessonDaysPath: (n) => '/home/visual/$n',
       playerPath: '/home/visual/player',
+      arenaHeroColor: const Color(0xFF29223F),
+      arenaBadge: '٠ – ٦ شهور',
+      arenaShowContrastTiles: true,
     );
 
 CurriculumJourneyConfig emotionalJourneyConfig() => CurriculumJourneyConfig(
@@ -67,4 +87,7 @@ CurriculumJourneyConfig emotionalJourneyConfig() => CurriculumJourneyConfig(
       reviewCycleStartDay: 121,
       lessonDaysPath: (n) => '/home/emotional/$n',
       playerPath: '/home/emotional/player',
+      arenaHeroColor: Colors.white,
+      arenaIconWell: const Color(0xFFE85D8A),
+      arenaTags: const ['تمارين تهدئة', 'ربط عاطفي'],
     );

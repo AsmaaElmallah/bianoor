@@ -39,8 +39,8 @@ class QuranJourneyNode extends StatelessWidget {
     if (isDone) {
       circle = QuranJourneyClayCircle(
         size: 76,
-        color: const Color(0xFF4ADE80),
-        depth: const Color(0xFF16A34A),
+        color: AppColors.tertiary,
+        depth: AppColors.tertiaryDim,
         onTap: onTap,
         child: Icon(
           onTap != null ? Symbols.replay : Symbols.check_circle,
@@ -90,7 +90,7 @@ class QuranJourneyNode extends StatelessWidget {
         size: 88,
         color: AppColors.secondaryContainer,
         depth: AppColors.secondaryDim,
-        onTap: isLocked ? null : onTap,
+        onTap: onTap,
         child: Icon(
           isLocked ? Symbols.inventory_2 : Symbols.card_giftcard,
           color: AppColors.onSecondaryContainer,
@@ -99,11 +99,23 @@ class QuranJourneyNode extends StatelessWidget {
         ),
       );
     } else if (isLocked) {
-      circle = const QuranJourneyClayCircle(
-        size: 76,
-        color: AppColors.surfaceContainerHigh,
-        depth: AppColors.outlineVariant,
-        child: Icon(Symbols.lock, color: AppColors.outline, size: 34),
+      circle = Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
+        children: [
+          QuranJourneyClayCircle(
+            size: 76,
+            color: AppColors.surfaceContainerHigh,
+            depth: AppColors.outlineVariant,
+            onTap: onTap,
+            child: const Icon(Symbols.lock, color: AppColors.outline, size: 34),
+          ),
+          if (speechBubble != null)
+            Positioned(
+              top: -44,
+              child: QuranJourneySpeechBubble(text: speechBubble!),
+            ),
+        ],
       );
     } else {
       // Paid ahead: open to play any time, not only on its calendar day.

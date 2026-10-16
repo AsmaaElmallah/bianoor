@@ -11,14 +11,11 @@ import 'timeline_reminders.dart';
 const timelineNowWindowDays = 14;
 
 class TimelineData {
-  const TimelineData({required this.child, required this.items, required this.done, this.country = 'EG'});
+  const TimelineData({required this.child, required this.items, required this.done});
 
   final GrowthChild? child;
   final List<TimelineItem> items;
   final Set<String> done;
-  final String country;
-
-  bool get hasVaccines => items.any((i) => i.kind == TimelineKind.vaccine);
 
   int? get ageDays {
     final birth = child?.birthDate;
@@ -27,16 +24,13 @@ class TimelineData {
     return DateTime.utc(now.year, now.month, now.day).difference(DateTime.utc(birth.year, birth.month, birth.day)).inDays;
   }
 
-  bool isOverdue(TimelineItem item) =>
-      item.kind == TimelineKind.vaccine && !done.contains(item.id) && item.ageDays < ageDays! - timelineNowWindowDays;
-
-  /// Due around now, plus vaccines that were missed.
+  /// Due around now.
   List<TimelineItem> get current {
     final age = ageDays;
     if (age == null) return const [];
     return [
       for (final i in items)
-        if ((i.ageDays - age).abs() <= timelineNowWindowDays || isOverdue(i)) i,
+        if ((i.ageDays - age).abs() <= timelineNowWindowDays) i,
     ];
   }
 
@@ -51,16 +45,16 @@ class TimelineData {
     if (age == null) return const [];
     return [
       for (final i in items.reversed)
-        if (i.ageDays < age - timelineNowWindowDays && !isOverdue(i)) i,
+        if (i.ageDays < age - timelineNowWindowDays) i,
     ];
   }
 
   /// The single most useful item for the home card.
   TimelineItem? get highlight {
     final c = current;
-    if (c.isEmpty) return upcoming.isNotEmpty && upcoming.first.ageDays - ageDays! <= 30 ? upcoming.first : null;
-    final vaccine = c.where((i) => i.kind == TimelineKind.vaccine && !done.contains(i.id));
-    return vaccine.isNotEmpty ? vaccine.first : c.first;
+    if (c.isNotEmpty) return c.first;
+    if (upcoming.isNotEmpty && upcoming.first.ageDays - ageDays! <= 30) return upcoming.first;
+    return null;
   }
 }
 
@@ -68,14 +62,11 @@ final timelineDataProvider = FutureProvider.autoDispose<TimelineData>((ref) asyn
   final child = await ref.watch(growthRepositoryProvider).fetchActiveChild();
   if (child == null) return const TimelineData(child: null, items: [], done: {});
   final repo = ref.watch(timelineRepositoryProvider);
-  final picked = ref.read(prefsServiceProvider).getVaccineCountry();
-  final country = picked != null && vaccineCountries.containsKey(picked) ? picked : await repo.fetchDefaultCountry();
-  final results = await Future.wait([repo.fetchItems(country), repo.fetchDone(child.id)]);
+  final results = await Future.wait([repo.fetchItems(), repo.fetchDone(child.id)]);
   final data = TimelineData(
     child: child,
     items: results[0] as List<TimelineItem>,
     done: results[1] as Set<String>,
-    country: country,
   );
   if (ref.read(prefsServiceProvider).getTimelineReminders()) {
     unawaited(TimelineReminders.instance.sync(data));

@@ -5,11 +5,13 @@ import '../../../../core/storage/prefs_service.dart';
 import '../../../subscription/presentation/widgets/subscribe_banner.dart';
 import '../../../timeline/presentation/widgets/timeline_home_card.dart';
 import '../../domain/home_menu_data.dart';
+import '../widgets/home_health_tools_row.dart';
 import '../widgets/home_hero_card.dart';
 import '../widgets/home_section_block.dart';
+import '../widgets/home_today_journey_section.dart';
 
-/// Sections reachable only from the bottom navigation bar.
-const _navOnlySectionIds = {'community'};
+/// Covered by shortcuts / bottom nav / side drawer — keep home like Arena phone.
+const _hiddenOnDashboard = {'community', 'lessons', 'start_learning', 'support'};
 
 class HomeDashboardTab extends ConsumerWidget {
   const HomeDashboardTab({super.key});
@@ -18,20 +20,23 @@ class HomeDashboardTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final babyName = ref.watch(prefsServiceProvider).getBabyName() ?? 'طفلك';
     final sections = homeMenuSections
-        .where((s) => !_navOnlySectionIds.contains(s.id))
+        .where((s) => !_hiddenOnDashboard.contains(s.id))
         .toList();
 
-    // Room for the glass bar + the raised chat orb so the last section stays readable.
     final bottomPad = 112 + MediaQuery.paddingOf(context).bottom;
 
     return ListView(
       padding: EdgeInsets.only(bottom: bottomPad),
       children: [
         HomeHeroCard(babyName: babyName),
+        const SizedBox(height: 12),
+        const HomeTodayJourneySection(),
         const SizedBox(height: 16),
         const SubscribeBanner(),
         const TimelineHomeCard(),
         const SizedBox(height: 16),
+        const HomeHealthToolsRow(),
+        const SizedBox(height: 20),
         for (var i = 0; i < sections.length; i++) ...[
           HomeSectionBlock(section: sections[i]),
           if (i < sections.length - 1) const SizedBox(height: 24),

@@ -7,6 +7,7 @@ import 'widgets/ai_orb.dart';
 import '../../../core/storage/prefs_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
+import '../../../shared/widgets/arena/arena_robot_icon.dart';
 import '../../community/presentation/widgets/club_shared.dart';
 import '../../support/presentation/consultations_screen.dart';
 import '../application/ai_providers.dart';
@@ -14,13 +15,14 @@ import '../application/ai_voice.dart';
 import '../data/ai_models.dart';
 import 'widgets/ai_markdown.dart';
 import 'widgets/ai_shared.dart';
-import 'widgets/ai_tool_panels.dart';
 
 const _starterQuestions = [
   'طفلي مش بينام كويس بالليل، أعمل إيه؟',
   'إيه الأكل المناسب لسنه؟',
+  'طفلي بيعيط ومش عارفة ليه، أعمل إيه؟',
   'إيه المهارات المفروض يعملها دلوقتي؟',
   'لعبة تنمّي تركيزه النهارده',
+  'براز طفلي لونه غريب، أقلق؟',
 ];
 
 const _badReasons = [
@@ -31,8 +33,8 @@ const _badReasons = [
   'سبب تاني',
 ];
 
-/// «مساعدة بيانور» — chat with structured, referenced answers. Every AI tool
-/// (plan, growth, meals…) lives inside it; outside there's only the launcher.
+/// «مساعدة بيانور» — chat with structured, referenced answers.
+/// Health trackers (growth / diaper) live on home; chat keeps FAQ chips + questions.
 class AiAssistantScreen extends ConsumerStatefulWidget {
   const AiAssistantScreen({super.key, this.initialQuestion, this.popup = false});
 
@@ -51,7 +53,6 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
   final _voice = AiVoice();
   bool _listening = false;
   String? _speakingId;
-  AiChatTool? _tool;
 
   @override
   void initState() {
@@ -167,43 +168,7 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
     _scrollToEnd();
   }
 
-  Future<void> _sendMeal(AiMealRequest meal) async {
-    final text = [
-      'وجبة النهارده',
-      if (meal.ingredients.isNotEmpty) 'الموجود عندي: ${meal.ingredients}',
-      if (meal.allergies.isNotEmpty) 'عنده حساسية من: ${meal.allergies.join('، ')}',
-    ].join('\n');
-    _scrollToEnd();
-    await ref.read(aiChatProvider.notifier).send(text, meal: meal);
-    _scrollToEnd();
-  }
-
-  void _close() {
-    if (_tool != null) {
-      setState(() => _tool = null);
-      return;
-    }
-    Navigator.of(context).maybePop();
-  }
-
-  void _openTool(AiChatTool tool) {
-    if (tool == AiChatTool.plan) {
-      final plan = ref.read(aiDailyPlanProvider);
-      if (plan.valueOrNull?.plan == null && !plan.isLoading) ref.invalidate(aiDailyPlanProvider);
-    }
-    setState(() => _tool = tool);
-  }
-
-  List<_AiTool> _tools() {
-    return [
-      _AiTool('خطة النهارده', () => _openTool(AiChatTool.plan)),
-      _AiTool('نموه', () => _openTool(AiChatTool.growth)),
-      _AiTool('وجبة النهارده', () => _openTool(AiChatTool.meal)),
-      _AiTool('طفلي بيعيط', () => _send('طفلي بيعيط ومش عارفة ليه، أعمل إيه؟')),
-      _AiTool('تطعيمات ومهارات', () => _openTool(AiChatTool.vaccines)),
-      _AiTool('لون البراز', () => _openTool(AiChatTool.stool)),
-    ];
-  }
+  void _close() => Navigator.of(context).maybePop();
 
   Future<void> _rate(AiMessage m, int rating) async {
     String? reason;
@@ -280,87 +245,78 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
       }
     });
 
-    final tools = _tools();
     final padding = MediaQuery.paddingOf(context);
-    final toolOpen = _tool != null;
 
     final panel = Column(
       children: [
-        if (!toolOpen)
-          _ChatHeader(
-            topInset: widget.popup ? 0 : padding.top,
-            onClose: _close,
-            onNewChat: messages.isEmpty || sending ? null : () => ref.read(aiChatProvider.notifier).newConversation(),
-          ),
-        Expanded(
-          child: toolOpen
-              ? AiToolPanel(
-                  tool: _tool!,
-                  onClose: () => setState(() => _tool = null),
-                  onMealReady: _sendMeal,
-                )
-              : DecoratedBox(
-                  decoration: const BoxDecoration(gradient: AiSiteColors.messageGradient),
-                  child: chat.isLoading && state == null
-                      ? const Center(child: CircularProgressIndicator(color: AiSiteColors.teal))
-                      : messages.isEmpty
-                          ? const _EmptyThread()
-                          : ListView.builder(
-                              controller: _scroll,
-                              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                              itemCount: messages.length,
-                              itemBuilder: (context, i) {
-                                final m = messages[i];
-                                if (m.isUser) return _UserBubble(text: m.content);
-                                if (m.isEmergency) {
-                                  return _EmergencyCard(
-                                    title: m.emergencyTitle,
-                                    message: m.content,
-                                    steps: m.emergencySteps,
-                                    onConsult: _openConsultations,
-                                  );
-                                }
-                                if (m.isStreaming && m.content.isEmpty) {
-                                  return Column(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                    children: [
-                                      if (m.emergency != null) _emergencyFor(m),
-                                      const _TypingBubble(),
-                                    ],
-                                  );
-                                }
-                                if (m.isMarkdown) {
-                                  final isLast = m.id == lastAssistantId;
-                                  return _ChatAnswer(
-                                    message: m,
-                                    babyName: babyName,
-                                    rating: state?.ratings[m.id],
-                                    emergency: m.emergency != null ? _emergencyFor(m) : null,
-                                    showFollowups: isLast && !sending,
-                                    onFollowup: _send,
-                                    onRate: (r) => _rate(m, r),
-                                    speaking: _speakingId == m.id,
-                                    onSpeak: () => _toggleSpeak(m, babyName),
-                                    onCopy: () => _copy(m, babyName),
-                                    onRegenerate: isLast && !sending ? () => _regenerate(messages, m) : null,
-                                  );
-                                }
-                                return _AnswerCards(
-                                  message: m,
-                                  babyName: babyName,
-                                  rating: state?.ratings[m.id],
-                                  showFollowups: m.id == lastAssistantId && state?.sending != true,
-                                  onFollowup: _send,
-                                  onRate: (r) => _rate(m, r),
-                                  onConsult: _openConsultations,
-                                  speaking: _speakingId == m.id,
-                                  onSpeak: () => _toggleSpeak(m, babyName),
-                                );
-                              },
-                            ),
-                ),
+        _ChatHeader(
+          topInset: widget.popup ? 0 : padding.top,
+          onClose: _close,
+          onNewChat: messages.isEmpty || sending ? null : () => ref.read(aiChatProvider.notifier).newConversation(),
         ),
-        if (!toolOpen && state?.notice != null)
+        Expanded(
+          child: DecoratedBox(
+            decoration: const BoxDecoration(gradient: AiSiteColors.messageGradient),
+            child: chat.isLoading && state == null
+                ? const Center(child: CircularProgressIndicator(color: AiSiteColors.teal))
+                : messages.isEmpty
+                    ? const _EmptyThread()
+                    : ListView.builder(
+                        controller: _scroll,
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                        itemCount: messages.length,
+                        itemBuilder: (context, i) {
+                          final m = messages[i];
+                          if (m.isUser) return _UserBubble(text: m.content);
+                          if (m.isEmergency) {
+                            return _EmergencyCard(
+                              title: m.emergencyTitle,
+                              message: m.content,
+                              steps: m.emergencySteps,
+                              onConsult: _openConsultations,
+                            );
+                          }
+                          if (m.isStreaming && m.content.isEmpty) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                if (m.emergency != null) _emergencyFor(m),
+                                const _TypingBubble(),
+                              ],
+                            );
+                          }
+                          if (m.isMarkdown) {
+                            final isLast = m.id == lastAssistantId;
+                            return _ChatAnswer(
+                              message: m,
+                              babyName: babyName,
+                              rating: state?.ratings[m.id],
+                              emergency: m.emergency != null ? _emergencyFor(m) : null,
+                              showFollowups: isLast && !sending,
+                              onFollowup: _send,
+                              onRate: (r) => _rate(m, r),
+                              speaking: _speakingId == m.id,
+                              onSpeak: () => _toggleSpeak(m, babyName),
+                              onCopy: () => _copy(m, babyName),
+                              onRegenerate: isLast && !sending ? () => _regenerate(messages, m) : null,
+                            );
+                          }
+                          return _AnswerCards(
+                            message: m,
+                            babyName: babyName,
+                            rating: state?.ratings[m.id],
+                            showFollowups: m.id == lastAssistantId && state?.sending != true,
+                            onFollowup: _send,
+                            onRate: (r) => _rate(m, r),
+                            onConsult: _openConsultations,
+                            speaking: _speakingId == m.id,
+                            onSpeak: () => _toggleSpeak(m, babyName),
+                          );
+                        },
+                      ),
+          ),
+        ),
+        if (state?.notice != null)
           Container(
             width: double.infinity,
             color: AppColors.primaryContainer,
@@ -373,36 +329,26 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
                   ),
             ),
           ),
-        if (!toolOpen) ...[
-          _PinnedBar(
-            questions: _starterQuestions,
-            tools: tools,
-            enabled: !sending,
-            onQuestion: _send,
-          ),
-          _InputBar(
-            controller: _input,
-            sending: sending,
-            listening: _listening,
-            bottomInset: widget.popup ? 0 : padding.bottom,
-            onSend: () => _send(),
-            onStop: () => ref.read(aiChatProvider.notifier).stop(),
-            onMic: _toggleMic,
-          ),
-        ],
+        _PinnedBar(
+          questions: _starterQuestions,
+          enabled: !sending,
+          onQuestion: _send,
+        ),
+        _InputBar(
+          controller: _input,
+          sending: sending,
+          listening: _listening,
+          bottomInset: widget.popup ? 0 : padding.bottom,
+          onSend: () => _send(),
+          onStop: () => ref.read(aiChatProvider.notifier).stop(),
+          onMic: _toggleMic,
+        ),
       ],
     );
 
     if (widget.popup) return Material(color: AiSiteColors.cream50, child: panel);
     return Scaffold(backgroundColor: AiSiteColors.cream50, body: panel);
   }
-}
-
-class _AiTool {
-  const _AiTool(this.label, this.onTap);
-
-  final String label;
-  final VoidCallback onTap;
 }
 
 /// The «مساعدة بيانور» bar: mascot, online status, new chat and close.
@@ -425,14 +371,16 @@ class _ChatHeader extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 40,
-                height: 40,
+                width: 42,
+                height: 42,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: AiSiteColors.cream100.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(16),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF9B6CFF), Color(0xFF6D4BF3)],
+                  ),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: const BayanourFace(size: 28),
+                child: const ArenaRobotIcon(size: 24),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -441,7 +389,7 @@ class _ChatHeader extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'مساعد بيانور',
+                      'شات بوت بيانور',
                       style: theme.textTheme.titleMedium?.copyWith(
                         color: AiSiteColors.cream50,
                         fontWeight: FontWeight.w800,
@@ -555,44 +503,39 @@ const _botBubbleRadius = BorderRadiusDirectional.only(
 );
 
 BoxDecoration _botBubbleDecoration() => BoxDecoration(
-      color: AppColors.surfaceContainerLowest,
+      // Arena: soft lavender bot bubbles.
+      color: const Color(0xFFEDE4FF),
       borderRadius: _botBubbleRadius,
-      border: Border.all(color: AppColors.outlineVariant),
       boxShadow: [
-        BoxShadow(color: AppColors.onPrimaryFixed.withValues(alpha: 0.06), blurRadius: 14, offset: const Offset(0, 6)),
+        BoxShadow(color: AppColors.onPrimaryFixed.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
       ],
     );
 
-/// Empty thread, matching the landing card before the first message.
+/// Empty thread — short trusted-sources line before the first message.
 class _EmptyThread extends StatelessWidget {
   const _EmptyThread();
 
   @override
   Widget build(BuildContext context) {
-    return Align(
+    return const Align(
       alignment: AlignmentDirectional.topStart,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-        child: Text(
-          'إجابات تعليمية من مراجع علمية (WHO، AAP، CDC، NHS) ومش بديل عن الطبيب.',
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AiSiteColors.ink800.withValues(alpha: 0.45)),
-        ),
+        padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+        child: AiDisclaimer(),
       ),
     );
   }
 }
 
-/// Tools stay visible first; starter questions sit in a second scrollable row.
+/// Single horizontal row of pinned FAQ chips above the input.
 class _PinnedBar extends StatelessWidget {
   const _PinnedBar({
     required this.questions,
-    required this.tools,
     required this.enabled,
     required this.onQuestion,
   });
 
   final List<String> questions;
-  final List<_AiTool> tools;
   final bool enabled;
   final ValueChanged<String> onQuestion;
 
@@ -605,32 +548,17 @@ class _PinnedBar extends StatelessWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final tool in tools)
-                  _SiteChip(label: tool.label, onTap: enabled ? tool.onTap : null),
-              ],
+        child: SizedBox(
+          height: 36,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: questions.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (_, i) => _SiteChip(
+              label: questions[i],
+              onTap: enabled ? () => onQuestion(questions[i]) : null,
             ),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 36,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: questions.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                itemBuilder: (_, i) => _SiteChip(
-                  label: questions[i],
-                  onTap: enabled ? () => onQuestion(questions[i]) : null,
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -676,7 +604,8 @@ class _UserBubble extends StatelessWidget {
         margin: const EdgeInsetsDirectional.only(bottom: 12, start: 48),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: AiSiteColors.teal.withValues(alpha: 0.12),
+          // Arena: cream user bubbles.
+          color: AiSiteColors.cream100,
           borderRadius: const BorderRadiusDirectional.only(
             topStart: Radius.circular(18),
             topEnd: Radius.circular(18),

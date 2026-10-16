@@ -17,6 +17,7 @@ import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
 import '../application/club_feed_provider.dart';
 import '../data/community_cloud_repository.dart';
 import '../../../core/constants/app_art.dart';
+import '../../../core/constants/app_assets.dart';
 import 'club_group_screen.dart';
 import 'club_new_post_screen.dart';
 import 'club_post_detail_screen.dart';
@@ -26,7 +27,10 @@ import '../../../shared/widgets/icon_3d.dart';
 
 /// نادي الأمهات — المناقشات تتصنّف حسب عمر البيبي.
 class MothersClubScreen extends ConsumerStatefulWidget {
-  const MothersClubScreen({super.key});
+  const MothersClubScreen({super.key, this.embedded = false});
+
+  /// Bottom-nav embed: no back; shell already paints the cream background.
+  final bool embedded;
 
   @override
   ConsumerState<MothersClubScreen> createState() => _MothersClubScreenState();
@@ -242,18 +246,18 @@ class _MothersClubScreenState extends ConsumerState<MothersClubScreen> {
     );
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: widget.embedded ? Colors.transparent : AppColors.background,
       appBar: QuranTactileAppBar(
         title: 'نادي الأمهات',
         showStars: true,
         starsCount: 12,
-        onBack: () => context.pop(),
+        onBack: widget.embedded ? null : () => context.pop(),
       ),
       floatingActionButton: _NewPostFab(onPressed: _openNewPost),
       floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
       body: Stack(
         children: [
-          const BeboShellBackground(showBottomCurve: false),
+          if (!widget.embedded) const BeboShellBackground(showBottomCurve: false),
           SafeArea(
             child: RefreshIndicator(
               onRefresh: () async {
@@ -273,6 +277,138 @@ class _MothersClubScreenState extends ConsumerState<MothersClubScreen> {
                 child: CustomScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   slivers: [
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                      sliver: SliverToBoxAdapter(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Center(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(color: AppColors.outlineVariant),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Symbols.groups, size: 16, color: AppColors.primary, fill: 1),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'نادي الأمهات',
+                                      style: theme.textTheme.labelMedium?.copyWith(
+                                        color: AppColors.primary,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'لأن الأمومة أجمل حين نعيشها معاً',
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                color: AppColors.onSurface,
+                                height: 1.25,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'مجتمع دافئ من أمهات في نفس مرحلتك، مع خبيرات نمو يجبن عن أسئلتك خلال دقائق.',
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: AppColors.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: AppColors.outlineVariant),
+                                boxShadow: AppShadows.clayLift,
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      'خبيرات نمو وتخاطب تجبن عن أسئلتك خلال دقائق — لا انتظار ولا حيرة',
+                                      style: theme.textTheme.bodyMedium?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.onSurface,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Container(
+                                    width: 44,
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [Color(0xFF2DD4BF), Color(0xFF5B8DEF)],
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(Symbols.chat_bubble, color: Colors.white, fill: 1),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            ClipRRect(
+                              borderRadius: AppRadius.brLg,
+                              child: AspectRatio(
+                                aspectRatio: 16 / 7,
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    Image.asset(
+                                      AppAssets.arenaMothersClub,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) =>
+                                          Container(color: AppColors.primaryContainer),
+                                    ),
+                                    DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topCenter,
+                                          end: Alignment.bottomCenter,
+                                          colors: [
+                                            Colors.transparent,
+                                            AppColors.onSurface.withValues(alpha: 0.45),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    Positioned(
+                                      left: 14,
+                                      right: 14,
+                                      bottom: 12,
+                                      child: Text(
+                                        'خبيرات نمو · جلسات أسبوعية',
+                                        style: theme.textTheme.titleSmall?.copyWith(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                     SliverToBoxAdapter(child: _RepliesBanner(onOpen: _openNotifications)),
                     SliverPadding(
                       padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),

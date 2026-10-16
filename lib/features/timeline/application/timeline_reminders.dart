@@ -3,7 +3,6 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
-import '../data/timeline_repository.dart';
 import 'timeline_providers.dart';
 
 /// On-device reminders for «جدول إمتى» — no server or Firebase needed:
@@ -55,7 +54,14 @@ class TimelineReminders {
   Future<void> disable() async {
     if (!await _init()) return;
     _lastSignature = null;
-    await _plugin.cancelAllPendingNotifications();
+    await _cancelOwn();
+  }
+
+  /// Only our id range — never wipe subscription / other local notifies.
+  Future<void> _cancelOwn() async {
+    for (var i = 0; i < _maxScheduled; i++) {
+      await _plugin.cancel(id: _firstId + i);
+    }
   }
 
   /// Re-schedules everything coming up. Cheap to call on every app open.
@@ -66,28 +72,13 @@ class TimelineReminders {
     final now = DateTime.now();
     final planned = <({DateTime at, String title, String body})>[];
     for (final item in data.items) {
-      if (item.kind == TimelineKind.vaccine && data.done.contains(item.id)) continue;
       final day = DateTime(birth.year, birth.month, birth.day + item.ageDays);
       if (day.difference(now).inDays > _horizonDays) continue;
-      if (item.kind == TimelineKind.vaccine) {
-        planned
-          ..add((
-            at: DateTime(day.year, day.month, day.day - 1, 19),
-            title: 'بكرة: ${item.title} 💉',
-            body: 'جهزي كارت التطعيم. ${item.body}',
-          ))
-          ..add((
-            at: DateTime(day.year, day.month, day.day, 9),
-            title: 'النهارده ميعاد ${item.title}',
-            body: 'لو اتعمل علّمي عليه في جدول إمتى ✔',
-          ));
-      } else {
-        planned.add((
-          at: DateTime(day.year, day.month, day.day, 10),
-          title: item.title,
-          body: item.tips.isNotEmpty ? 'جربي النهارده: ${item.tips.first}' : item.body,
-        ));
-      }
+      planned.add((
+        at: DateTime(day.year, day.month, day.day, 10),
+        title: item.title,
+        body: item.tips.isNotEmpty ? 'جربي النهارده: ${item.tips.first}' : item.body,
+      ));
     }
     final upcoming = planned.where((p) => p.at.isAfter(now.add(const Duration(minutes: 1)))).toList()
       ..sort((a, b) => a.at.compareTo(b.at));
@@ -98,12 +89,12 @@ class TimelineReminders {
 
     try {
       if (batch.isNotEmpty) await _requestPermission();
-      await _plugin.cancelAllPendingNotifications();
+      await _cancelOwn();
       const details = NotificationDetails(
         android: AndroidNotificationDetails(
           'timeline_reminders',
           'مواعيد طفلك',
-          channelDescription: 'تطعيمات ومهارات وأكل حسب عمر طفلك',
+          channelDescription: 'مهارات وأكل حسب عمر طفلك',
           importance: Importance.high,
           priority: Priority.high,
           styleInformation: BigTextStyleInformation(''),

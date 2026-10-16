@@ -67,7 +67,7 @@ class AiDisclaimer extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'إجابات تعليمية مبنية على مراجع علمية (WHO، AAP، CDC، NHS)، ومش بديل عن الطبيب.',
+              'إجابات من مصادر طبية وتربوية موثوقة (WHO، AAP، CDC، NHS) — ومش بديل عن الطبيب.',
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
                     color: AppColors.onSecondaryContainer,
                     fontWeight: FontWeight.w700,

@@ -3,16 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_radius.dart';
-import '../../../shared/widgets/bebo_shell_background.dart';
-import '../../quran/presentation/widgets/tactile/quran_journey_node.dart';
-import '../../quran/presentation/widgets/tactile/quran_tactile_app_bar.dart';
-import '../../quran/presentation/widgets/tactile/tactile_clay_card.dart';
+import '../../../core/theme/arena_identity.dart';
+import '../../../shared/widgets/arena/arena_feature_hero.dart';
+import '../../../shared/widgets/arena/arena_learning_path.dart';
 import '../../subscription/application/premium_access.dart';
 import '../domain/curriculum_journey_config.dart';
 import '../domain/curriculum_lesson_journey.dart';
 
-/// مسار الدروس (الدرس ١، ٢، …) — نفس أسلوب رحلة الختمات.
+/// مسار الدروس — Arena Duolingo path (نفس هوية خطة اليوم).
 class CurriculumLessonJourneyScreen extends ConsumerWidget {
   const CurriculumLessonJourneyScreen({
     super.key,
@@ -43,105 +41,8 @@ class CurriculumLessonJourneyScreen extends ConsumerWidget {
       }
     }
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: QuranTactileAppBar(
-        title: config.journeyTitle,
-        onBack: () => context.pop(),
-      ),
-      body: Stack(
-        children: [
-          const BeboShellBackground(showBottomCurve: false),
-          ListView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
-        children: [
-          TactileClayCard(
-            color: AppColors.primaryContainer.withValues(alpha: 0.5),
-            child: Stack(
-              children: [
-                Positioned(
-                  left: -8,
-                  bottom: -12,
-                  child: Icon(
-                    config.headerIcon,
-                    size: 96,
-                    color: AppColors.primary.withValues(alpha: 0.12),
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      config.journeyHeroTitle,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.onPrimaryContainer,
-                          ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      config.journeyHeroSubtitle,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.onPrimaryContainer.withValues(alpha: 0.85),
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 28),
-          ..._buildLessonNodes(
-            context,
-            ref,
-            current: current,
-            completedLessons: completedLessons,
-            unlocked: unlocked,
-          ),
-          const SizedBox(height: 24),
-          TactileClayCard(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            child: Column(
-              children: [
-                Text(
-                  'أنجزت $completedLessons من ${config.lessonCount} درساً',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.onSurfaceVariant,
-                      ),
-                ),
-                const SizedBox(height: 10),
-                ClipRRect(
-                  borderRadius: AppRadius.brFull,
-                  child: LinearProgressIndicator(
-                    value: (completedLessons / config.lessonCount).clamp(0.0, 1.0),
-                    minHeight: 10,
-                    backgroundColor: AppColors.surfaceContainer,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  List<Widget> _buildLessonNodes(
-    BuildContext context,
-    WidgetRef ref, {
-    required int current,
-    required int completedLessons,
-    required int? unlocked,
-  }) {
-    final nodes = <Widget>[];
-
+    final nodes = <ArenaPathNodeData>[];
     for (var lessonNum = 1; lessonNum <= config.lessonCount; lessonNum++) {
-      final dx = quranJourneyPathOffsets[(lessonNum - 1) % quranJourneyPathOffsets.length];
       final isDone = curriculumIsLessonFullyComplete(
         lessonNum,
         curriculumDay,
@@ -161,34 +62,99 @@ class CurriculumLessonJourneyScreen extends ConsumerWidget {
             maxLessonNumber: config.maxLessonNumber,
             reviewCycleStartDay: config.reviewCycleStartDay,
           );
-      final canOpen = !isLocked;
       final needsPlan = isActive && unlocked != null && curriculumDay > unlocked;
+      final canOpen = !isLocked;
 
       nodes.add(
-        Padding(
-          padding: const EdgeInsets.only(bottom: 28),
-          child: Transform.translate(
-            offset: Offset(dx, 0),
-            child: QuranJourneyNode(
-              label: config.lessonLabel(lessonNum),
-              subtitle: '${span.dayCount} يوماً',
-              isDone: isDone,
-              isActive: isActive,
-              isLocked: isLocked,
-              isBonus: lessonNum == config.lessonCount,
-              needsPlan: needsPlan,
-              speechBubble: isActive ? (needsPlan ? 'افتحي بالباقة' : 'ابدأ الآن') : null,
-              onTap: needsPlan
-                  ? () => openPlansForLessons(context, ref)
-                  : canOpen
-                      ? () => context.push(config.lessonDaysPath(lessonNum))
-                      : null,
-            ),
-          ),
+        ArenaPathNodeData(
+          id: 'lesson_$lessonNum',
+          title: config.lessonLabel(lessonNum),
+          subtitle: isDone
+              ? 'مكتمل · ${span.dayCount} ي'
+              : isActive
+                  ? (needsPlan ? 'مدّي الاشتراك' : 'درس اليوم · ${span.dayCount} ي')
+                  : isLocked
+                      ? 'يُفتح بعد اشتراك'
+                      : '${span.dayCount} يوماً',
+          state: isDone
+              ? ArenaPathNodeState.done
+              : isActive
+                  ? ArenaPathNodeState.active
+                  : isLocked
+                      ? ArenaPathNodeState.locked
+                      : ArenaPathNodeState.upcoming,
+          accent: AppColors.tertiary,
+          icon: config.headerIcon,
+          speechBubble: isActive
+              ? (needsPlan ? 'مدّي الاشتراك' : 'درسنا النهارده!')
+              : null,
+          onTap: needsPlan || isLocked
+              ? () => openPlansForLessons(context, ref)
+              : canOpen
+                  ? () => context.push(config.lessonDaysPath(lessonNum))
+                  : null,
         ),
       );
     }
 
-    return nodes;
+    final progress = config.lessonCount == 0 ? 0.0 : completedLessons / config.lessonCount;
+
+    return Scaffold(
+      backgroundColor: ArenaIdentity.cream,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 4, 16, 0),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () => context.pop(),
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: AppColors.onSurface),
+                  ),
+                  Expanded(
+                    child: Text(
+                      config.journeyTitle,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.onSurface,
+                          ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
+                children: [
+                  ArenaFeatureHero(
+                    title: config.journeyHeroTitle,
+                    description: config.journeyHeroSubtitle,
+                    icon: config.headerIcon,
+                    background: config.arenaHeroColor,
+                    badge: config.arenaBadge,
+                    tags: config.arenaTags,
+                    iconWellColor: config.arenaIconWell,
+                    child: config.arenaShowContrastTiles
+                        ? const ArenaContrastTiles()
+                        : null,
+                  ),
+                  const SizedBox(height: 16),
+                  ArenaLearningPath(
+                    unitBadge: config.journeyTitle,
+                    unitTitle: config.journeyHeroTitle,
+                    unitSubtitle: config.journeyHeroSubtitle,
+                    progressLabel: '$completedLessons من ${config.lessonCount} دروس مكتملة',
+                    progressValue: progress,
+                    nodes: nodes,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

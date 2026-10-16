@@ -159,60 +159,50 @@ class _NavItemState extends State<_NavItem>
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeOutCubic,
           padding: EdgeInsets.symmetric(
-            horizontal: isActive ? 16 : 10,
-            vertical: 8,
+            horizontal: isActive ? 12 : 8,
+            vertical: 6,
           ),
           decoration: BoxDecoration(
+            // Arena: soft purple wash, no heavy pill border.
             color: isActive
-                ? AppColors.primary.withValues(alpha: 0.12)
+                ? AppColors.primary.withValues(alpha: 0.10)
                 : Colors.transparent,
             borderRadius: AppRadius.brFull,
-            border: isActive
-                ? Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.20),
-                    width: 1,
-                  )
-                : null,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               SizedBox(
-                width: 34,
-                height: 34,
+                width: 28,
+                height: 28,
                 child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 260),
+                  duration: const Duration(milliseconds: 220),
                   transitionBuilder: (child, anim) => ScaleTransition(
                     scale: CurvedAnimation(parent: anim, curve: Curves.easeOutBack),
                     child: child,
                   ),
-                  child: isActive && widget.tab.art != null
-                      ? Image.asset(
-                          widget.tab.art!,
-                          key: const ValueKey('art'),
-                          width: 32,
-                          height: 32,
-                        )
-                      : Icon(
-                          widget.tab.icon,
-                          key: const ValueKey('icon'),
-                          color: isActive
-                              ? AppColors.primary
-                              : AppColors.onSurfaceVariant.withValues(alpha: 0.65),
-                          size: 24,
-                        ),
+                  child: Icon(
+                    widget.tab.icon,
+                    key: ValueKey(isActive ? 'on' : 'off'),
+                    color: isActive
+                        ? AppColors.primary
+                        : AppColors.onSurfaceVariant.withValues(alpha: 0.55),
+                    size: 22,
+                    weight: isActive ? 600 : 400,
+                    fill: isActive ? 1 : 0,
+                  ),
                 ),
               ),
-              const SizedBox(height: 3),
+              const SizedBox(height: 2),
               AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 220),
                 style: TextStyle(
                   fontFamily: 'XPNiloofar',
                   fontSize: 10,
-                  fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
+                  fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
                   color: isActive
                       ? AppColors.primary
-                      : AppColors.onSurfaceVariant.withValues(alpha: 0.65),
+                      : AppColors.onSurfaceVariant.withValues(alpha: 0.55),
                 ),
                 child: Text(widget.tab.label),
               ),

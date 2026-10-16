@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
+import '../../../../core/constants/app_assets.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../domain/emotional_journey_stage.dart';
@@ -11,7 +12,7 @@ class EmotionalJourneyPath extends StatelessWidget {
 
   final int curriculumDay;
 
-  static const _pathAccent = Color(0xFFE8A0B0);
+  static const _pathAccent = AppColors.trackEmotionalRed;
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +23,7 @@ class EmotionalJourneyPath extends StatelessWidget {
       children: [
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
           decoration: BoxDecoration(
             color: _pathAccent,
             borderRadius: AppRadius.brLg,
@@ -34,21 +35,42 @@ class EmotionalJourneyPath extends StatelessWidget {
               ),
             ],
           ),
-          child: Column(
+          child: Row(
             children: [
-              Text(
-                'الذكاء الاجتماعي والعاطفي',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'لولو · مستشارة المشاعر',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'الذكاء الاجتماعي والعاطفي',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'رحلة التفاعل والمشاعر',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.9),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                'رحلة التفاعل والمشاعر',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.9),
-                ),
+              Image.asset(
+                AppAssets.heroEmotional,
+                height: 72,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
               ),
             ],
           ),

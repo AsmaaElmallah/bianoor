@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../ai/presentation/widgets/ai_launcher.dart';
+import '../../community/presentation/mothers_club_screen.dart';
+import '../../courses/presentation/courses_screen.dart';
 import '../domain/home_menu_item.dart';
 import 'tabs/home_dashboard_tab.dart';
 import 'tabs/library_tab.dart';
@@ -31,23 +33,26 @@ class HomeShellScreen extends ConsumerWidget {
             child: Column(
               children: [
                 if (showHeader)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
-                    child: const HomeHeader(),
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(24, 12, 24, 0),
+                    child: HomeHeader(),
                   ),
                 if (showHeader) const SizedBox(height: 16),
                 Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: IndexedStack(
-                      index: currentTab,
-                      children: [
-                        const HomeDashboardTab(),
-                        HomeSectionTab(sectionId: homeNavTabs[1].sectionId!),
-                        const LibraryTab(),
-                        HomeSectionTab(sectionId: homeNavTabs[3].sectionId!),
-                      ],
-                    ),
+                  child: IndexedStack(
+                    index: currentTab,
+                    children: const [
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 24),
+                        child: HomeDashboardTab(),
+                      ),
+                      CoursesScreen(embedded: true),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 24),
+                        child: LibraryTab(),
+                      ),
+                      MothersClubScreen(embedded: true),
+                    ],
                   ),
                 ),
               ],

@@ -39,7 +39,6 @@ class PrefsService {
   static const _kFollowedInstructors = 'followed_instructors';
   static const _kSavedCourses = 'saved_courses';
   static const _kTimelineReminders = 'timeline_reminders_enabled';
-  static const _kVaccineCountry = 'vaccine_country';
   static const _kHomeAvatarPath = 'home_avatar_path';
 
   int getVideoIndex() => _prefs.getInt(_kVideoIndex) ?? 0;
@@ -68,10 +67,6 @@ class PrefsService {
   String? getHomeAvatarPath() => _prefs.getString(_kHomeAvatarPath);
   Future<void> setHomeAvatarPath(String path) => _prefs.setString(_kHomeAvatarPath, path);
   Future<void> clearHomeAvatarPath() => _prefs.remove(_kHomeAvatarPath);
-
-  /// The mother's own pick; null means «use the dashboard default».
-  String? getVaccineCountry() => _prefs.getString(_kVaccineCountry);
-  Future<void> setVaccineCountry(String code) => _prefs.setString(_kVaccineCountry, code);
 
   String? getBabyName() => _prefs.getString(_kBabyName);
   Future<void> setBabyName(String name) => _prefs.setString(_kBabyName, name);

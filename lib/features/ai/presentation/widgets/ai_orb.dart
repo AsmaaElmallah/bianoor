@@ -3,33 +3,35 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
-/// Colors copied from the Bayanour landing chat widget.
+import '../../../../shared/widgets/arena/arena_robot_icon.dart';
+
+/// Colors matched to the Arena mobile chat / FAB (purple identity).
 abstract final class AiSiteColors {
-  static const ink950 = Color(0xFF04161A);
-  static const ink900 = Color(0xFF07282C);
-  static const ink800 = Color(0xFF0B3A3C);
-  static const headerTop = Color(0xFF10524C);
-  static const sendTop = Color(0xFF146B60);
-  static const teal = Color(0xFF0E8F86);
-  static const mint300 = Color(0xFF7EDCC6);
-  static const mint200 = Color(0xFFB9EDE1);
-  static const honey = Color(0xFFF7C550);
+  static const ink950 = Color(0xFF1A1040);
+  static const ink900 = Color(0xFF221A3E);
+  static const ink800 = Color(0xFF29223F);
+  static const headerTop = Color(0xFF8B6FFF);
+  static const sendTop = Color(0xFF6D4BF3);
+  static const teal = Color(0xFF6D4BF3);
+  static const mint300 = Color(0xFF58CC02);
+  static const mint200 = Color(0xFFB8F07A);
+  static const honey = Color(0xFFFF9600);
   static const apricot = Color(0xFFFF8A5C);
-  static const cream50 = Color(0xFFFFFCF6);
-  static const cream100 = Color(0xFFFBF4E7);
+  static const cream50 = Color(0xFFFFF9F3);
+  static const cream100 = Color(0xFFFFF4EC);
 
   static const ease = Cubic(0.22, 1, 0.36, 1);
 
   static const headerGradient = LinearGradient(
     begin: Alignment(-0.5, -0.87),
     end: Alignment(0.5, 0.87),
-    colors: [headerTop, ink900],
+    colors: [headerTop, Color(0xFF5036D9)],
   );
 
   static const innerOrbGradient = LinearGradient(
     begin: Alignment(-0.5, -0.87),
     end: Alignment(0.5, 0.87),
-    colors: [ink800, ink950],
+    colors: [Color(0xFF8B6FFF), Color(0xFF6D4BF3)],
   );
 
   static const messageGradient = LinearGradient(
@@ -41,7 +43,7 @@ abstract final class AiSiteColors {
   static const sendGradient = LinearGradient(
     begin: Alignment(-0.71, -0.71),
     end: Alignment(0.71, 0.71),
-    colors: [sendTop, ink800],
+    colors: [sendTop, Color(0xFF5036D9)],
   );
 }
 
@@ -184,136 +186,14 @@ class _FacePainter extends CustomPainter {
       oldDelegate.eyeLeft != eyeLeft || oldDelegate.eyeRight != eyeRight || oldDelegate.star != star;
 }
 
-/// Closed launcher: spinning ring, pulse, orbiting dot, face and badge.
-class AiLauncherPill extends StatefulWidget {
+/// Closed launcher — Arena purple robot FAB + online dot.
+class AiLauncherPill extends StatelessWidget {
   const AiLauncherPill({super.key, required this.onTap});
 
   final VoidCallback onTap;
 
   @override
-  State<AiLauncherPill> createState() => _AiLauncherPillState();
-}
-
-class _AiLauncherPillState extends State<AiLauncherPill> with SingleTickerProviderStateMixin {
-  late final Ticker _ticker;
-  Duration _elapsed = Duration.zero;
-
-  @override
-  void initState() {
-    super.initState();
-    _ticker = createTicker((elapsed) {
-      if (mounted) setState(() => _elapsed = elapsed);
-    })..start();
-  }
-
-  @override
-  void dispose() {
-    _ticker.dispose();
-    super.dispose();
-  }
-
-  double get _seconds => _elapsed.inMicroseconds / 1000000;
-
-  @override
-  Widget build(BuildContext context) {
-    final spin = (_seconds % 34) / 34 * math.pi * 2;
-    final orbit = (_seconds % 6.5) / 6.5 * math.pi * 2;
-    final pulse = _pulse((_seconds % 2.6) / 2.6);
-
-    return Semantics(
-      button: true,
-      label: 'افتحي مساعدة بيانور',
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(color: Color(0xF204161A), blurRadius: 22, offset: Offset(0, 10)),
-                ],
-              ),
-              child: Stack(
-                alignment: Alignment.center,
-                clipBehavior: Clip.none,
-                children: [
-                  Transform.rotate(
-                    angle: spin,
-                    child: const DecoratedBox(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: SweepGradient(
-                          startAngle: 110 * math.pi / 180,
-                          colors: [
-                            AiSiteColors.mint300,
-                            AiSiteColors.honey,
-                            AiSiteColors.apricot,
-                            AiSiteColors.mint300,
-                          ],
-                        ),
-                      ),
-                      child: SizedBox.expand(),
-                    ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.all(3),
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(shape: BoxShape.circle, gradient: AiSiteColors.innerOrbGradient),
-                      child: SizedBox.expand(),
-                    ),
-                  ),
-                  Transform.scale(
-                    scale: pulse.scale,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AiSiteColors.mint300.withValues(alpha: 0.4 * pulse.opacity)),
-                      ),
-                      child: const SizedBox.expand(),
-                    ),
-                  ),
-                  Transform.rotate(
-                    angle: orbit,
-                    child: Transform.translate(
-                      offset: const Offset(24, 0),
-                      child: Container(
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AiSiteColors.honey,
-                          boxShadow: [
-                            BoxShadow(color: AiSiteColors.honey.withValues(alpha: 0.8), blurRadius: 10, spreadRadius: 2),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const BayanourFace(size: 34),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  _Pulse _pulse(double t) {
-    if (t >= 0.7) return const _Pulse(scale: 1.6, opacity: 0);
-    final local = AiSiteColors.ease.transform(t / 0.7);
-    return _Pulse(scale: 0.85 + 0.75 * local, opacity: 0.7 * (1 - local));
-  }
-}
-
-class _Pulse {
-  const _Pulse({required this.scale, required this.opacity});
-  final double scale;
-  final double opacity;
+  Widget build(BuildContext context) => ArenaChatFab(onTap: onTap);
 }
 
 /// Open state of the same pill: ring with a close mark and «إغلاق المحادثة».

@@ -15,4 +15,10 @@ class AppAssets {
   static const String heroMath = 'assets/images/hero_math.png';
   static const String heroVisual = 'assets/images/hero_visual.png';
   static const String heroEmotional = 'assets/images/hero_emotional.png';
+
+  /// Pulled from Arena marketing site (community faces + club).
+  static const String arenaAvatar1 = 'assets/images/arena/avatar_1.jpg';
+  static const String arenaAvatar2 = 'assets/images/arena/avatar_2.jpg';
+  static const String arenaAvatar3 = 'assets/images/arena/avatar_3.jpg';
+  static const String arenaMothersClub = 'assets/images/arena/mothers_club.jpg';
 }

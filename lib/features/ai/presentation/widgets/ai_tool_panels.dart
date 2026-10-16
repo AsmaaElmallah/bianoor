@@ -11,12 +11,10 @@ import '../../../growth/application/growth_providers.dart';
 import '../../../growth/data/growth_repository.dart';
 import '../../../growth/domain/growth_calc.dart';
 import '../../../timeline/application/timeline_providers.dart';
-import '../../../timeline/application/timeline_reminders.dart';
-import '../../../timeline/data/timeline_repository.dart';
 import '../../application/ai_providers.dart';
 import '../../data/ai_models.dart';
 
-enum AiChatTool { vaccines, growth, stool, plan, meal }
+enum AiChatTool { growth, stool, plan, meal }
 
 /// Full-height tool panel that stays inside the chat shell.
 class AiToolPanel extends ConsumerWidget {
@@ -39,7 +37,6 @@ class AiToolPanel extends ConsumerWidget {
         children: [
           _ToolHeader(
             title: switch (tool) {
-              AiChatTool.vaccines => 'التطعيمات',
               AiChatTool.growth => 'نموه',
               AiChatTool.stool => 'لون البراز',
               AiChatTool.plan => 'خطة النهارده',
@@ -49,7 +46,6 @@ class AiToolPanel extends ConsumerWidget {
           ),
           Expanded(
             child: switch (tool) {
-              AiChatTool.vaccines => _VaccineFlow(onDone: onClose),
               AiChatTool.growth => _GrowthFlow(onDone: onClose),
               AiChatTool.stool => _StoolFlow(onDone: onClose),
               AiChatTool.plan => _PlanFlow(onDone: onClose),
@@ -101,246 +97,6 @@ class _ToolHeader extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Vaccines
-// ---------------------------------------------------------------------------
-
-class _VaccineFlow extends ConsumerStatefulWidget {
-  const _VaccineFlow({required this.onDone});
-
-  final VoidCallback onDone;
-
-  @override
-  ConsumerState<_VaccineFlow> createState() => _VaccineFlowState();
-}
-
-class _VaccineFlowState extends ConsumerState<_VaccineFlow> {
-  static const _countries = [('EG', 'مصر'), ('SA', 'السعودية'), ('AE', 'الإمارات')];
-
-  int _step = 0;
-  String? _country;
-  bool _busy = false;
-  String? _notice;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final saved = ref.read(prefsServiceProvider).getVaccineCountry();
-      if (saved != null && _countries.any((c) => c.$1 == saved)) {
-        setState(() => _country = saved);
-      }
-    });
-  }
-
-  Future<void> _pickCountry(String code) async {
-    setState(() {
-      _country = code;
-      _busy = true;
-      _notice = null;
-    });
-    await ref.read(prefsServiceProvider).setVaccineCountry(code);
-    ref.invalidate(timelineDataProvider);
-    if (!mounted) return;
-    setState(() {
-      _busy = false;
-      _step = 1;
-    });
-  }
-
-  Future<void> _enableReminder() async {
-    setState(() {
-      _busy = true;
-      _notice = null;
-    });
-    final prefs = ref.read(prefsServiceProvider);
-    await prefs.setTimelineReminders(true);
-    final data = await ref.read(timelineDataProvider.future);
-    await TimelineReminders.instance.sync(data, force: true);
-    if (!mounted) return;
-    setState(() {
-      _busy = false;
-      _notice = 'تمام — هفكرك قبل التطعيم بيوم';
-      _step = 3;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final timeline = ref.watch(timelineDataProvider);
-    final child = timeline.valueOrNull?.child;
-    final name = child?.name.isNotEmpty == true
-        ? child!.name
-        : (ref.watch(prefsServiceProvider).getBabyName() ?? 'طفلك');
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
-      children: [
-        _BotLine(
-          text: _step == 0
-              ? 'أول حاجة: دولة التطعيمات؟ هختار الجدول الرسمي لوزارة الصحة.'
-              : _step == 1
-                  ? 'ده اللي عندي عن $name. لو صح نكمّل.'
-                  : _step == 2
-                      ? 'التطعيم الجاي لـ $name:'
-                      : _notice ?? 'تم.',
-        ),
-        const SizedBox(height: 14),
-        if (_step == 0) ...[
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final (code, label) in _countries)
-                _ChoiceChip(
-                  label: label,
-                  selected: _country == code,
-                  onTap: _busy ? null : () => _pickCountry(code),
-                ),
-            ],
-          ),
-        ],
-        if (_step == 1) ...[
-          _InfoCard(
-            accent: AppColors.primary,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text('الاسم: $name', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
-                const SizedBox(height: 6),
-                Text(
-                  child?.birthDate == null
-                      ? 'السن: مش متسجل تاريخ ميلاد — كمّليه من بيانات الطفل عشان المواعيد تظبط.'
-                      : 'العمر: ${timeline.valueOrNull?.ageDays ?? 0} يوم تقريبًا',
-                  style: theme.textTheme.bodyMedium,
-                ),
-                if (_country != null) ...[
-                  const SizedBox(height: 4),
-                  Text('الدولة: ${vaccineCountries[_country] ?? _country}', style: theme.textTheme.bodyMedium),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          if (child == null)
-            Text(
-              'مفيش طفل مسجّل — كمّلي بيانات الطفل الأول من التطبيق.',
-              style: theme.textTheme.bodySmall?.copyWith(color: AppColors.onSurfaceVariant.withValues(alpha: 0.7)),
-            )
-          else if (child.birthDate == null)
-            _ChildBasicsForm(
-              child: child,
-              onSaved: () {
-                ref.invalidate(timelineDataProvider);
-                ref.invalidate(growthDataProvider);
-              },
-            )
-          else
-            FilledButton(
-              style: _primaryButton(),
-              onPressed: _busy ? null : () => setState(() => _step = 2),
-              child: const Text('صح، ورّيني التطعيم الجاي'),
-            ),
-        ],
-        if (_step >= 2)
-          timeline.when(
-            loading: () => const Padding(
-              padding: EdgeInsets.all(24),
-              child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
-            ),
-            error: (_, __) => const Text('تعذّر تحميل الجدول'),
-            data: (data) {
-              final next = [
-                ...data.current,
-                ...data.upcoming,
-              ].where((i) => i.kind == TimelineKind.vaccine && !data.done.contains(i.id)).firstOrNull;
-              if (next == null) {
-                return const _InfoCard(
-                  accent: AppColors.primary,
-                  child: Text('مفيش تطعيم جاي قريب حسب الجدول الحالي.'),
-                );
-              }
-              final age = data.ageDays ?? 0;
-              final when = timelineWhen(next.ageDays, age);
-              final birth = data.child!.birthDate!;
-              final due = DateTime(birth.year, birth.month, birth.day + next.ageDays);
-              final dueLabel =
-                  '${due.day}/${due.month}/${due.year}';
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _InfoCard(
-                    accent: AppColors.primary,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 18,
-                              backgroundColor: AppColors.primaryContainer,
-                              child: Icon(Symbols.vaccines, color: AppColors.primaryDim, size: 20),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                next.title,
-                                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Text('الموعد: $dueLabel ($when)', style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700)),
-                        if (next.body.isNotEmpty) ...[
-                          const SizedBox(height: 6),
-                          Text(next.body, style: theme.textTheme.bodyMedium?.copyWith(height: 1.45)),
-                        ],
-                      ],
-                    ),
-                  ),
-                  if (_step == 2) ...[
-                    const SizedBox(height: 14),
-                    _BotLine(text: 'تحبي أفكرك بنوتفيكيشن قبلها بيوم؟'),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: FilledButton(
-                            style: _primaryButton(),
-                            onPressed: _busy ? null : _enableReminder,
-                            child: Text(_busy ? '...' : 'أيوه، فكّريني'),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: _busy ? null : widget.onDone,
-                            child: const Text('مش دلوقتي'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                  if (_step == 3) ...[
-                    const SizedBox(height: 12),
-                    FilledButton(
-                      style: _primaryButton(),
-                      onPressed: widget.onDone,
-                      child: const Text('رجوع للشات'),
-                    ),
-                  ],
-                ],
-              );
-            },
-          ),
-      ],
     );
   }
 }

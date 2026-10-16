@@ -19,6 +19,7 @@ import '../../features/community/presentation/mothers_club_screen.dart';
 import '../../features/assessment/presentation/mother_quiz_screen.dart';
 import '../../shared/presentation/lesson_celebration_screen.dart';
 import '../../features/home/presentation/home_shell_screen.dart';
+import '../../features/home/presentation/screens/today_learning_path_screen.dart';
 import '../../features/activities/presentation/activities_age_groups_screen.dart';
 import '../../features/activities/presentation/activities_hub_screen.dart';
 import '../../features/exercises/presentation/exercises_age_groups_screen.dart';
@@ -223,6 +224,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: 'daily-plan',
             parentNavigatorKey: rootNavigatorKey,
             builder: (context, state) => const DailyPlanScreen(),
+          ),
+          GoRoute(
+            path: 'today-path',
+            parentNavigatorKey: rootNavigatorKey,
+            builder: (context, state) => const TodayLearningPathScreen(),
           ),
           GoRoute(
             path: 'growth',

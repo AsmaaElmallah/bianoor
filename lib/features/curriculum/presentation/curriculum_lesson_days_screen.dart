@@ -170,8 +170,8 @@ class CurriculumLessonDaysScreen extends ConsumerWidget {
             subtitle = 'مكتمل';
           } else if (!isActive && paid) {
             subtitle = 'مفتوح';
-          } else if (needsPlan) {
-            subtitle = 'مقفول — محتاج باقة';
+          } else if (needsPlan || isLocked) {
+            subtitle = 'مقفول — مدّي الاشتراك';
           } else if (isActive) {
             subtitle = 'اليوم الحالي';
           }
@@ -187,14 +187,16 @@ class CurriculumLessonDaysScreen extends ConsumerWidget {
                 isActive: isActive,
                 isLocked: isLocked,
                 needsPlan: needsPlan,
-                speechBubble: isActive ? (needsPlan ? 'افتحي بالباقة' : 'ابدأ الآن') : null,
-                onTap: needsPlan
+                speechBubble: isActive
+                    ? (needsPlan ? 'مدّي الاشتراك' : 'ابدأ الآن')
+                    : isLocked
+                        ? 'مدّي عشان تفتح'
+                        : null,
+                onTap: needsPlan || isLocked
                     ? () => openPlansForLessons(context, ref)
                     : isActive
                     ? () => context.push(config.playerPath)
-                    : !isLocked
-                        ? () => context.push('${config.playerPath}?review_lesson=$lessonNumber')
-                        : null,
+                    : () => context.push('${config.playerPath}?review_lesson=$lessonNumber'),
               ),
             ),
           );

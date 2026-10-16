@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
+import '../../../../core/constants/app_assets.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../domain/math_journey_stage.dart';
@@ -11,7 +12,7 @@ class MathJourneyPath extends StatelessWidget {
 
   final int curriculumDay;
 
-  static const _pathGreen = Color(0xFF82D616);
+  static const _pathGreen = AppColors.tertiary;
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +23,7 @@ class MathJourneyPath extends StatelessWidget {
       children: [
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
           decoration: BoxDecoration(
             color: _pathGreen,
             borderRadius: AppRadius.brLg,
@@ -34,19 +35,42 @@ class MathJourneyPath extends StatelessWidget {
               ),
             ],
           ),
-          child: Column(
+          child: Row(
             children: [
-              Text(
-                'منهج الحساب الذهني',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'شاطر · عبقري الأرقام',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'منهج الحساب الذهني',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'رحلة تطوير المهارات الذهنية',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.9),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                'رحلة تطوير المهارات الذهنية',
-                style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.9)),
+              Image.asset(
+                AppAssets.heroMath,
+                height: 72,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
               ),
             ],
           ),

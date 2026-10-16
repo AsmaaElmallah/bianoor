@@ -11,7 +11,7 @@ import '../../../quran/domain/quran_age_schedule.dart';
 import '../../application/premium_access.dart';
 import '../../data/subscription_cloud_repository.dart';
 
-/// Home banner shown when no lesson days are unlocked, or 5 or fewer are left.
+/// Home banner: no days yet, ≤7 lesson days left, or subscription expires within a week.
 class SubscribeBanner extends ConsumerStatefulWidget {
   const SubscribeBanner({super.key});
 
@@ -41,8 +41,12 @@ class _SubscribeBannerState extends ConsumerState<SubscribeBanner> {
 
   @override
   Widget build(BuildContext context) {
+    // Schedules the ~1-week local renewal nudge when subscription/access loads.
+    ref.watch(subscriptionRenewalSyncProvider);
+
     final prefs = ref.watch(prefsServiceProvider);
     final access = ref.watch(lessonAccessProvider).valueOrNull;
+    final sub = ref.watch(mySubscriptionProvider).valueOrNull;
     final hiddenUntil = prefs.getSubscribeBannerHiddenUntil();
     if (_dismissed ||
         access == null ||
@@ -50,6 +54,14 @@ class _SubscribeBannerState extends ConsumerState<SubscribeBanner> {
         (hiddenUntil != null && hiddenUntil.isAfter(DateTime.now()))) {
       return const SizedBox.shrink();
     }
+
+    final furthest = _furthestDay(prefs);
+    final left = access.days <= 0 ? 0 : access.days - furthest + 1;
+
+    final now = DateTime.now().toUtc();
+    final expiresAt = sub?.isActive == true ? sub?.expiresAt : null;
+    final daysToExpiry = expiresAt?.difference(now).inDays;
+    final expirySoon = daysToExpiry != null && daysToExpiry >= 0 && daysToExpiry <= 7;
 
     final String title;
     final String body;
@@ -60,11 +72,18 @@ class _SubscribeBannerState extends ConsumerState<SubscribeBanner> {
       body = monthly == null
           ? 'القرآن والحساب والبصري والعاطفي — كل باقة بتفتح أيام بتفضل معاكِ على طول.'
           : 'أول شهر من الدروس الأربعة بـ ${monthly.price} بس، والأيام اللي بتتفتح بتفضل معاكِ على طول.';
+    } else if (expirySoon) {
+      title = daysToExpiry == 0
+          ? 'باقتكِ بتنتهي النهارده'
+          : daysToExpiry == 1
+              ? 'باقتكِ بتنتهي بكرة'
+              : 'باقتكِ بتنتهي بعد $daysToExpiry أيام';
+      body = 'جدّدي دلوقتي عشان تتفتح دروس جديدة، واللي اتفتح قبل كده بيفضل معاكِ.';
+    } else if (left > 7) {
+      return const SizedBox.shrink();
     } else {
-      final left = access.days - _furthestDay(prefs) + 1;
-      if (left > 5) return const SizedBox.shrink();
       title = left <= 0 ? 'طفلك خلّص الأيام المفتوحة 👏' : 'فاضل $left يوم مفتوحين';
-      body = 'افتحي الشهر الجاي عشان طفلك يكمل من غير ما يقف.';
+      body = 'مدّي الاشتراك للشهور الجاية عشان طفلك يكمل من غير ما يقف.';
     }
 
     final theme = Theme.of(context);

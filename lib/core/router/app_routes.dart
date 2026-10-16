@@ -38,6 +38,8 @@ class AppRoutes {
   static const mothersClub = '/home/mothers-club';
   static const aiAssistant = '/home/ai-assistant';
   static const dailyPlan = '/home/daily-plan';
+  /// Arena-style unified learning path (خطة اليوم → المسار).
+  static const todayLearningPath = '/home/today-path';
   static const growth = '/home/growth';
   static const timeline = '/home/timeline';
   static const stoolColors = '/home/stool-colors';

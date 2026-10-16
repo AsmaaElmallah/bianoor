@@ -37,11 +37,20 @@ BoxDecoration clayDecoration({
 }
 
 class ClayHeader extends StatelessWidget implements PreferredSizeWidget {
-  const ClayHeader({super.key, required this.title, this.saved, this.onToggleSave});
+  const ClayHeader({
+    super.key,
+    required this.title,
+    this.saved,
+    this.onToggleSave,
+    this.showBack = true,
+  });
 
   final String title;
   final bool? saved;
   final VoidCallback? onToggleSave;
+
+  /// When false (e.g. bottom-nav tab), hide the back chevron.
+  final bool showBack;
 
   @override
   Size get preferredSize => const Size.fromHeight(64);
@@ -67,13 +76,15 @@ class ClayHeader extends StatelessWidget implements PreferredSizeWidget {
           ),
           child: Row(
             children: [
-              _HeaderButton(
-                icon: Symbols.arrow_back,
-                square: true,
-                color: AppColors.primary,
-                onTap: () => Navigator.of(context).maybePop(),
-              ),
-              const SizedBox(width: 8),
+              if (showBack) ...[
+                _HeaderButton(
+                  icon: Symbols.arrow_back,
+                  square: true,
+                  color: AppColors.primary,
+                  onTap: () => Navigator.of(context).maybePop(),
+                ),
+                const SizedBox(width: 8),
+              ],
               Expanded(
                 child: Text(
                   title,

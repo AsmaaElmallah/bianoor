@@ -9,7 +9,7 @@ import '../../../../core/theme/app_radius.dart';
 import '../../application/timeline_providers.dart';
 import '../timeline_screen.dart';
 
-/// Home: the one thing due now («تطعيم الـ 6 شهور كمان 3 أيام»).
+/// Home: the one skill/feeding milestone due around now.
 class TimelineHomeCard extends ConsumerWidget {
   const TimelineHomeCard({super.key});
 
@@ -21,7 +21,7 @@ class TimelineHomeCard extends ConsumerWidget {
     if (data == null || item == null) return const SizedBox.shrink();
     final (icon, color, label) = timelineKindStyle(item.kind);
     final theme = Theme.of(context);
-    final when = data.isOverdue(item) ? 'متأخر' : timelineWhen(item.ageDays, data.ageDays!);
+    final when = timelineWhen(item.ageDays, data.ageDays!);
 
     return Material(
       color: AppColors.surfaceContainerLowest,

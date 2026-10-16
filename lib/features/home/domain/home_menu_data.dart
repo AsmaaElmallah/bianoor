@@ -5,23 +5,21 @@ import '../../../core/constants/app_art.dart';
 import '../../../core/theme/app_colors.dart';
 import 'home_menu_item.dart';
 
-/// Track-themed lesson card colors — warmer & more vibrant.
+/// Track-themed lesson card colors — Arena dashboard tiles.
 class HomeLessonColors {
   HomeLessonColors._();
 
-  // Green + gold to match the Quran art.
-  static const quranBg   = Color(0xFFE2F1E3);
-  static const quranIcon = Color(0xFF3E8E5A);
+  static const quranBg = AppColors.trackQuranLight;
+  static const quranIcon = AppColors.trackQuranGold;
 
-  // Sky blue lets the colourful abacus pop.
-  static const mathBg    = Color(0xFFE2EEFF);
-  static const mathIcon  = Color(0xFF4A7FD6);
+  static const mathBg = AppColors.trackMathLight;
+  static const mathIcon = AppColors.trackMathOrange;
 
-  static const visualBg  = AppColors.trackVisualLight;  // #EFE3FF purple tint
-  static const visualIcon= AppColors.trackVisualPurple; // #9C6FD6
+  static const visualBg = AppColors.trackVisualLight;
+  static const visualIcon = AppColors.trackVisualPurple;
 
-  static const emotionalBg  = Color(0xFFFFE5EE);
-  static const emotionalIcon = Color(0xFFD45D7A);
+  static const emotionalBg = AppColors.trackEmotionalLight;
+  static const emotionalIcon = AppColors.trackEmotionalRed;
 }
 
 const homeMenuSections = <HomeMenuSection>[

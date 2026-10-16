@@ -35,9 +35,12 @@ class CourseDetailScreen extends StatelessWidget {
 
 /// The one «الدورات» page: intro video, then pick a course, then its lessons.
 class CoursesHubScreen extends ConsumerStatefulWidget {
-  const CoursesHubScreen({super.key, this.initialCourseId});
+  const CoursesHubScreen({super.key, this.initialCourseId, this.embedded = false});
 
   final String? initialCourseId;
+
+  /// Bottom-nav embed: no back button; shell already paints the cream background.
+  final bool embedded;
 
   @override
   ConsumerState<CoursesHubScreen> createState() => _CoursesHubScreenState();
@@ -144,9 +147,10 @@ class _CoursesHubScreenState extends ConsumerState<CoursesHubScreen> {
     final saved = course != null && ref.watch(prefsServiceProvider).isCourseSaved(course.id);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: widget.embedded ? Colors.transparent : AppColors.background,
       appBar: ClayHeader(
         title: 'الدورات',
+        showBack: !widget.embedded,
         saved: course == null ? null : saved,
         onToggleSave: course == null
             ? null
@@ -172,7 +176,7 @@ class _CoursesHubScreenState extends ConsumerState<CoursesHubScreen> {
           : null,
       body: Stack(
         children: [
-          const BeboShellBackground(showBottomCurve: false),
+          if (!widget.embedded) const BeboShellBackground(showBottomCurve: false),
           RefreshIndicator(
             color: AppColors.primary,
             backgroundColor: AppColors.surfaceContainerLowest,

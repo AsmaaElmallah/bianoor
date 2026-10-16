@@ -152,8 +152,8 @@ class QuranKhatmahDaysScreen extends ConsumerWidget {
           String? subtitle;
           if (!isDone && !isActive && paid) {
             subtitle = 'مفتوح';
-          } else if (needsPlan) {
-            subtitle = 'مقفول — محتاج باقة';
+          } else if (needsPlan || isLocked) {
+            subtitle = 'مقفول — مدّي الاشتراك';
           } else if (isActive && partialToday > 0) {
             subtitle = 'جلسة $partialToday من $daily';
           } else if (isDone) {
@@ -171,14 +171,16 @@ class QuranKhatmahDaysScreen extends ConsumerWidget {
                 isActive: isActive,
                 isLocked: isLocked,
                 needsPlan: needsPlan,
-                speechBubble: isActive ? (needsPlan ? 'افتحي بالباقة' : 'ابدأ الآن') : null,
-                onTap: needsPlan
+                speechBubble: isActive
+                    ? (needsPlan ? 'مدّي الاشتراك' : 'ابدأ الآن')
+                    : isLocked
+                        ? 'مدّي عشان تفتح'
+                        : null,
+                onTap: needsPlan || isLocked
                     ? () => openPlansForLessons(context, ref)
                     : isActive
                     ? () => context.push(AppRoutes.quranPlayer)
-                    : !isLocked
-                        ? () => context.push(reviewPath)
-                        : null,
+                    : () => context.push(reviewPath),
               ),
             ),
           );

@@ -22,21 +22,19 @@ void main() {
     birthDate: DateTime(now.year, now.month, now.day).subtract(const Duration(days: 100)),
   );
   final items = [
-    _item('birth', TimelineKind.vaccine, 0),
-    _item('w6', TimelineKind.vaccine, 42),
-    _item('w14', TimelineKind.vaccine, 98),
+    _item('m2', TimelineKind.development, 60),
+    _item('m3', TimelineKind.development, 95),
     _item('m4', TimelineKind.development, 120),
     _item('m6', TimelineKind.feeding, 180),
   ];
 
-  test('current / overdue / upcoming split for a 100-day-old', () {
-    final d = TimelineData(child: child, items: items, done: const {'birth'});
+  test('current / upcoming / past split for a 100-day-old', () {
+    final d = TimelineData(child: child, items: items, done: const {});
     expect(d.ageDays, 100);
-    expect(d.current.map((i) => i.id), containsAll(['w6', 'w14']));
-    expect(d.isOverdue(items[1]), isTrue);
-    expect(d.past.map((i) => i.id), ['birth']);
+    expect(d.current.map((i) => i.id), ['m3']);
+    expect(d.past.map((i) => i.id), ['m2']);
     expect(d.upcoming.map((i) => i.id), ['m4', 'm6']);
-    expect(d.highlight?.id, 'w6');
+    expect(d.highlight?.id, 'm3');
   });
 
   test('timelineWhen wording', () {

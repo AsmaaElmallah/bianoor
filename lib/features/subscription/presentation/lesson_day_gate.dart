@@ -102,7 +102,7 @@ class LessonLockedView extends ConsumerWidget {
                     ),
                     const SizedBox(height: 20),
                     PrimaryButton(
-                      label: 'شوفي الباقات',
+                      label: lessonExtendCtaLabel(unlocked),
                       onPressed: () => openPlansForLessons(context, ref),
                     ),
                   ],

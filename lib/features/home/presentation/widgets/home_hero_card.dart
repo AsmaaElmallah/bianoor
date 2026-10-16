@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_assets.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/floating_widget.dart';
 
 /// BeBo mascot hero — gentle floating animation + soft glow shadow below.
@@ -13,36 +14,33 @@ class HomeHeroCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: SizedBox(
-        height: 190,
+        height: 112,
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // Soft glow ellipse below mascot
             Positioned(
-              bottom: 8,
+              bottom: 4,
               child: Container(
-                width: 110,
-                height: 24,
+                width: 72,
+                height: 16,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF00AFAA).withValues(alpha: 0.15),
+                  color: AppColors.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(50),
                 ),
               ),
             ),
-
-            // Floating mascot
             FloatingWidget(
-              amplitude: 9,
+              amplitude: 6,
               duration: const Duration(milliseconds: 3800),
               child: Image.asset(
                 AppAssets.mascotCapLying,
-                height: 170,
+                height: 100,
                 fit: BoxFit.contain,
                 errorBuilder: (_, __, ___) => Image.asset(
                   AppAssets.logoBaby,
-                  height: 160,
+                  height: 92,
                   fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => const SizedBox(height: 160),
+                  errorBuilder: (_, __, ___) => const SizedBox(height: 92),
                 ),
               ),
             ),

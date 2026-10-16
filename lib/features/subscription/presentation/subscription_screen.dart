@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +14,8 @@ import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../../shared/widgets/floating_widget.dart';
 import '../../payments/domain/payment_item.dart';
 import '../../payments/presentation/payment_options_sheet.dart';
+import '../../notifications/application/push_notifications.dart';
+import '../application/premium_access.dart';
 import '../data/subscription_cloud_repository.dart';
 import '../domain/subscription_plan_model.dart';
 
@@ -41,6 +45,8 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     setState(() => _busyPlanId = null);
     if (!paid) return;
     ref.invalidate(mySubscriptionProvider);
+    ref.invalidate(lessonAccessProvider);
+    unawaited(PushNotifications.instance.cancelSubscriptionRenewal());
     _onActivated(plan);
   }
 
@@ -173,7 +179,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                 ),
                         const SizedBox(height: 20),
                         Text(
-                          'اختر باقتك التعليمية',
+                          (mySub?.lessonDays ?? 0) > 0 ? 'مدّي باقتكِ' : 'اختاري باقتكِ',
                           textAlign: TextAlign.center,
                           style: theme.textTheme.headlineLarge?.copyWith(
                             color: AppColors.primary,
@@ -194,7 +200,9 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                           const SizedBox(height: 6),
                         ],
                         Text(
-                          'كل باقة بتفتح أيام من الدروس الأربعة، وبتتجمع مع اللي قبلها.\nاللي اتفتح بيفضل معاكِ على طول.',
+                          (mySub?.lessonDays ?? 0) > 0
+                              ? 'أي باقة هتزود أيام على المفتوحلكِ دلوقتي، واللي اتفتح قبل كده بيفضل معاكِ.'
+                              : 'كل باقة بتفتح أيام من الدروس الأربعة، وبتتجمع مع اللي قبلها.\nاللي اتفتح بيفضل معاكِ على طول.',
                           textAlign: TextAlign.center,
                           style: theme.textTheme.bodyLarge?.copyWith(
                             color: AppColors.onSurfaceVariant,
@@ -202,15 +210,29 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                           ),
                         ),
                         const SizedBox(height: 22),
-                        if ((mySub?.lessonDays ?? 0) > 0)
+                        if ((mySub?.lessonDays ?? 0) > 0 || mySub?.isActive == true)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 16),
-                            child: Text(
-                              'مفتوحلك ${mySub!.lessonDays} يوم من الدروس',
-                              textAlign: TextAlign.center,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w700,
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryContainer,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Text(
+                                [
+                                  if ((mySub?.lessonDays ?? 0) > 0)
+                                    'مفتوحلكِ دلوقتي ${mySub!.lessonDays} يوم — التمديد هيضيف أيام جديدة فوقهم',
+                                  if (mySub?.isActive == true && mySub?.expiresAt != null)
+                                    'تنتهي المزايا في ${_formatExpiry(mySub!.expiresAt!.toLocal())}',
+                                ].join('\n'),
+                                textAlign: TextAlign.center,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  color: AppColors.onPrimaryContainer,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1.4,
+                                ),
                               ),
                             ),
                           ),
@@ -381,7 +403,9 @@ class _PlanCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           _ClaySubscribeButton(
-            label: plan.canBuy ? 'ادفعي وافتحي ${plan.durationDays} يوم دروس' : 'السعر هيتحدد قريب',
+            label: plan.canBuy
+                ? 'ادفعي ومدّي ${plan.durationDays} يوم دروس'
+                : 'السعر هيتحدد قريب',
             color: plan.buttonColor,
             textColor: plan.buttonTextColor,
             onTap: onSubscribe,
@@ -540,6 +564,12 @@ class _ClaySubscribeButtonState extends State<_ClaySubscribeButton> {
       ),
     );
   }
+}
+
+String _formatExpiry(DateTime local) {
+  final d = local.day.toString().padLeft(2, '0');
+  final m = local.month.toString().padLeft(2, '0');
+  return '$d/$m/${local.year}';
 }
 
 class _TopRoundAvatar extends StatelessWidget {
