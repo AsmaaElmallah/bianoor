@@ -5,6 +5,7 @@ import '../../../core/router/app_routes.dart';
 import '../../../core/storage/prefs_service.dart';
 import '../../../core/supabase/supabase_bootstrap.dart';
 import '../../curriculum/data/progress_sync_service.dart';
+import 'auth_session_provider.dart';
 
 final _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
@@ -47,4 +48,21 @@ Future<void> finishSignIn(WidgetRef ref) async {
   router.go(
     prefs.isOnboardingComplete() && hasBaby ? AppRoutes.home : AppRoutes.language,
   );
+}
+
+/// Browse the app while the auth service is down.
+Future<void> startOfflinePreview(WidgetRef ref) async {
+  final prefs = ref.read(prefsServiceProvider);
+  await prefs.setOfflinePreview(true);
+  await prefs.setAuthenticated(true);
+  await prefs.setOnboardingComplete(true);
+  await prefs.setRulesAccepted(true);
+  if (prefs.getLanguage() == null) {
+    await prefs.setLanguage('ar');
+  }
+  if (prefs.getBabyName()?.trim().isEmpty ?? true) {
+    await prefs.setBabyName('نور');
+  }
+  ref.read(offlinePreviewProvider.notifier).state = true;
+  ref.read(appRouterProvider).go(AppRoutes.home);
 }

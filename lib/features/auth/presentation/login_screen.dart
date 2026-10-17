@@ -104,6 +104,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  Future<void> _enterOffline() async {
+    if (_loading) return;
+    setState(() => _loading = true);
+    try {
+      await startOfflinePreview(ref);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   Future<void> _socialLogin(Future<UserModel> Function() action) async {
     setState(() => _loading = true);
     try {
@@ -253,6 +263,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         onTap: _loading
                             ? null
                             : () => _socialLogin(repo.loginWithGoogle),
+                      ),
+                      const SizedBox(height: 12),
+                      TertiaryButton(
+                        label: 'الدخول بدون خدمة',
+                        color: AppColors.primary,
+                        onPressed: _loading ? null : _enterOffline,
                       ),
                       const SizedBox(height: 20),
                       Wrap(

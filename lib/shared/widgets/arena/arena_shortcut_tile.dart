@@ -24,51 +24,60 @@ class ArenaShortcutTile extends StatelessWidget {
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(ArenaIdentity.shortcutRadius),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         borderRadius: BorderRadius.circular(ArenaIdentity.shortcutRadius),
         onTap: () {
           HapticFeedback.selectionClick();
           onTap();
         },
-        child: Container(
+        child: DecoratedBox(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(ArenaIdentity.shortcutRadius),
             border: Border.all(color: AppColors.outlineVariant),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.onSurface.withValues(alpha: 0.04),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
           ),
-          padding: const EdgeInsets.fromLTRB(6, 10, 6, 8),
-          child: Column(
-            children: [
-              Container(
-                width: ArenaIdentity.shortcutWell,
-                height: ArenaIdentity.shortcutWell,
-                decoration: BoxDecoration(
-                  color: wellColor,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                alignment: Alignment.center,
-                child: Icon(icon, color: Colors.white, size: 22, weight: 600, fill: 1),
-              ),
-              const Spacer(),
-              Text(
-                title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.onSurface,
-                      height: 1.15,
-                      fontSize: 11,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(3, 6, 3, 4),
+            child: LayoutBuilder(
+              builder: (context, c) {
+                final well = (c.maxHeight * 0.46).clamp(22.0, 34.0);
+                return Column(
+                  children: [
+                    Container(
+                      width: well,
+                      height: well,
+                      decoration: BoxDecoration(
+                        color: wellColor,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        icon,
+                        color: Colors.white,
+                        size: well * 0.5,
+                        weight: 500,
+                        fill: 0,
+                      ),
                     ),
-              ),
-            ],
+                    const SizedBox(height: 3),
+                    Expanded(
+                      child: Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.onSurface,
+                              height: 1.05,
+                              fontSize: 9,
+                            ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
         ),
       ),

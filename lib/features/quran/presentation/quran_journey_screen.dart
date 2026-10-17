@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
+import '../../../core/constants/app_assets.dart';
 import '../../../core/router/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/arena_identity.dart';
@@ -54,6 +55,7 @@ class QuranJourneyScreen extends ConsumerWidget {
                       : ArenaPathNodeState.upcoming,
           accent: AppColors.trackQuranGold,
           icon: Symbols.menu_book,
+          characterAsset: AppAssets.mascotAt(i),
           speechBubble: isActive
               ? 'درسنا النهارده!'
               : isLocked

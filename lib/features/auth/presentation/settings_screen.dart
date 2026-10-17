@@ -18,7 +18,10 @@ import '../../../shared/widgets/icon_3d.dart';
 import '../../home/application/home_avatar.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
-  const SettingsScreen({super.key});
+  const SettingsScreen({super.key, this.embedded = false});
+
+  /// Bottom-nav «حسابي» — no back, shell already shows the bar.
+  final bool embedded;
 
   @override
   ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
@@ -111,6 +114,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _logout() async {
     setState(() => _busy = true);
     try {
+      await ref.read(prefsServiceProvider).setOfflinePreview(false);
+      ref.read(offlinePreviewProvider.notifier).state = false;
       await ref.read(authRepositoryProvider).logout();
       await ref.read(prefsServiceProvider).setAuthenticated(false);
       if (mounted) context.go(AppRoutes.login);
@@ -172,15 +177,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: QuranTactileAppBar(
-        title: 'الإعدادات',
-        onBack: () => context.pop(),
+        title: widget.embedded ? 'حسابي' : 'الإعدادات',
+        onBack: widget.embedded ? null : () => context.pop(),
       ),
       body: Stack(
         children: [
           const BeboShellBackground(showBottomCurve: false),
           SafeArea(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+              padding: EdgeInsets.fromLTRB(24, 8, 24, widget.embedded ? 120 : 32),
               children: [
                 Container(
                   padding: const EdgeInsets.all(16),

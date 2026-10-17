@@ -29,6 +29,34 @@ class HomeHeroCard extends StatelessWidget {
                 ),
               ),
             ),
+            Positioned(
+              left: 18,
+              bottom: 10,
+              child: FloatingWidget(
+                amplitude: 4,
+                duration: const Duration(milliseconds: 4200),
+                child: Image.asset(
+                  AppAssets.mascotSpoonSitting,
+                  height: 56,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
+              ),
+            ),
+            Positioned(
+              right: 18,
+              bottom: 12,
+              child: FloatingWidget(
+                amplitude: 5,
+                duration: const Duration(milliseconds: 3400),
+                child: Image.asset(
+                  AppAssets.mascotGirlStanding,
+                  height: 62,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
+              ),
+            ),
             FloatingWidget(
               amplitude: 6,
               duration: const Duration(milliseconds: 3800),

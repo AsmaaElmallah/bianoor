@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/bebo_shell_background.dart';
 import '../../ai/presentation/widgets/ai_launcher.dart';
-import '../../community/presentation/mothers_club_screen.dart';
+import '../../auth/presentation/settings_screen.dart';
 import '../../courses/presentation/courses_screen.dart';
 import '../domain/home_menu_item.dart';
 import 'tabs/home_dashboard_tab.dart';
@@ -46,12 +46,12 @@ class HomeShellScreen extends ConsumerWidget {
                         padding: EdgeInsets.symmetric(horizontal: 24),
                         child: HomeDashboardTab(),
                       ),
-                      CoursesScreen(embedded: true),
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: 24),
                         child: LibraryTab(),
                       ),
-                      MothersClubScreen(embedded: true),
+                      CoursesScreen(embedded: true),
+                      SettingsScreen(embedded: true),
                     ],
                   ),
                 ),
@@ -61,7 +61,7 @@ class HomeShellScreen extends ConsumerWidget {
         ],
       ),
       bottomNavigationBar: HomeBottomNav(
-        tabs: homeNavTabs,
+        tabs: List<HomeNavTab>.of(homeNavTabs),
         currentIndex: currentTab,
         onTap: (i) => ref.read(homeTabIndexProvider.notifier).state = i,
         center: const AiLauncherButton(),

@@ -25,8 +25,11 @@ class HomeTodayJourneySection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _TodayPlanCard(journey: journey),
-        const SizedBox(height: 18),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 18, 4, 16),
+          child: _TodayPlanCard(journey: journey),
+        ),
+        const SizedBox(height: 8),
         Text(
           'ابدئي من هنا',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -68,7 +71,34 @@ class _TodayPlanCard extends ConsumerWidget {
     final next = journey.nextStep;
     final live = journey.upcomingLive;
 
-    return Material(
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          left: 0,
+          bottom: -8,
+          child: IgnorePointer(
+            child: Image.asset(
+              AppAssets.mascotSpoonSitting,
+              height: 48,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            ),
+          ),
+        ),
+        Positioned(
+          right: 4,
+          top: -8,
+          child: IgnorePointer(
+            child: Image.asset(
+              AppAssets.mascotGirlStanding,
+              height: 46,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            ),
+          ),
+        ),
+        Material(
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(28),
       child: InkWell(
@@ -266,6 +296,8 @@ class _TodayPlanCard extends ConsumerWidget {
           ),
         ),
       ),
+        ),
+      ],
     );
   }
 }
@@ -415,19 +447,19 @@ class _ShortcutGrid extends ConsumerWidget {
         title: 'مكتبة',
         icon: Symbols.local_library,
         well: AppColors.trackLibraryBlue,
-        onTap: () => ref.read(homeTabIndexProvider.notifier).state = 2,
+        onTap: () => ref.read(homeTabIndexProvider.notifier).state = 1,
       ),
       (
         title: 'نادي الأمهات',
         icon: Symbols.group,
         well: const Color(0xFF14B8A6),
-        onTap: () => ref.read(homeTabIndexProvider.notifier).state = 3,
+        onTap: () => context.push(AppRoutes.mothersClub),
       ),
       (
         title: 'سشنات مباشرة',
         icon: Symbols.play_circle,
         well: AppColors.primary,
-        onTap: () => ref.read(homeTabIndexProvider.notifier).state = 1,
+        onTap: () => ref.read(homeTabIndexProvider.notifier).state = 2,
       ),
       (
         title: 'اسألي بيانور',
@@ -445,7 +477,7 @@ class _ShortcutGrid extends ConsumerWidget {
         crossAxisCount: 4,
         mainAxisSpacing: 10,
         crossAxisSpacing: 10,
-        childAspectRatio: 0.88,
+        mainAxisExtent: 92,
       ),
       itemBuilder: (context, i) {
         final item = items[i];

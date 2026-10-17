@@ -40,6 +40,7 @@ class PrefsService {
   static const _kSavedCourses = 'saved_courses';
   static const _kTimelineReminders = 'timeline_reminders_enabled';
   static const _kHomeAvatarPath = 'home_avatar_path';
+  static const _kOfflinePreview = 'offline_preview';
 
   int getVideoIndex() => _prefs.getInt(_kVideoIndex) ?? 0;
   Future<void> setVideoIndex(int value) => _prefs.setInt(_kVideoIndex, value);
@@ -54,6 +55,10 @@ class PrefsService {
   bool isAuthenticated() => _prefs.getBool(_kIsAuthenticated) ?? false;
   Future<void> setAuthenticated(bool value) =>
       _prefs.setBool(_kIsAuthenticated, value);
+
+  bool isOfflinePreview() => _prefs.getBool(_kOfflinePreview) ?? false;
+  Future<void> setOfflinePreview(bool value) =>
+      _prefs.setBool(_kOfflinePreview, value);
 
   bool isPasswordRecoveryPending() =>
       _prefs.getBool(_kPasswordRecoveryPending) ?? false;

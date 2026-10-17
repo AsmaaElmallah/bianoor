@@ -86,10 +86,10 @@ class HomeNavTab {
   final String? sectionId;
 }
 
-/// Bottom nav — Arena order: home · courses · library · mothers club (+ center AI).
+/// Bottom nav — Arena mobile: الرئيسية · المكتبة · روبوت · الدورات · حسابي.
 const homeNavTabs = <HomeNavTab>[
   HomeNavTab(id: 'home', label: 'الرئيسية', icon: Symbols.home, art: AppArt.house),
-  HomeNavTab(id: 'courses', label: 'الدورات', icon: Symbols.school, art: AppArt.graduationCap),
-  HomeNavTab(id: 'library', label: 'المكتبة', icon: Symbols.menu_book, art: AppArt.books, sectionId: 'library'),
-  HomeNavTab(id: 'mothers_club', label: 'نادي الأمهات', icon: Symbols.groups, art: AppArt.people),
+  HomeNavTab(id: 'library', label: 'المكتبة', icon: Symbols.local_library, art: AppArt.books, sectionId: 'library'),
+  HomeNavTab(id: 'courses', label: 'الدورات', icon: Symbols.play_circle, art: AppArt.graduationCap),
+  HomeNavTab(id: 'account', label: 'حسابي', icon: Symbols.person, art: AppArt.people),
 ];

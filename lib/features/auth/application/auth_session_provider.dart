@@ -16,12 +16,27 @@ final passwordRecoveryPendingProvider = StateProvider<bool>((ref) {
   return ref.read(prefsServiceProvider).isPasswordRecoveryPending();
 });
 
+/// Local browse when cloud auth is down.
+final offlinePreviewProvider = StateProvider<bool>((ref) {
+  return ref.read(prefsServiceProvider).isOfflinePreview();
+});
+
+const _offlinePreviewUser = UserModel(
+  id: 'offline-preview',
+  email: 'offline@local',
+  name: 'ضيف',
+);
+
 /// Current signed-in user — Supabase stream or local mock fallback.
 final authSessionProvider = StreamProvider<UserModel?>((ref) {
   final prefs = ref.watch(prefsServiceProvider);
+  final offlinePreview = ref.watch(offlinePreviewProvider);
+
+  if (offlinePreview) {
+    return Stream.value(_offlinePreviewUser);
+  }
 
   if (!SupabaseBootstrap.isEnabled) {
-    // No fake logged-in user — force real cloud auth via dart_defines.
     return Stream.value(null);
   }
 
@@ -140,6 +155,7 @@ final authRefreshListenableProvider = Provider<AuthRefreshListenable>((ref) {
   final listenable = AuthRefreshListenable();
   ref.listen(authSessionProvider, (_, __) => listenable.refresh());
   ref.listen(passwordRecoveryPendingProvider, (_, __) => listenable.refresh());
+  ref.listen(offlinePreviewProvider, (_, __) => listenable.refresh());
   ref.onDispose(listenable.dispose);
   return listenable;
 });

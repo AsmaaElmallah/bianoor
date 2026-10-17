@@ -16,6 +16,7 @@ class ArenaPathNodeData {
     required this.state,
     required this.accent,
     this.icon = Symbols.star,
+    this.characterAsset,
     this.speechBubble,
     this.onTap,
   });
@@ -26,6 +27,8 @@ class ArenaPathNodeData {
   final ArenaPathNodeState state;
   final Color accent;
   final IconData icon;
+  /// BeBo / Arena mascot sitting on the node (Duolingo-style path).
+  final String? characterAsset;
   final String? speechBubble;
   final VoidCallback? onTap;
 }
@@ -187,8 +190,8 @@ class _ZigzagPath extends StatelessWidget {
       builder: (context, constraints) {
         final width = constraints.maxWidth;
         final centerX = width / 2;
-        const rowH = 118.0;
-        final height = nodes.length * rowH + 24;
+        const rowH = 148.0;
+        final height = nodes.length * rowH + 36;
 
         return SizedBox(
           height: height,
@@ -205,7 +208,7 @@ class _ZigzagPath extends StatelessWidget {
               ),
               for (var i = 0; i < nodes.length; i++)
                 Positioned(
-                  top: 12 + i * rowH,
+                  top: 24 + i * rowH,
                   left: 0,
                   right: 0,
                   child: _PathRow(
@@ -244,8 +247,8 @@ class _DottedPathPainter extends CustomPainter {
     for (var i = 0; i < count - 1; i++) {
       final dx0 = ArenaIdentity.pathZigzag[i % ArenaIdentity.pathZigzag.length];
       final dx1 = ArenaIdentity.pathZigzag[(i + 1) % ArenaIdentity.pathZigzag.length];
-      final y0 = 12 + i * rowH + 36;
-      final y1 = 12 + (i + 1) * rowH + 36;
+      final y0 = 24 + i * rowH + 48;
+      final y1 = 24 + (i + 1) * rowH + 48;
       final x0 = centerX + dx0;
       final x1 = centerX + dx1;
       final dist = math.sqrt(math.pow(x1 - x0, 2) + math.pow(y1 - y0, 2));
@@ -324,6 +327,9 @@ class _NodeCircle extends StatelessWidget {
                 ? node.accent
                 : node.accent.withValues(alpha: 0.85);
 
+    final character = node.characterAsset;
+    final showCharacter = character != null && !locked;
+
     Widget core = Container(
       width: size,
       height: size,
@@ -338,17 +344,31 @@ class _NodeCircle extends StatelessWidget {
           ),
         ],
       ),
-      child: Icon(
-        locked
-            ? Symbols.lock
-            : done
-                ? Symbols.check
-                : node.icon,
-        color: locked ? AppColors.primary.withValues(alpha: 0.55) : Colors.white,
-        size: active ? 32 : 26,
-        fill: 1,
-        weight: 700,
-      ),
+      child: showCharacter
+          ? Padding(
+              padding: const EdgeInsets.all(6),
+              child: Image.asset(
+                character!,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => Icon(
+                  node.icon,
+                  color: Colors.white,
+                  size: active ? 28 : 22,
+                  fill: 1,
+                ),
+              ),
+            )
+          : Icon(
+              locked
+                  ? Symbols.lock
+                  : done
+                      ? Symbols.check
+                      : node.icon,
+              color: locked ? AppColors.primary.withValues(alpha: 0.55) : Colors.white,
+              size: active ? 32 : 26,
+              fill: 1,
+              weight: 700,
+            ),
     );
 
     if (active) {

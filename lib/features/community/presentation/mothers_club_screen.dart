@@ -374,8 +374,28 @@ class _MothersClubScreenState extends ConsumerState<MothersClubScreen> {
                                     Image.asset(
                                       AppAssets.arenaMothersClub,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) =>
-                                          Container(color: AppColors.primaryContainer),
+                                      errorBuilder: (_, __, ___) => DecoratedBox(
+                                        decoration: const BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                            colors: [Color(0xFF2DD4BF), Color(0xFF5B8DEF)],
+                                          ),
+                                        ),
+                                        child: Center(
+                                          child: Image.asset(
+                                            AppAssets.mascotGirlStanding,
+                                            height: 88,
+                                            fit: BoxFit.contain,
+                                            errorBuilder: (_, __, ___) => const Icon(
+                                              Symbols.groups,
+                                              color: Colors.white,
+                                              size: 48,
+                                              fill: 1,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                     ),
                                     DecoratedBox(
                                       decoration: BoxDecoration(

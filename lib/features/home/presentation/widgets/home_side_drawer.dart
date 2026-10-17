@@ -43,11 +43,7 @@ class HomeSideDrawer extends ConsumerWidget {
     final width = MediaQuery.sizeOf(context).width * 0.78;
     final start = homeSectionById('start_learning');
     final support = homeSectionById('support');
-    final communityExtras = homeSectionById('community')
-            ?.items
-            .where((i) => i.id != 'mothers_club')
-            .toList() ??
-        const <HomeMenuItem>[];
+    final communityExtras = homeSectionById('community')?.items ?? const <HomeMenuItem>[];
 
     return Material(
       color: AppColors.surfaceContainerLowest,

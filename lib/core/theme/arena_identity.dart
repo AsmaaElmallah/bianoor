@@ -18,7 +18,7 @@ abstract final class ArenaIdentity {
   static const Color fabGradientBottom = Color(0xFF6D4BF3);
 
   static const double shortcutRadius = 16;
-  static const double shortcutWell = 40;
+  static const double shortcutWell = 36;
   static const double nodeDone = 64;
   static const double nodeActive = 72;
   static const double nodeLocked = 56;

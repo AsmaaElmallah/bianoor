@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
+import '../../../../core/constants/app_assets.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/arena_identity.dart';
 import '../../../../shared/widgets/arena/arena_learning_path.dart';
@@ -55,6 +56,7 @@ class TodayLearningPathScreen extends ConsumerWidget {
                   : ArenaPathNodeState.locked,
           accent: accentFor(step.id),
           icon: iconFor(step.id),
+          characterAsset: AppAssets.mascotForTrack(step.id.name),
           speechBubble: next?.id == step.id ? 'درسنا النهارده!' : null,
           onTap: () {
             if (step.done || next?.id == step.id) {
@@ -77,6 +79,7 @@ class TodayLearningPathScreen extends ConsumerWidget {
           state: isLive ? ArenaPathNodeState.active : ArenaPathNodeState.upcoming,
           accent: AppColors.primary,
           icon: Symbols.videocam,
+          characterAsset: AppAssets.mascotForTrack('live'),
           speechBubble: isLive ? 'ادخلي اللايف!' : null,
           onTap: () => openLiveSession(context, ref, live),
         ),
@@ -91,9 +94,10 @@ class TodayLearningPathScreen extends ConsumerWidget {
         state: ArenaPathNodeState.upcoming,
         accent: AppColors.secondary,
         icon: Symbols.school,
+        characterAsset: AppAssets.mascotForTrack('courses'),
         onTap: () {
           Navigator.of(context).pop();
-          ref.read(homeTabIndexProvider.notifier).state = 1;
+          ref.read(homeTabIndexProvider.notifier).state = 2;
         },
       ),
     );

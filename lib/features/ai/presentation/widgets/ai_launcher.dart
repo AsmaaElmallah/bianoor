@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/supabase/supabase_bootstrap.dart';
 import '../../application/ai_providers.dart';
 import '../ai_assistant_screen.dart';
 import 'ai_orb.dart';
@@ -50,7 +49,6 @@ class _AiLauncherButtonState extends ConsumerState<AiLauncherButton> {
 
   @override
   Widget build(BuildContext context) {
-    if (!SupabaseBootstrap.isEnabled) return const SizedBox.shrink();
     final settings = ref.watch(aiSettingsProvider).valueOrNull;
     if (settings != null && !settings.enabled) return const SizedBox.shrink();
 

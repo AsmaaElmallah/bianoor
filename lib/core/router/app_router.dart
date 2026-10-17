@@ -84,9 +84,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     };
     final isPublic = publicPaths.contains(path);
 
-    // Without dart_defines the cloud is off — still block the app shell so
-    // Mock/empty auth cannot look like a real login.
+    // Cloud off: stay on login unless the mother chose offline browse.
     if (!SupabaseBootstrap.isEnabled) {
+      final offline = ref.read(offlinePreviewProvider);
+      if (offline) {
+        if (path == AppRoutes.login || path == AppRoutes.splash) {
+          return AppRoutes.home;
+        }
+        return null;
+      }
       if (!isPublic && path != AppRoutes.login) {
         return AppRoutes.login;
       }
